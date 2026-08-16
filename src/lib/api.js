@@ -40,6 +40,7 @@ export async function apiFetch(endpoint, options = {}) {
 
   const config = {
     credentials: 'include',
+    cache: 'no-store',
     ...options,
     headers,
     method,

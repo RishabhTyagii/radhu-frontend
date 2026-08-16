@@ -122,6 +122,13 @@ export default function TallySyncLogs() {
     if (rowCategoryOverride[item.id]) return rowCategoryOverride[item.id];
     if (item.category_override) return item.category_override;
     const name = (item.tally_item_name || '').toLowerCase();
+    
+    // C-Grade / Reject / 3rd Grade detection
+    if (name.includes('c grade') || name.includes('c-grade') || name.includes('3rd') || name.includes('c_grade') || name.includes('c.grade') || name.includes('reject')) return 'cgrade';
+    
+    // B-Grade / 2nd Grade / Repair detection
+    if (name.includes('b grade') || name.includes('b-grade') || name.includes('2nd') || name.includes('b_grade') || name.includes('b.grade') || name.includes('repair')) return 'bgrade';
+
     // cycle tyre detection — must come BEFORE tube detection
     if (name.includes('cycle tyre') || name.includes('cy.tyre')) return 'cycletyre';
     if ((name.includes('cycle') || name.includes('cy.')) && name.includes('tyre')) return 'cycletyre';
@@ -135,18 +142,23 @@ export default function TallySyncLogs() {
   const tyrePending = allPending.filter((p) => getItemCategory(p) === 'tyre');
   const cycleTyrePending = allPending.filter((p) => getItemCategory(p) === 'cycletyre');
   const tubePending = allPending.filter((p) => getItemCategory(p) === 'tube');
+  const bgradePending = allPending.filter((p) => getItemCategory(p) === 'bgrade');
+  const cgradePending = allPending.filter((p) => getItemCategory(p) === 'cgrade');
   const otherPending = allPending.filter((p) => getItemCategory(p) === 'other');
 
   let currentTabPending = [];
   if (activeTab === 'tyre') currentTabPending = tyrePending;
   else if (activeTab === 'cycletyre') currentTabPending = cycleTyrePending;
   else if (activeTab === 'tube') currentTabPending = tubePending;
+  else if (activeTab === 'bgrade') currentTabPending = bgradePending;
+  else if (activeTab === 'cgrade') currentTabPending = cgradePending;
   else if (activeTab === 'other') currentTabPending = otherPending;
 
   function getModuleItems(modKey) {
     if (modKey === 'tyre') return stockItems?.tyre_items?.map(i => ({ ...i, module: 'tyre' })) || [];
     if (modKey === 'cycletyre') return stockItems?.cycletyre_items?.map(i => ({ ...i, module: 'cycletyre' })) || [];
     if (modKey === 'tube') return stockItems?.tube_items?.map(i => ({ ...i, module: 'tube' })) || [];
+    // For bgrade, cgrade, or other, combine tyre and cycletyre items so user can map to either Auto Tyre or Cycle Tyre
     return [
       ...(stockItems?.tyre_items?.map(i => ({ ...i, module: 'tyre' })) || []),
       ...(stockItems?.cycletyre_items?.map(i => ({ ...i, module: 'cycletyre' })) || []),
@@ -310,9 +322,11 @@ export default function TallySyncLogs() {
               backgroundColor: '#fafcff',
             }}>
               {[
-                { key: 'tyre', label: '🏎️ Auto Tyre', count: tyrePending.length, color: '#3b82f6' },
-                { key: 'cycletyre', label: '🚴 Cycle Tyre', count: cycleTyrePending.length, color: '#059669' },
+                { key: 'tyre', label: '🏎️ Auto Tyre (1st)', count: tyrePending.length, color: '#3b82f6' },
+                { key: 'cycletyre', label: '🚴 Cycle Tyre (1st)', count: cycleTyrePending.length, color: '#059669' },
                 { key: 'tube', label: '🚲 Cycle Tube', count: tubePending.length, color: '#d97706' },
+                { key: 'bgrade', label: '🟡 B-Grade (2nd)', count: bgradePending.length, color: '#d97706' },
+                { key: 'cgrade', label: '🔴 Rejected / C-Grade (3rd)', count: cgradePending.length, color: '#dc2626' },
                 { key: 'other', label: '📦 Other', count: otherPending.length, color: '#64748b' },
               ].map((tab) => (
                 <button
@@ -434,9 +448,11 @@ export default function TallySyncLogs() {
                               onChange={async (e) => {
                                 const newCat = e.target.value;
                                 const catLabels = {
-                                  tyre: '🏎️ Auto Tyre',
-                                  cycletyre: '🚴 Cycle Tyre',
+                                  tyre: '🏎️ Auto Tyre (1st)',
+                                  cycletyre: '🚴 Cycle Tyre (1st)',
                                   tube: '🚲 Cycle Tube',
+                                  bgrade: '🟡 B-Grade (2nd Stock)',
+                                  cgrade: '🔴 Rejected / C-Grade (3rd/Reject)',
                                   other: '📦 Other / Unmapped',
                                 };
                                 setRowCategoryOverride((prev) => ({ ...prev, [p.id]: newCat }));
@@ -462,9 +478,11 @@ export default function TallySyncLogs() {
                               onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
                               onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
                             >
-                              <option value="tyre">🏎️ Auto Tyre</option>
-                              <option value="cycletyre">🚴 Cycle Tyre</option>
+                              <option value="tyre">🏎️ Auto Tyre (1st)</option>
+                              <option value="cycletyre">🚴 Cycle Tyre (1st)</option>
                               <option value="tube">🚲 Cycle Tube</option>
+                              <option value="bgrade">🟡 B-Grade (2nd Stock)</option>
+                              <option value="cgrade">🔴 Rejected / C-Grade (3rd/Reject)</option>
                               <option value="other">📦 Other</option>
                             </select>
                           </td>
