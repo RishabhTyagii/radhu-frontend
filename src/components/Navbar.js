@@ -1,0 +1,207 @@
+'use client';
+
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { apiGet, apiPost } from '@/lib/api';
+
+export default function Navbar() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [userData, setUserData] = useState(null);
+  const [activeModule, setActiveModule] = useState('stock');
+
+  useEffect(() => {
+    async function fetchUser() {
+      const data = await apiGet('/auth/me/');
+      if (data && data.authenticated && data.user) {
+        setUserData(data.user);
+      } else {
+        router.push('/login');
+      }
+    }
+    fetchUser();
+  }, [router]);
+
+  useEffect(() => {
+    if (pathname.startsWith('/cycletyres')) {
+      setActiveModule('cycletyres');
+    } else if (pathname.startsWith('/cycletube')) {
+      setActiveModule('cycletube');
+    } else if (pathname.startsWith('/tallysync')) {
+      setActiveModule('tallysync');
+    } else if (pathname.startsWith('/hrms')) {
+      setActiveModule('hrms');
+    } else if (pathname.startsWith('/orders')) {
+      setActiveModule('orders');
+    } else if (pathname.startsWith('/users')) {
+      setActiveModule('users');
+    } else if (pathname.startsWith('/stock')) {
+      setActiveModule('stock');
+    }
+  }, [pathname]);
+
+  const handleLogout = async () => {
+    await apiPost('/auth/logout/', {});
+    router.push('/login');
+  };
+
+  const isPageAllowed = (urlKey) => {
+    if (!userData) return false;
+    if (userData.is_superuser) return true;
+    const allowed = userData.allowed_pages || [];
+    return allowed.includes(urlKey);
+  };
+
+  const stockNavItems = [
+    { name: 'Dashboard', path: '/stock', icon: 'fas fa-warehouse', key: 'dashboard' },
+    { name: 'Production', path: '/stock/production', icon: 'fas fa-plus-circle', color: '#10b981', key: 'add_production' },
+    { name: 'Dispatch', path: '/stock/dispatch', icon: 'fas fa-truck', color: '#ef4444', key: 'add_dispatch' },
+    { name: 'Adjustment', path: '/stock/adjustment', icon: 'fas fa-sliders-h', color: '#8b5cf6', key: 'add_adjustment' },
+    { name: 'Entries', path: '/stock/entries', icon: 'fas fa-history', key: 'entries_log' },
+    { name: 'Report', path: '/stock/monthly-report', icon: 'fas fa-chart-bar', key: 'monthly_report' },
+    { name: 'Sheet', path: '/stock/production-sheet', icon: 'fas fa-file-alt', key: 'production_sheet' },
+    { name: 'Add Tyre', path: '/stock/add-tyre', icon: 'fas fa-plus-circle', key: 'add_tyre' },
+    { name: 'Daily Summary', path: '/stock/daily-summary', icon: 'fas fa-calendar-day', key: 'daily_summary' },
+  ];
+
+  const cycleTubeNavItems = [
+    { name: 'Dashboard', path: '/cycletube', icon: 'fas fa-ring', key: 'tube_dashboard' },
+    { name: 'Production', path: '/cycletube/production', icon: 'fas fa-plus-circle', color: '#10b981', key: 'tube_add_production' },
+    { name: 'Sale', path: '/cycletube/sale', icon: 'fas fa-shopping-cart', color: '#f59e0b', key: 'tube_add_sale' },
+    { name: 'Adjustment', path: '/cycletube/adjustment', icon: 'fas fa-sliders-h', color: '#8b5cf6', key: 'tube_add_adjustment' },
+    { name: 'Entries', path: '/cycletube/entries', icon: 'fas fa-history', key: 'tube_entries_log' },
+    { name: 'Report', path: '/cycletube/report', icon: 'fas fa-chart-bar', key: 'tube_monthly_report' },
+    { name: 'Summary', path: '/cycletube/summary', icon: 'fas fa-list-alt', color: '#14b8a6', key: 'tube_production_summary' },
+    { name: 'Add Tube', path: '/cycletube/add-item', icon: 'fas fa-plus-circle', key: 'tube_add_item' },
+  ];
+
+  const cycleTyresNavItems = [
+    { name: 'Dashboard', path: '/cycletyres', icon: 'fas fa-bicycle', key: 'cycletyre_dashboard' },
+    { name: 'Production', path: '/cycletyres/production', icon: 'fas fa-plus-circle', color: '#10b981', key: 'cycletyre_add_production' },
+    { name: '2nd Grade', path: '/cycletyres/second-grade', icon: 'fas fa-tags', color: '#f59e0b', key: 'cycletyre_add_sale' },
+    { name: 'Sale', path: '/cycletyres/sale', icon: 'fas fa-shopping-cart', color: '#ef4444', key: 'cycletyre_add_sale' },
+    { name: 'Adjustment', path: '/cycletyres/adjustment', icon: 'fas fa-sliders-h', color: '#8b5cf6', key: 'cycletyre_add_adjustment' },
+    { name: 'Entries', path: '/cycletyres/entries', icon: 'fas fa-history', key: 'cycletyre_entries_log' },
+    { name: 'Report', path: '/cycletyres/report', icon: 'fas fa-chart-bar', key: 'cycletyre_monthly_report' },
+    { name: 'Summary', path: '/cycletyres/summary', icon: 'fas fa-list-alt', color: '#14b8a6', key: 'cycletyre_daily_summary' },
+    { name: 'Sheet', path: '/cycletyres/production-sheet', icon: 'fas fa-file-alt', key: 'cycletyre_production_sheet' },
+    { name: 'Add Tyre', path: '/cycletyres/add-item', icon: 'fas fa-plus-circle', key: 'cycletyre_add_item' },
+  ];
+
+  const tallySyncNavItems = [
+    { name: 'Sales & GST', path: '/tallysync', icon: 'fas fa-chart-pie', color: '#2563eb', key: 'tally_sales_summary' },
+    { name: 'Item Mappings', path: '/tallysync/mapping', icon: 'fas fa-link', color: '#10b981', key: 'tally_mapping_list' },
+    { name: 'Sync Logs', path: '/tallysync/logs', icon: 'fas fa-history', color: '#f59e0b', key: 'tally_sync_log' },
+  ];
+
+  const hrmsNavItems = [
+    { name: 'HR Dashboard', path: '/hrms', icon: 'fas fa-user-shield', color: '#2563eb', key: 'hr_dashboard' },
+    { name: 'Employees', path: '/hrms/employees', icon: 'fas fa-users', color: '#10b981', key: 'employee_list' },
+    { name: 'Attendance', path: '/hrms/attendance', icon: 'fas fa-calendar-check', color: '#f59e0b', key: 'attendance_list' },
+    { name: 'Piece Production', path: '/hrms/production', icon: 'fas fa-cogs', color: '#8b5cf6', key: 'production_list' },
+    { name: 'Salary Engine', path: '/hrms/salary', icon: 'fas fa-calculator', color: '#ef4444', key: 'salary_list' },
+    { name: 'Departments', path: '/hrms/departments', icon: 'fas fa-building', color: '#64748b', key: 'hr_dashboard' },
+  ];
+
+  const ordersNavItems = [
+    { name: 'My Orders', path: '/orders', icon: 'fas fa-box', color: '#2563eb', key: 'my_orders' },
+    { name: 'Book Order', path: '/orders/create', icon: 'fas fa-cart-plus', color: '#10b981', key: 'create_order' },
+    { name: 'All Orders', path: '/orders/all', icon: 'fas fa-tasks', color: '#8b5cf6', key: 'admin_orders' },
+  ];
+
+  const usersNavItems = [
+    { name: 'User Directory', path: '/users', icon: 'fas fa-users-cog', color: '#2563eb', key: 'manage_users' },
+    { name: 'Create User', path: '/users/create', icon: 'fas fa-user-plus', color: '#10b981', key: 'create_user' },
+  ];
+
+  if (!userData) return null;
+
+  let currentNavItems = stockNavItems;
+  if (activeModule === 'cycletube') currentNavItems = cycleTubeNavItems;
+  if (activeModule === 'cycletyres') currentNavItems = cycleTyresNavItems;
+  if (activeModule === 'tallysync') currentNavItems = tallySyncNavItems;
+  if (activeModule === 'hrms') currentNavItems = hrmsNavItems;
+  if (activeModule === 'orders') currentNavItems = ordersNavItems;
+  if (activeModule === 'users') currentNavItems = usersNavItems;
+
+  const filteredNavItems = currentNavItems.filter((item) => isPageAllowed(item.key));
+
+  return (
+    <nav className="navbar">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <Link href="/" className="nav-brand" style={{ textDecoration: 'none', color: 'inherit' }}>
+          <i className="fas fa-industry"></i> Radhu
+        </Link>
+        <div style={{ display: 'flex', background: 'rgba(255,255,255,0.1)', borderRadius: '8px', padding: '2px', gap: '2px' }}>
+          <button
+            onClick={() => { setActiveModule('stock'); router.push('/stock'); }}
+            style={{
+              padding: '5px 10px',
+              borderRadius: '6px',
+              border: 'none',
+              background: activeModule === 'stock' ? 'var(--primary)' : 'transparent',
+              color: 'white',
+              cursor: 'pointer',
+              fontSize: '0.75rem',
+              fontWeight: 600
+            }}
+          >
+            🚗
+          </button>
+          <button
+            onClick={() => { setActiveModule('cycletube'); router.push('/cycletube'); }}
+            style={{
+              padding: '5px 10px',
+              borderRadius: '6px',
+              border: 'none',
+              background: activeModule === 'cycletube' ? '#10b981' : 'transparent',
+              color: 'white',
+              cursor: 'pointer',
+              fontSize: '0.75rem',
+              fontWeight: 600
+            }}
+          >
+            🚲
+          </button>
+          <button
+            onClick={() => { setActiveModule('cycletyres'); router.push('/cycletyres'); }}
+            style={{
+              padding: '5px 10px',
+              borderRadius: '6px',
+              border: 'none',
+              background: activeModule === 'cycletyres' ? '#f59e0b' : 'transparent',
+              color: 'white',
+              cursor: 'pointer',
+              fontSize: '0.75rem',
+              fontWeight: 600
+            }}
+          >
+            🚴
+          </button>
+        </div>
+      </div>
+
+      <div className="nav-links">
+        {filteredNavItems.map((item) => (
+          <Link
+            key={item.path}
+            href={item.path}
+            className={`nav-link ${pathname === item.path ? 'active' : ''}`}
+          >
+            <i className={item.icon} style={item.color ? { color: item.color } : {}}></i>
+            {item.name}
+          </Link>
+        ))}
+      </div>
+
+      <div className="user-section">
+        <div className="avatar">{userData.username?.charAt(0).toUpperCase()}</div>
+        <span style={{ fontSize: '0.875rem' }}>{userData.username}</span>
+        <button onClick={handleLogout} className="btn" style={{ background: 'transparent', color: '#ef4444', padding: '4px' }}>
+          <i className="fas fa-sign-out-alt"></i>
+        </button>
+      </div>
+    </nav>
+  );
+}
