@@ -120,9 +120,10 @@ export default function TallySyncLogs() {
 
   function getItemCategory(item) {
     if (rowCategoryOverride[item.id]) return rowCategoryOverride[item.id];
+    if (item.category_override) return item.category_override;
     const name = (item.tally_item_name || '').toLowerCase();
     // cycle tyre detection — must come BEFORE tube detection
-    if (name.includes('cycle tyre') || name.includes('cy.tyre') || name.includes('cycle tyre')) return 'cycletyre';
+    if (name.includes('cycle tyre') || name.includes('cy.tyre')) return 'cycletyre';
     if ((name.includes('cycle') || name.includes('cy.')) && name.includes('tyre')) return 'cycletyre';
     // tube detection
     if (name.includes('tube') || name.includes('cy.tube') || name.includes('moulded') || name.includes('mld') || name.includes(' tb') || name.includes('jt')) return 'tube';
@@ -430,11 +431,12 @@ export default function TallySyncLogs() {
                                 transition: 'border-color 0.2s ease',
                               }}
                               value={targetCategory}
-                              onChange={(e) => {
-                                setRowCategoryOverride({ ...rowCategoryOverride, [p.id]: e.target.value });
-                                // Clear item selection when category changes so user picks fresh
+                              onChange={async (e) => {
+                                const newCat = e.target.value;
+                                setRowCategoryOverride({ ...rowCategoryOverride, [p.id]: newCat });
                                 setSelectedItemMap((prev) => { const copy = { ...prev }; delete copy[p.id]; return copy; });
                                 setRowSearchMap((prev) => { const copy = { ...prev }; delete copy[p.id]; return copy; });
+                                await apiPost(`/tallysync/pending/${p.id}/category/`, { category: newCat });
                               }}
                               onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
                               onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
