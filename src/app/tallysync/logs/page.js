@@ -433,10 +433,31 @@ export default function TallySyncLogs() {
                               value={targetCategory}
                               onChange={async (e) => {
                                 const newCat = e.target.value;
-                                setRowCategoryOverride({ ...rowCategoryOverride, [p.id]: newCat });
+                                const catLabels = {
+                                  tyre: '🏎️ Auto Tyre',
+                                  cycletyre: '🚴 Cycle Tyre',
+                                  tube: '🚲 Cycle Tube',
+                                  other: '📦 Other / Unmapped',
+                                };
+                                setRowCategoryOverride((prev) => ({ ...prev, [p.id]: newCat }));
                                 setSelectedItemMap((prev) => { const copy = { ...prev }; delete copy[p.id]; return copy; });
                                 setRowSearchMap((prev) => { const copy = { ...prev }; delete copy[p.id]; return copy; });
-                                await apiPost(`/tallysync/pending/${p.id}/category/`, { category: newCat });
+
+                                const res = await apiPost(`/tallysync/pending/${p.id}/category/`, { category: newCat });
+                                if (res && res.ok) {
+                                  setMessage({
+                                    type: 'success',
+                                    text: `✓ '${p.tally_item_name}' ko permanently ${catLabels[newCat] || newCat} tab me transfer kar diya gaya hai!`,
+                                  });
+                                  if (data && data.pending) {
+                                    const updated = data.pending.map((item) =>
+                                      item.id === p.id ? { ...item, category_override: newCat } : item
+                                    );
+                                    setData({ ...data, pending: updated });
+                                  }
+                                } else {
+                                  setMessage({ type: 'error', text: 'Category transfer save karne me error aaya' });
+                                }
                               }}
                               onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
                               onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
