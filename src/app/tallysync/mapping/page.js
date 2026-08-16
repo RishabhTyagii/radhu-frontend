@@ -9,14 +9,21 @@ export default function TallyMappingList() {
   const [stockItems, setStockItems] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('tyre'); // 'tyre', 'cycletyre', 'tube', 'other'
+  
+  // Add mapping form state
   const [formData, setFormData] = useState({
     tally_item_name: '',
     item_choice: '', // format "module:id"
   });
+  const [searchFormItem, setSearchFormItem] = useState('');
+  
   const [message, setMessage] = useState(null);
   const [saving, setSaving] = useState(false);
   const [updatingId, setUpdatingId] = useState(null);
   const [search, setSearch] = useState('');
+
+  // Delete modal state
+  const [deleteModalItem, setDeleteModalItem] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -54,18 +61,27 @@ export default function TallyMappingList() {
         text: `Mapping saved! ${res.resolved_count ? `${res.resolved_count} pending items automatically resolved!` : ''}`,
       });
       setFormData({ tally_item_name: '', item_choice: '' });
+      setSearchFormItem('');
       fetchData();
     } else {
       setMessage({ type: 'error', text: res?.data?.error || 'Failed to save mapping' });
     }
   };
 
-  const handleDelete = async (id, name) => {
-    if (!confirm(`Delete mapping for "${name}"?`)) return;
+  const confirmDelete = async (mode) => {
+    if (!deleteModalItem) return;
+    const { id, name } = deleteModalItem;
+    setDeleteModalItem(null);
+
     const res = await apiDelete(`/tallysync/mapping/${id}/delete/`);
     if (res && res.ok) {
       setMappings(mappings.filter(m => m.id !== id));
-      setMessage({ type: 'success', text: `Mapping for "${name}" deleted.` });
+      setMessage({
+        type: 'success',
+        text: mode === 'full' 
+          ? `FULL DELETE: Mapping "${name}" deleted & stock/invoices reverted.` 
+          : `Mapping for "${name}" deleted.`,
+      });
     }
   };
 
@@ -114,6 +130,22 @@ export default function TallyMappingList() {
     );
   });
 
+  // Get items relevant for active tab in form
+  function getTabItems(modKey) {
+    if (modKey === 'tyre') return stockItems?.tyre_items || [];
+    if (modKey === 'cycletyre') return stockItems?.cycletyre_items || [];
+    if (modKey === 'tube') return stockItems?.tube_items || [];
+    return [
+      ...(stockItems?.tyre_items || []),
+      ...(stockItems?.cycletyre_items || []),
+      ...(stockItems?.tube_items || []),
+    ];
+  }
+
+  const currentSelectItems = getTabItems(activeTab).filter(it => 
+    !searchFormItem || it.label.toLowerCase().includes(searchFormItem.toLowerCase())
+  );
+
   return (
     <>
       <Navbar />
@@ -143,7 +175,7 @@ export default function TallyMappingList() {
         <div className="grid-2">
           {/* Add Mapping Form */}
           <div className="card" style={{ height: 'fit-content' }}>
-            <h2><i className="fas fa-plus-circle mr-1" style={{ color: '#2563eb' }}></i> Add / Edit Item Mapping</h2>
+            <h2><i className="fas fa-plus-circle mr-1" style={{ color: '#2563eb' }}></i> Add Item Mapping ({activeTab.toUpperCase()})</h2>
             <form onSubmit={handleSubmit} style={{ marginTop: '16px' }}>
               <div className="form-group">
                 <label className="form-label">Tally Item Name * (Exact name in Tally Prime)</label>
@@ -157,45 +189,37 @@ export default function TallyMappingList() {
                 />
               </div>
 
+              {/* Real-Time Searchable Dropdown for Tab */}
               <div className="form-group">
-                <label className="form-label">Target Portal Item *</label>
+                <label className="form-label">Target Item in {activeTab.toUpperCase()} *</label>
+                
+                {/* Search Input Filter */}
+                <div style={{ position: 'relative', marginBottom: '8px' }}>
+                  <i className="fas fa-search" style={{ position: 'absolute', left: '10px', top: '10px', fontSize: '0.8rem', color: '#94a3b8' }}></i>
+                  <input
+                    type="text"
+                    className="form-input"
+                    style={{ paddingLeft: '30px', fontSize: '0.82rem', height: '36px' }}
+                    placeholder={`Type to search in ${activeTab.toUpperCase()} items...`}
+                    value={searchFormItem}
+                    onChange={(e) => setSearchFormItem(e.target.value)}
+                  />
+                </div>
+
                 <select
                   className="form-select"
                   value={formData.item_choice}
                   onChange={(e) => setFormData({ ...formData, item_choice: e.target.value })}
                   required
+                  size={5}
+                  style={{ height: '140px' }}
                 >
                   <option value="">-- Select Matching Item --</option>
-                  
-                  {stockItems?.tyre_items?.length > 0 && (
-                    <optgroup label="🚗 Auto Tyre Items">
-                      {stockItems.tyre_items.map((t) => (
-                        <option key={`tyre:${t.id}`} value={`tyre:${t.id}`}>
-                          Auto Tyre: {t.label}
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
-
-                  {stockItems?.cycletyre_items?.length > 0 && (
-                    <optgroup label="🚴 Cycle Tyre Items">
-                      {stockItems.cycletyre_items.map((t) => (
-                        <option key={`cycletyre:${t.id}`} value={`cycletyre:${t.id}`}>
-                          Cycle Tyre: {t.label}
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
-
-                  {stockItems?.tube_items?.length > 0 && (
-                    <optgroup label="🚲 Cycle Tube Items">
-                      {stockItems.tube_items.map((t) => (
-                        <option key={`tube:${t.id}`} value={`tube:${t.id}`}>
-                          Cycle Tube: {t.label}
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
+                  {currentSelectItems.map((t) => (
+                    <option key={`${activeTab}:${t.id}`} value={`${activeTab}:${t.id}`}>
+                      [{activeTab.toUpperCase()}] {t.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -210,7 +234,7 @@ export default function TallyMappingList() {
             {/* 4 Navigation Tabs */}
             <div style={{ display: 'flex', gap: '8px', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
               <button
-                onClick={() => setActiveTab('tyre')}
+                onClick={() => { setActiveTab('tyre'); setSearchFormItem(''); }}
                 className="btn"
                 style={{
                   background: activeTab === 'tyre' ? '#2563eb' : '#f1f5f9',
@@ -223,7 +247,7 @@ export default function TallyMappingList() {
               </button>
 
               <button
-                onClick={() => setActiveTab('cycletyre')}
+                onClick={() => { setActiveTab('cycletyre'); setSearchFormItem(''); }}
                 className="btn"
                 style={{
                   background: activeTab === 'cycletyre' ? '#059669' : '#f1f5f9',
@@ -236,7 +260,7 @@ export default function TallyMappingList() {
               </button>
 
               <button
-                onClick={() => setActiveTab('tube')}
+                onClick={() => { setActiveTab('tube'); setSearchFormItem(''); }}
                 className="btn"
                 style={{
                   background: activeTab === 'tube' ? '#d97706' : '#f1f5f9',
@@ -249,7 +273,7 @@ export default function TallyMappingList() {
               </button>
 
               <button
-                onClick={() => setActiveTab('other')}
+                onClick={() => { setActiveTab('other'); setSearchFormItem(''); }}
                 className="btn"
                 style={{
                   background: activeTab === 'other' ? '#64748b' : '#f1f5f9',
@@ -270,8 +294,8 @@ export default function TallyMappingList() {
                   <thead>
                     <tr>
                       <th>Tally Item Name</th>
-                      <th>Current Portal Item</th>
-                      <th style={{ minWidth: '220px' }}>Transfer / Change Target</th>
+                      <th>Current Item</th>
+                      <th style={{ minWidth: '180px' }}>Transfer to Other Tab</th>
                       <th style={{ textAlign: 'center' }}>Action</th>
                     </tr>
                   </thead>
@@ -286,51 +310,36 @@ export default function TallyMappingList() {
                           <select
                             className="form-select"
                             style={{ fontSize: '0.78rem', padding: '4px 6px' }}
-                            defaultValue={`${m.module}:${m.item_id}`}
+                            value={`${m.module}:${m.item_id}`}
                             disabled={updatingId === m.id}
                             onChange={(e) => handleTransferModule(m.id, e.target.value)}
                           >
                             <option value="">-- Transfer Target --</option>
-
-                            {stockItems?.tyre_items?.length > 0 && (
-                              <optgroup label="🏎️ Auto Tyre">
-                                {stockItems.tyre_items.map((t) => (
-                                  <option key={`tyre:${t.id}`} value={`tyre:${t.id}`}>
-                                    Auto Tyre: {t.label}
-                                  </option>
-                                ))}
-                              </optgroup>
-                            )}
-
-                            {stockItems?.cycletyre_items?.length > 0 && (
-                              <optgroup label="🚴 Cycle Tyre">
-                                {stockItems.cycletyre_items.map((t) => (
-                                  <option key={`cycletyre:${t.id}`} value={`cycletyre:${t.id}`}>
-                                    Cycle Tyre: {t.label}
-                                  </option>
-                                ))}
-                              </optgroup>
-                            )}
-
-                            {stockItems?.tube_items?.length > 0 && (
-                              <optgroup label="🚲 Cycle Tube">
-                                {stockItems.tube_items.map((t) => (
-                                  <option key={`tube:${t.id}`} value={`tube:${t.id}`}>
-                                    Cycle Tube: {t.label}
-                                  </option>
-                                ))}
-                              </optgroup>
-                            )}
+                            <optgroup label="🏎️ Auto Tyre">
+                              {stockItems?.tyre_items?.map((t) => (
+                                <option key={`tyre:${t.id}`} value={`tyre:${t.id}`}>Auto Tyre: {t.label}</option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="🚴 Cycle Tyre">
+                              {stockItems?.cycletyre_items?.map((t) => (
+                                <option key={`cycletyre:${t.id}`} value={`cycletyre:${t.id}`}>Cycle Tyre: {t.label}</option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="🚲 Cycle Tube">
+                              {stockItems?.tube_items?.map((t) => (
+                                <option key={`tube:${t.id}`} value={`tube:${t.id}`}>Cycle Tube: {t.label}</option>
+                              ))}
+                            </optgroup>
                           </select>
                         </td>
                         <td style={{ textAlign: 'center' }}>
                           <button
-                            onClick={() => handleDelete(m.id, m.tally_item_name)}
+                            onClick={() => setDeleteModalItem({ id: m.id, name: m.tally_item_name })}
                             className="btn"
-                            style={{ background: 'transparent', color: '#ef4444', padding: '4px 8px' }}
+                            style={{ background: '#fee2e2', color: '#ef4444', padding: '4px 8px' }}
                             title="Delete Mapping"
                           >
-                            <i className="fas fa-trash"></i>
+                            <i className="fas fa-trash"></i> Delete
                           </button>
                         </td>
                       </tr>
@@ -349,6 +358,60 @@ export default function TallyMappingList() {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal with 2 Explicit Options */}
+      {deleteModalItem && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+        }}>
+          <div className="card" style={{ maxWidth: '480px', width: '90%', padding: '24px' }}>
+            <h3 style={{ color: '#ef4444', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <i className="fas fa-exclamation-triangle"></i> Delete Confirmation
+            </h3>
+            <p style={{ marginBottom: '16px', fontSize: '0.9rem', color: '#334155' }}>
+              Aap <strong>"{deleteModalItem.name}"</strong> ko delete kar rahe hain. Kaunsa delete option apply karna chahte hain?
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+              <button
+                onClick={() => confirmDelete('mapping_only')}
+                className="btn"
+                style={{
+                  background: '#f8fafc', border: '1px solid #cbd5e1', color: '#334155',
+                  textAlign: 'left', padding: '10px 14px', borderRadius: '6px',
+                }}
+              >
+                <strong>⚠️ Option 1: Remove Mapping Only</strong>
+                <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>
+                  Sirf Tally Mapping remove hogi. Invoice totals, GST, aur Stock safe rahenge.
+                </div>
+              </button>
+
+              <button
+                onClick={() => confirmDelete('full')}
+                className="btn"
+                style={{
+                  background: '#fef2f2', border: '1px solid #fca5a5', color: '#991b1b',
+                  textAlign: 'left', padding: '10px 14px', borderRadius: '6px',
+                }}
+              >
+                <strong>🗑️ Option 2: Full Delete (Revert Stock & Deduct Bill/GST)</strong>
+                <div style={{ fontSize: '0.78rem', color: '#b91c1c', marginTop: '2px' }}>
+                  Pura remove hoga — Stock revert hoga aur Invoice Total/GST se amount minus ho jayegi.
+                </div>
+              </button>
+            </div>
+
+            <div style={{ textAlign: 'right' }}>
+              <button onClick={() => setDeleteModalItem(null)} className="btn" style={{ background: '#e2e8f0', color: '#475569' }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

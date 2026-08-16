@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
-import { apiGet, apiPost } from '@/lib/api';
+import { apiGet, apiPost, apiDelete, apiFetch } from '@/lib/api';
 
 export default function TallySyncLogs() {
   const [data, setData] = useState(null);
@@ -11,7 +11,13 @@ export default function TallySyncLogs() {
   const [activeTab, setActiveTab] = useState('tyre'); // 'tyre', 'cycletyre', 'tube', 'other'
   const [message, setMessage] = useState(null);
   const [resolvingId, setResolvingId] = useState(null);
+  
+  // Real-time search state per item row
+  const [rowSearchMap, setRowSearchMap] = useState({});
   const [selectedItemMap, setSelectedItemMap] = useState({});
+
+  // Delete modal state
+  const [deleteModalItem, setDeleteModalItem] = useState(null);
 
   // Pagination for logs
   const [logsPage, setLogsPage] = useState(1);
@@ -53,7 +59,7 @@ export default function TallySyncLogs() {
   const handleInlineResolve = async (pendingId, mappingType) => {
     const itemChoice = selectedItemMap[pendingId];
     if (!itemChoice) {
-      alert('Pehle dropdown se ek matching item select karo!');
+      alert('Pehle dropdown se matching item select karo!');
       return;
     }
 
@@ -86,6 +92,37 @@ export default function TallySyncLogs() {
     }
   };
 
+  const confirmDeletePending = async (mode) => {
+    if (!deleteModalItem) return;
+    const { id, name } = deleteModalItem;
+    setDeleteModalItem(null);
+
+    const res = await apiFetch(`/tallysync/pending/${id}/delete/`, {
+      method: 'POST',
+      body: JSON.stringify({ mode }),
+    });
+
+    if (res && res.ok) {
+      const respData = await res.json();
+      setMessage({
+        type: 'success',
+        text: `✓ ${respData.message}`,
+      });
+
+      // INSTANT IN-MEMORY REMOVAL: Remove from pending array
+      if (data && data.pending) {
+        const updatedPending = data.pending.filter((p) => p.id !== id);
+        setData({
+          ...data,
+          pending: updatedPending,
+          pending_total: Math.max(0, (data.pending_total || 1) - 1),
+        });
+      }
+    } else {
+      alert('Failed to delete pending entry');
+    }
+  };
+
   const allPending = data?.pending || [];
   const logs = data?.logs || [];
 
@@ -110,6 +147,18 @@ export default function TallySyncLogs() {
   else if (activeTab === 'tube') currentTabPending = tubePending;
   else if (activeTab === 'other') currentTabPending = otherPending;
 
+  // Get items for selection dropdown based on active tab
+  function getTabItems(modKey) {
+    if (modKey === 'tyre') return stockItems?.tyre_items?.map(i => ({ ...i, module: 'tyre' })) || [];
+    if (modKey === 'cycletyre') return stockItems?.cycletyre_items?.map(i => ({ ...i, module: 'cycletyre' })) || [];
+    if (modKey === 'tube') return stockItems?.tube_items?.map(i => ({ ...i, module: 'tube' })) || [];
+    return [
+      ...(stockItems?.tyre_items?.map(i => ({ ...i, module: 'tyre' })) || []),
+      ...(stockItems?.cycletyre_items?.map(i => ({ ...i, module: 'cycletyre' })) || []),
+      ...(stockItems?.tube_items?.map(i => ({ ...i, module: 'tube' })) || []),
+    ];
+  }
+
   return (
     <>
       <Navbar />
@@ -118,7 +167,7 @@ export default function TallySyncLogs() {
           <div>
             <h1>📋 Tally Sync Logs & Pending Items</h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-              Categorized pending vouchers manager and paginated webhook activity logs
+              Categorized pending vouchers manager, real-time searchable items, and paginated logs
             </p>
           </div>
           <div>
@@ -207,83 +256,90 @@ export default function TallySyncLogs() {
                     <th>PARTY</th>
                     <th>TALLY ITEM NAME</th>
                     <th>QTY</th>
-                    <th>REASON</th>
-                    <th style={{ minWidth: '340px' }}>TRANSFER & INLINE MAP</th>
+                    <th style={{ minWidth: '380px' }}>SEARCH & TARGET ITEM ({activeTab.toUpperCase()})</th>
+                    <th style={{ textAlign: 'center' }}>ACTION</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {currentTabPending.map((p) => (
-                    <tr key={p.id}>
-                      <td style={{ fontWeight: 600 }}>{p.voucher_number}</td>
-                      <td>{p.voucher_date}</td>
-                      <td>{p.party_name || '-'}</td>
-                      <td style={{ fontWeight: 700, color: '#92400e' }}>{p.tally_item_name}</td>
-                      <td style={{ fontWeight: 'bold' }}>{p.qty}</td>
-                      <td><span className="badge red">{p.reason_display}</span></td>
-                      <td>
-                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                          <select
-                            className="form-select"
-                            style={{ fontSize: '0.78rem', padding: '4px 6px', flex: 1 }}
-                            value={selectedItemMap[p.id] || ''}
-                            onChange={(e) => setSelectedItemMap({ ...selectedItemMap, [p.id]: e.target.value })}
-                          >
-                            <option value="">-- Select Target Item --</option>
-                            
-                            {stockItems?.tyre_items?.length > 0 && (
-                              <optgroup label="🏎️ Auto Tyre">
-                                {stockItems.tyre_items.map((it) => (
-                                  <option key={`tyre:${it.id}`} value={`tyre:${it.id}`}>
-                                    Auto Tyre: {it.label}
-                                  </option>
-                                ))}
-                              </optgroup>
-                            )}
+                  {currentTabPending.map((p) => {
+                    const rowSearch = rowSearchMap[p.id] || '';
+                    const rawItems = getTabItems(activeTab);
+                    const filteredItems = rawItems.filter(it => 
+                      !rowSearch || it.label.toLowerCase().includes(rowSearch.toLowerCase())
+                    );
 
-                            {stockItems?.cycletyre_items?.length > 0 && (
-                              <optgroup label="🚴 Cycle Tyre">
-                                {stockItems.cycletyre_items.map((it) => (
-                                  <option key={`cycletyre:${it.id}`} value={`cycletyre:${it.id}`}>
-                                    Cycle Tyre: {it.label}
-                                  </option>
-                                ))}
-                              </optgroup>
-                            )}
+                    return (
+                      <tr key={p.id}>
+                        <td style={{ fontWeight: 600 }}>{p.voucher_number}</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{p.voucher_date}</td>
+                        <td>{p.party_name || '-'}</td>
+                        <td style={{ fontWeight: 700, color: '#92400e' }}>{p.tally_item_name}</td>
+                        <td style={{ fontWeight: 'bold' }}>{p.qty}</td>
+                        <td>
+                          {/* Searchable Real-Time Item Dropdown */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <div style={{ position: 'relative' }}>
+                              <i className="fas fa-search" style={{ position: 'absolute', left: '8px', top: '8px', fontSize: '0.75rem', color: '#94a3b8' }}></i>
+                              <input
+                                type="text"
+                                className="form-input"
+                                style={{ paddingLeft: '26px', fontSize: '0.75rem', height: '28px', borderRadius: '4px' }}
+                                placeholder={`Type to search ${activeTab.toUpperCase()} items...`}
+                                value={rowSearch}
+                                onChange={(e) => setRowSearchMap({ ...rowSearchMap, [p.id]: e.target.value })}
+                              />
+                            </div>
 
-                            {stockItems?.tube_items?.length > 0 && (
-                              <optgroup label="🚲 Cycle Tube">
-                                {stockItems.tube_items.map((it) => (
-                                  <option key={`tube:${it.id}`} value={`tube:${it.id}`}>
-                                    Cycle Tube: {it.label}
-                                  </option>
-                                ))}
-                              </optgroup>
-                            )}
-                          </select>
+                            <select
+                              className="form-select"
+                              style={{ fontSize: '0.78rem', padding: '4px 6px' }}
+                              value={selectedItemMap[p.id] || ''}
+                              onChange={(e) => setSelectedItemMap({ ...selectedItemMap, [p.id]: e.target.value })}
+                            >
+                              <option value="">-- Select Target Item ({filteredItems.length}) --</option>
+                              {filteredItems.map((it) => (
+                                <option key={`${it.module}:${it.id}`} value={`${it.module}:${it.id}`}>
+                                  [{it.module.toUpperCase()}] {it.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </td>
+                        <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                            <button
+                              onClick={() => handleInlineResolve(p.id, 'permanent')}
+                              disabled={resolvingId === p.id}
+                              className="btn btn-primary"
+                              style={{ padding: '4px 8px', fontSize: '0.75rem', background: '#2563eb' }}
+                              title="Save permanent mapping & deduct stock"
+                            >
+                              Map & Sync
+                            </button>
 
-                          <button
-                            onClick={() => handleInlineResolve(p.id, 'permanent')}
-                            disabled={resolvingId === p.id}
-                            className="btn btn-primary"
-                            style={{ padding: '4px 8px', fontSize: '0.75rem', background: '#2563eb', whiteSpace: 'nowrap' }}
-                            title="Save permanent mapping & deduct stock"
-                          >
-                            Map & Sync
-                          </button>
+                            <button
+                              onClick={() => handleInlineResolve(p.id, 'one_time')}
+                              disabled={resolvingId === p.id}
+                              className="btn"
+                              style={{ padding: '4px 8px', fontSize: '0.75rem', background: '#d97706', color: 'white' }}
+                              title="Deduct stock this time only"
+                            >
+                              1-Time Sync
+                            </button>
 
-                          <button
-                            onClick={() => handleInlineResolve(p.id, 'one_time')}
-                            disabled={resolvingId === p.id}
-                            className="btn"
-                            style={{ padding: '4px 8px', fontSize: '0.75rem', background: '#f59e0b', color: 'white', whiteSpace: 'nowrap' }}
-                            title="Deduct stock this time only without saving permanent mapping"
-                          >
-                            1-Time Sync
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            <button
+                              onClick={() => setDeleteModalItem({ id: p.id, name: p.tally_item_name })}
+                              className="btn"
+                              style={{ padding: '4px 8px', fontSize: '0.75rem', background: '#fee2e2', color: '#ef4444' }}
+                              title="Delete Item / Entry"
+                            >
+                              <i className="fas fa-trash"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {!currentTabPending.length && (
                     <tr>
                       <td colSpan="7" style={{ textAlign: 'center', color: '#16a34a', padding: '24px', background: '#f0fdf4' }}>
@@ -366,6 +422,60 @@ export default function TallySyncLogs() {
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Modal with 2 Options */}
+      {deleteModalItem && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+        }}>
+          <div className="card" style={{ maxWidth: '480px', width: '90%', padding: '24px' }}>
+            <h3 style={{ color: '#ef4444', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <i className="fas fa-exclamation-triangle"></i> Delete Entry Confirmation
+            </h3>
+            <p style={{ marginBottom: '16px', fontSize: '0.9rem', color: '#334155' }}>
+              Aap <strong>"{deleteModalItem.name}"</strong> entry ko delete kar rahe hain. Kaunsa delete option apply karna chahte hain?
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+              <button
+                onClick={() => confirmDeletePending('mapping_only')}
+                className="btn"
+                style={{
+                  background: '#f8fafc', border: '1px solid #cbd5e1', color: '#334155',
+                  textAlign: 'left', padding: '10px 14px', borderRadius: '6px',
+                }}
+              >
+                <strong>⚠️ Option 1: Remove Sync Entry Only</strong>
+                <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>
+                  Sirf pending list se remove hoga. Invoice totals, GST, aur Stock intact rahenge.
+                </div>
+              </button>
+
+              <button
+                onClick={() => confirmDeletePending('full')}
+                className="btn"
+                style={{
+                  background: '#fef2f2', border: '1px solid #fca5a5', color: '#991b1b',
+                  textAlign: 'left', padding: '10px 14px', borderRadius: '6px',
+                }}
+              >
+                <strong>🗑️ Option 2: Full Delete (Deduct Bill & Revert Stock)</strong>
+                <div style={{ fontSize: '0.78rem', color: '#b91c1c', marginTop: '2px' }}>
+                  Pura remove hoga — Stock revert hoga aur Invoice total / GST se amount minus ho jayegi.
+                </div>
+              </button>
+            </div>
+
+            <div style={{ textAlign: 'right' }}>
+              <button onClick={() => setDeleteModalItem(null)} className="btn" style={{ background: '#e2e8f0', color: '#475569' }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
