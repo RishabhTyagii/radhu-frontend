@@ -53,6 +53,16 @@ export default function Navbar() {
     return allowed.includes(urlKey);
   };
 
+  const modulesList = [
+    { id: 'stock', name: 'Auto Tyre', icon: '🏎️', path: '/stock', color: '#2563eb' },
+    { id: 'cycletyres', name: 'Cycle Tyre', icon: '🚴', path: '/cycletyres', color: '#059669' },
+    { id: 'cycletube', name: 'Cycle Tube', icon: '🚲', path: '/cycletube', color: '#d97706' },
+    { id: 'tallysync', name: 'Tally Sync', icon: '📊', path: '/tallysync', color: '#7c3aed' },
+    { id: 'hrms', name: 'HRMS', icon: '👥', path: '/hrms', color: '#0284c7' },
+    { id: 'orders', name: 'Orders', icon: '📦', path: '/orders', color: '#e11d48' },
+    ...(userData?.is_superuser ? [{ id: 'users', name: 'Users', icon: '⚙️', path: '/users', color: '#475569' }] : []),
+  ];
+
   const stockNavItems = [
     { name: 'Dashboard', path: '/stock', icon: 'fas fa-warehouse', key: 'dashboard' },
     { name: 'Production', path: '/stock/production', icon: 'fas fa-plus-circle', color: '#10b981', key: 'add_production' },
@@ -129,78 +139,65 @@ export default function Navbar() {
 
   return (
     <nav className="navbar">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <Link href="/" className="nav-brand" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <i className="fas fa-industry"></i> Radhu
+      {/* Tier 1: Main Header & Module Switcher Tabs */}
+      <div className="nav-top-bar">
+        <Link href="/" className="nav-brand" style={{ textDecoration: 'none' }}>
+          <i className="fas fa-industry" style={{ color: '#38bdf8' }}></i>
+          <span>RADHU <span style={{ color: '#38bdf8', fontSize: '0.8em' }}>ERP</span></span>
         </Link>
-        <div style={{ display: 'flex', background: 'rgba(255,255,255,0.1)', borderRadius: '8px', padding: '2px', gap: '2px' }}>
+
+        {/* Module Switcher Tabs */}
+        <div className="nav-module-switcher">
+          {modulesList.map((m) => (
+            <button
+              key={m.id}
+              onClick={() => {
+                setActiveModule(m.id);
+                router.push(m.path);
+              }}
+              className={`module-btn ${activeModule === m.id ? 'active' : ''}`}
+              style={activeModule === m.id ? { background: m.color } : {}}
+            >
+              <span>{m.icon}</span>
+              <span>{m.name}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* User Account Section */}
+        <div className="user-section">
+          <div className="avatar">{userData.username?.charAt(0).toUpperCase()}</div>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#f8fafc', lineHeight: 1.2 }}>
+              {userData.username}
+            </span>
+            <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+              {userData.is_superuser ? 'Super Admin' : 'Staff User'}
+            </span>
+          </div>
           <button
-            onClick={() => { setActiveModule('stock'); router.push('/stock'); }}
-            style={{
-              padding: '5px 10px',
-              borderRadius: '6px',
-              border: 'none',
-              background: activeModule === 'stock' ? 'var(--primary)' : 'transparent',
-              color: 'white',
-              cursor: 'pointer',
-              fontSize: '0.75rem',
-              fontWeight: 600
-            }}
+            onClick={handleLogout}
+            className="btn"
+            style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', padding: '6px 10px', borderRadius: '6px', fontSize: '0.8rem' }}
+            title="Logout"
           >
-            🚗
-          </button>
-          <button
-            onClick={() => { setActiveModule('cycletube'); router.push('/cycletube'); }}
-            style={{
-              padding: '5px 10px',
-              borderRadius: '6px',
-              border: 'none',
-              background: activeModule === 'cycletube' ? '#10b981' : 'transparent',
-              color: 'white',
-              cursor: 'pointer',
-              fontSize: '0.75rem',
-              fontWeight: 600
-            }}
-          >
-            🚲
-          </button>
-          <button
-            onClick={() => { setActiveModule('cycletyres'); router.push('/cycletyres'); }}
-            style={{
-              padding: '5px 10px',
-              borderRadius: '6px',
-              border: 'none',
-              background: activeModule === 'cycletyres' ? '#f59e0b' : 'transparent',
-              color: 'white',
-              cursor: 'pointer',
-              fontSize: '0.75rem',
-              fontWeight: 600
-            }}
-          >
-            🚴
+            <i className="fas fa-sign-out-alt"></i>
           </button>
         </div>
       </div>
 
-      <div className="nav-links">
+      {/* Tier 2: Sub-Navigation Links */}
+      <div className="nav-sub-bar">
         {filteredNavItems.map((item) => (
           <Link
             key={item.path}
             href={item.path}
-            className={`nav-link ${pathname === item.path ? 'active' : ''}`}
+            className={`subnav-link ${pathname === item.path ? 'active' : ''}`}
           >
             <i className={item.icon} style={item.color ? { color: item.color } : {}}></i>
-            {item.name}
+            <span>{item.name}</span>
           </Link>
         ))}
-      </div>
-
-      <div className="user-section">
-        <div className="avatar">{userData.username?.charAt(0).toUpperCase()}</div>
-        <span style={{ fontSize: '0.875rem' }}>{userData.username}</span>
-        <button onClick={handleLogout} className="btn" style={{ background: 'transparent', color: '#ef4444', padding: '4px' }}>
-          <i className="fas fa-sign-out-alt"></i>
-        </button>
       </div>
     </nav>
   );
