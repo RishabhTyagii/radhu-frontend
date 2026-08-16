@@ -72,7 +72,8 @@ export default function TallySyncLogs() {
     setResolvingId(null);
 
     if (res && res.ok) {
-      setMessage({ type: 'success', text: `✓ ${res.data.message || res.message}` });
+      const successMsg = res.data?.message || res.message || 'Item resolved successfully';
+      setMessage({ type: 'success', text: `✓ ${successMsg}` });
       if (data && data.pending) {
         const updatedPending = data.pending.filter((p) => p.id !== pendingId);
         setData({
@@ -82,7 +83,8 @@ export default function TallySyncLogs() {
         });
       }
     } else {
-      setMessage({ type: 'error', text: res?.data?.error || 'Failed to resolve item' });
+      const errorMsg = res?.data?.error || res?.data?.detail || 'Failed to resolve item';
+      setMessage({ type: 'error', text: errorMsg });
     }
   };
 
@@ -94,9 +96,10 @@ export default function TallySyncLogs() {
     const res = await apiPost(`/tallysync/pending/${id}/delete/`, { mode });
 
     if (res && res.ok) {
+      const successMsg = res.data?.message || res.message || 'Pending item deleted successfully';
       setMessage({
         type: 'success',
-        text: `✓ ${res.data.message}`,
+        text: `✓ ${successMsg}`,
       });
       if (data && data.pending) {
         const updatedPending = data.pending.filter((p) => p.id !== id);
@@ -107,7 +110,8 @@ export default function TallySyncLogs() {
         });
       }
     } else {
-      setMessage({ type: 'error', text: res?.data?.error || 'Failed to delete pending entry' });
+      const errorMsg = res?.data?.error || res?.data?.detail || 'Failed to delete pending entry';
+      setMessage({ type: 'error', text: errorMsg });
     }
   };
 
