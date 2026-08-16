@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
-import { apiGet, apiPost, apiDelete, apiFetch } from '@/lib/api';
+import { apiGet, apiPost } from '@/lib/api';
 
 export default function TallySyncLogs() {
   const [data, setData] = useState(null);
@@ -12,9 +12,10 @@ export default function TallySyncLogs() {
   const [message, setMessage] = useState(null);
   const [resolvingId, setResolvingId] = useState(null);
   
-  // Real-time search state per item row
+  // Real-time search & module override state per item row
   const [rowSearchMap, setRowSearchMap] = useState({});
   const [selectedItemMap, setSelectedItemMap] = useState({});
+  const [rowCategoryOverride, setRowCategoryOverride] = useState({});
 
   // Delete modal state
   const [deleteModalItem, setDeleteModalItem] = useState(null);
@@ -76,7 +77,7 @@ export default function TallySyncLogs() {
     setResolvingId(null);
 
     if (res && res.ok) {
-      setMessage({ type: 'success', text: `✓ ${res.message}` });
+      setMessage({ type: 'success', text: `✓ ${res.data.message || res.message}` });
 
       // INSTANT IN-MEMORY REMOVAL: Remove only this resolved item without reloading or tab reset!
       if (data && data.pending) {
@@ -97,16 +98,12 @@ export default function TallySyncLogs() {
     const { id, name } = deleteModalItem;
     setDeleteModalItem(null);
 
-    const res = await apiFetch(`/tallysync/pending/${id}/delete/`, {
-      method: 'POST',
-      body: JSON.stringify({ mode }),
-    });
+    const res = await apiPost(`/tallysync/pending/${id}/delete/`, { mode });
 
     if (res && res.ok) {
-      const respData = await res.json();
       setMessage({
         type: 'success',
-        text: `✓ ${respData.message}`,
+        text: `✓ ${res.data.message}`,
       });
 
       // INSTANT IN-MEMORY REMOVAL: Remove from pending array
@@ -119,7 +116,7 @@ export default function TallySyncLogs() {
         });
       }
     } else {
-      alert('Failed to delete pending entry');
+      setMessage({ type: 'error', text: res?.data?.error || 'Failed to delete pending entry' });
     }
   };
 
@@ -128,6 +125,7 @@ export default function TallySyncLogs() {
 
   // Helper keyword matcher to categorize unmapped items into 4 tabs
   function getItemCategory(item) {
+    if (rowCategoryOverride[item.id]) return rowCategoryOverride[item.id];
     const name = (item.tally_item_name || '').toLowerCase();
     if (name.includes('tube') || name.includes('tb') || name.includes('mld') || name.includes('jt')) return 'tube';
     if (name.includes('cycle') && name.includes('tyre')) return 'cycletyre';
@@ -147,8 +145,8 @@ export default function TallySyncLogs() {
   else if (activeTab === 'tube') currentTabPending = tubePending;
   else if (activeTab === 'other') currentTabPending = otherPending;
 
-  // Get items for selection dropdown based on active tab
-  function getTabItems(modKey) {
+  // Get items for selection dropdown based on target module
+  function getModuleItems(modKey) {
     if (modKey === 'tyre') return stockItems?.tyre_items?.map(i => ({ ...i, module: 'tyre' })) || [];
     if (modKey === 'cycletyre') return stockItems?.cycletyre_items?.map(i => ({ ...i, module: 'cycletyre' })) || [];
     if (modKey === 'tube') return stockItems?.tube_items?.map(i => ({ ...i, module: 'tube' })) || [];
@@ -256,14 +254,16 @@ export default function TallySyncLogs() {
                     <th>PARTY</th>
                     <th>TALLY ITEM NAME</th>
                     <th>QTY</th>
-                    <th style={{ minWidth: '380px' }}>SEARCH & TARGET ITEM ({activeTab.toUpperCase()})</th>
+                    <th style={{ minWidth: '160px' }}>TRANSFER TO TAB</th>
+                    <th style={{ minWidth: '340px' }}>REAL-TIME SEARCH & TARGET ITEM</th>
                     <th style={{ textAlign: 'center' }}>ACTION</th>
                   </tr>
                 </thead>
                 <tbody>
                   {currentTabPending.map((p) => {
                     const rowSearch = rowSearchMap[p.id] || '';
-                    const rawItems = getTabItems(activeTab);
+                    const targetCategory = getItemCategory(p);
+                    const rawItems = getModuleItems(targetCategory);
                     const filteredItems = rawItems.filter(it => 
                       !rowSearch || it.label.toLowerCase().includes(rowSearch.toLowerCase())
                     );
@@ -275,6 +275,22 @@ export default function TallySyncLogs() {
                         <td>{p.party_name || '-'}</td>
                         <td style={{ fontWeight: 700, color: '#92400e' }}>{p.tally_item_name}</td>
                         <td style={{ fontWeight: 'bold' }}>{p.qty}</td>
+                        
+                        {/* Transfer to Other Tab Dropdown */}
+                        <td>
+                          <select
+                            className="form-select"
+                            style={{ fontSize: '0.78rem', padding: '4px 6px', background: '#f8fafc', color: '#1e293b' }}
+                            value={targetCategory}
+                            onChange={(e) => setRowCategoryOverride({ ...rowCategoryOverride, [p.id]: e.target.value })}
+                          >
+                            <option value="tyre">🏎️ Auto Tyre</option>
+                            <option value="cycletyre">🚴 Cycle Tyre</option>
+                            <option value="tube">🚲 Cycle Tube</option>
+                            <option value="other">📦 Other</option>
+                          </select>
+                        </td>
+
                         <td>
                           {/* Searchable Real-Time Item Dropdown */}
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -284,7 +300,7 @@ export default function TallySyncLogs() {
                                 type="text"
                                 className="form-input"
                                 style={{ paddingLeft: '26px', fontSize: '0.75rem', height: '28px', borderRadius: '4px' }}
-                                placeholder={`Type to search ${activeTab.toUpperCase()} items...`}
+                                placeholder={`Search ${targetCategory.toUpperCase()} items...`}
                                 value={rowSearch}
                                 onChange={(e) => setRowSearchMap({ ...rowSearchMap, [p.id]: e.target.value })}
                               />
@@ -305,6 +321,7 @@ export default function TallySyncLogs() {
                             </select>
                           </div>
                         </td>
+
                         <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                           <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
                             <button
@@ -331,7 +348,7 @@ export default function TallySyncLogs() {
                               onClick={() => setDeleteModalItem({ id: p.id, name: p.tally_item_name })}
                               className="btn"
                               style={{ padding: '4px 8px', fontSize: '0.75rem', background: '#fee2e2', color: '#ef4444' }}
-                              title="Delete Item / Entry"
+                              title="Delete Entry"
                             >
                               <i className="fas fa-trash"></i>
                             </button>
@@ -342,7 +359,7 @@ export default function TallySyncLogs() {
                   })}
                   {!currentTabPending.length && (
                     <tr>
-                      <td colSpan="7" style={{ textAlign: 'center', color: '#16a34a', padding: '24px', background: '#f0fdf4' }}>
+                      <td colSpan="8" style={{ textAlign: 'center', color: '#16a34a', padding: '24px', background: '#f0fdf4' }}>
                         <i className="fas fa-check-circle" style={{ marginRight: '6px' }}></i> No pending items in this category tab!
                       </td>
                     </tr>
