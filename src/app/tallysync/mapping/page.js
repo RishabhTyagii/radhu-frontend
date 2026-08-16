@@ -2,18 +2,20 @@
 
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
-import { apiGet, apiPost, apiDelete } from '@/lib/api';
+import { apiGet, apiPost, apiDelete, apiFetch } from '@/lib/api';
 
 export default function TallyMappingList() {
   const [mappings, setMappings] = useState([]);
   const [stockItems, setStockItems] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('tyre'); // 'tyre', 'cycletyre', 'tube', 'other'
   const [formData, setFormData] = useState({
     tally_item_name: '',
     item_choice: '', // format "module:id"
   });
   const [message, setMessage] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [updatingId, setUpdatingId] = useState(null);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
@@ -62,17 +64,53 @@ export default function TallyMappingList() {
     if (!confirm(`Delete mapping for "${name}"?`)) return;
     const res = await apiDelete(`/tallysync/mapping/${id}/delete/`);
     if (res && res.ok) {
-      fetchData();
+      setMappings(mappings.filter(m => m.id !== id));
+      setMessage({ type: 'success', text: `Mapping for "${name}" deleted.` });
     }
   };
 
-  const filteredMappings = mappings.filter((m) => {
+  const handleTransferModule = async (mappingId, newChoice) => {
+    if (!newChoice) return;
+    const [newModule, newItemId] = newChoice.split(':');
+    setUpdatingId(mappingId);
+
+    const res = await apiFetch(`/tallysync/mapping/${mappingId}/update/`, {
+      method: 'PATCH',
+      body: JSON.stringify({ module: newModule, item_id: newItemId }),
+    });
+
+    setUpdatingId(null);
+    if (res && res.ok) {
+      const data = await res.json();
+      setMessage({
+        type: 'success',
+        text: `Transferred successfully! ${data.resolved_count ? `${data.resolved_count} pending items resolved.` : ''}`,
+      });
+      // Update local mappings state instantly
+      setMappings(mappings.map(m => m.id === mappingId ? data.mapping : m));
+    } else {
+      alert('Failed to transfer module');
+    }
+  };
+
+  // Group mappings by Tab
+  const tyreMappings = mappings.filter(m => m.module === 'tyre');
+  const cycleTyreMappings = mappings.filter(m => m.module === 'cycletyre');
+  const tubeMappings = mappings.filter(m => m.module === 'tube');
+  const otherMappings = mappings.filter(m => !['tyre', 'cycletyre', 'tube'].includes(m.module));
+
+  let currentTabMappings = [];
+  if (activeTab === 'tyre') currentTabMappings = tyreMappings;
+  else if (activeTab === 'cycletyre') currentTabMappings = cycleTyreMappings;
+  else if (activeTab === 'tube') currentTabMappings = tubeMappings;
+  else if (activeTab === 'other') currentTabMappings = otherMappings;
+
+  const filteredMappings = currentTabMappings.filter((m) => {
     if (!search) return true;
     const term = search.toLowerCase();
     return (
       (m.tally_item_name && m.tally_item_name.toLowerCase().includes(term)) ||
-      (m.resolved_item_label && m.resolved_item_label.toLowerCase().includes(term)) ||
-      (m.module_display && m.module_display.toLowerCase().includes(term))
+      (m.resolved_item_label && m.resolved_item_label.toLowerCase().includes(term))
     );
   });
 
@@ -84,7 +122,7 @@ export default function TallyMappingList() {
           <div>
             <h1>🔗 Tally Item Mappings</h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-              Map Tally stock item names to Auto Tyre / Cycle Tube / Cycle Tyre items so sales automatically deduct stock
+              Map and transfer Tally stock items across Auto Tyre, Cycle Tyre, Cycle Tube, and Other categories
             </p>
           </div>
           <div style={{ position: 'relative', width: '300px' }}>
@@ -93,22 +131,22 @@ export default function TallyMappingList() {
               type="text"
               className="form-input"
               style={{ paddingLeft: '36px' }}
-              placeholder="Search Mappings..."
+              placeholder="Search in this tab..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
         </div>
 
+        {message && <div className={`message ${message.type}`} style={{ marginBottom: '20px' }}>{message.text}</div>}
+
         <div className="grid-2">
           {/* Add Mapping Form */}
-          <div className="card">
-            <h2>Add / Edit Mapping</h2>
-            {message && <div className={`message ${message.type}`} style={{ marginTop: '12px' }}>{message.text}</div>}
-
+          <div className="card" style={{ height: 'fit-content' }}>
+            <h2><i className="fas fa-plus-circle mr-1" style={{ color: '#2563eb' }}></i> Add / Edit Item Mapping</h2>
             <form onSubmit={handleSubmit} style={{ marginTop: '16px' }}>
               <div className="form-group">
-                <label className="form-label">Tally Item Name * (Exact name as in Tally Prime)</label>
+                <label className="form-label">Tally Item Name * (Exact name in Tally Prime)</label>
                 <input
                   type="text"
                   className="form-input"
@@ -120,7 +158,7 @@ export default function TallyMappingList() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Maps to Portal Item *</label>
+                <label className="form-label">Target Portal Item *</label>
                 <select
                   className="form-select"
                   value={formData.item_choice}
@@ -139,16 +177,6 @@ export default function TallyMappingList() {
                     </optgroup>
                   )}
 
-                  {stockItems?.tube_items?.length > 0 && (
-                    <optgroup label="🚲 Cycle Tube Items">
-                      {stockItems.tube_items.map((t) => (
-                        <option key={`tube:${t.id}`} value={`tube:${t.id}`}>
-                          Cycle Tube: {t.label}
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
-
                   {stockItems?.cycletyre_items?.length > 0 && (
                     <optgroup label="🚴 Cycle Tyre Items">
                       {stockItems.cycletyre_items.map((t) => (
@@ -158,19 +186,83 @@ export default function TallyMappingList() {
                       ))}
                     </optgroup>
                   )}
+
+                  {stockItems?.tube_items?.length > 0 && (
+                    <optgroup label="🚲 Cycle Tube Items">
+                      {stockItems.tube_items.map((t) => (
+                        <option key={`tube:${t.id}`} value={`tube:${t.id}`}>
+                          Cycle Tube: {t.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
               </div>
 
               <button type="submit" className="btn btn-primary" style={{ width: '100%', background: '#2563eb' }} disabled={saving}>
-                {saving ? 'Saving...' : 'Save Item Mapping'}
+                {saving ? 'Saving...' : 'Save Mapping'}
               </button>
             </form>
           </div>
 
-          {/* Mappings Table */}
+          {/* Mappings Tabs Container */}
           <div className="card">
-            <h2>Existing Mappings ({filteredMappings.length})</h2>
-            <div className="table-container" style={{ marginTop: '16px' }}>
+            {/* 4 Navigation Tabs */}
+            <div style={{ display: 'flex', gap: '8px', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => setActiveTab('tyre')}
+                className="btn"
+                style={{
+                  background: activeTab === 'tyre' ? '#2563eb' : '#f1f5f9',
+                  color: activeTab === 'tyre' ? 'white' : '#475569',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                }}
+              >
+                🏎️ Auto Tyre ({tyreMappings.length})
+              </button>
+
+              <button
+                onClick={() => setActiveTab('cycletyre')}
+                className="btn"
+                style={{
+                  background: activeTab === 'cycletyre' ? '#059669' : '#f1f5f9',
+                  color: activeTab === 'cycletyre' ? 'white' : '#475569',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                }}
+              >
+                🚴 Cycle Tyre ({cycleTyreMappings.length})
+              </button>
+
+              <button
+                onClick={() => setActiveTab('tube')}
+                className="btn"
+                style={{
+                  background: activeTab === 'tube' ? '#d97706' : '#f1f5f9',
+                  color: activeTab === 'tube' ? 'white' : '#475569',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                }}
+              >
+                🚲 Cycle Tube ({tubeMappings.length})
+              </button>
+
+              <button
+                onClick={() => setActiveTab('other')}
+                className="btn"
+                style={{
+                  background: activeTab === 'other' ? '#64748b' : '#f1f5f9',
+                  color: activeTab === 'other' ? 'white' : '#475569',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                }}
+              >
+                📦 Other ({otherMappings.length})
+              </button>
+            </div>
+
+            <div className="table-container">
               {loading ? (
                 <div style={{ textAlign: 'center', padding: '30px' }}>Loading mappings...</div>
               ) : (
@@ -178,8 +270,8 @@ export default function TallyMappingList() {
                   <thead>
                     <tr>
                       <th>Tally Item Name</th>
-                      <th>Module</th>
-                      <th>Portal Item</th>
+                      <th>Current Portal Item</th>
+                      <th style={{ minWidth: '220px' }}>Transfer / Change Target</th>
                       <th style={{ textAlign: 'center' }}>Action</th>
                     </tr>
                   </thead>
@@ -188,11 +280,49 @@ export default function TallyMappingList() {
                       <tr key={m.id}>
                         <td style={{ fontWeight: 600 }}>{m.tally_item_name}</td>
                         <td>
-                          <span className={`badge ${m.module === 'tyre' ? 'blue' : m.module === 'tube' ? 'green' : 'yellow'}`}>
-                            {m.module_display}
-                          </span>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{m.resolved_item_label}</span>
                         </td>
-                        <td>{m.resolved_item_label}</td>
+                        <td>
+                          <select
+                            className="form-select"
+                            style={{ fontSize: '0.78rem', padding: '4px 6px' }}
+                            defaultValue={`${m.module}:${m.item_id}`}
+                            disabled={updatingId === m.id}
+                            onChange={(e) => handleTransferModule(m.id, e.target.value)}
+                          >
+                            <option value="">-- Transfer Target --</option>
+
+                            {stockItems?.tyre_items?.length > 0 && (
+                              <optgroup label="🏎️ Auto Tyre">
+                                {stockItems.tyre_items.map((t) => (
+                                  <option key={`tyre:${t.id}`} value={`tyre:${t.id}`}>
+                                    Auto Tyre: {t.label}
+                                  </option>
+                                ))}
+                              </optgroup>
+                            )}
+
+                            {stockItems?.cycletyre_items?.length > 0 && (
+                              <optgroup label="🚴 Cycle Tyre">
+                                {stockItems.cycletyre_items.map((t) => (
+                                  <option key={`cycletyre:${t.id}`} value={`cycletyre:${t.id}`}>
+                                    Cycle Tyre: {t.label}
+                                  </option>
+                                ))}
+                              </optgroup>
+                            )}
+
+                            {stockItems?.tube_items?.length > 0 && (
+                              <optgroup label="🚲 Cycle Tube">
+                                {stockItems.tube_items.map((t) => (
+                                  <option key={`tube:${t.id}`} value={`tube:${t.id}`}>
+                                    Cycle Tube: {t.label}
+                                  </option>
+                                ))}
+                              </optgroup>
+                            )}
+                          </select>
+                        </td>
                         <td style={{ textAlign: 'center' }}>
                           <button
                             onClick={() => handleDelete(m.id, m.tally_item_name)}
@@ -208,7 +338,7 @@ export default function TallyMappingList() {
                     {!filteredMappings.length && (
                       <tr>
                         <td colSpan="4" style={{ textAlign: 'center', color: '#64748b', padding: '30px' }}>
-                          No item mappings created yet.
+                          No mapped items in this category tab.
                         </td>
                       </tr>
                     )}
