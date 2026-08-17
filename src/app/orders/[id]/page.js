@@ -114,8 +114,10 @@ export default function OrderDetailPage() {
               </p>
             </div>
             <div>
-              <span style={{ fontSize: '0.8rem', color: '#64748b', textTransform: 'uppercase' }}>Notes / Instructions</span>
-              <p style={{ margin: '4px 0', fontWeight: 500 }}>{order.notes || 'None'}</p>
+              <span style={{ fontSize: '0.8rem', color: '#64748b', textTransform: 'uppercase' }}>Total Order Value</span>
+              <p style={{ margin: '4px 0', fontWeight: 800, color: '#059669', fontSize: '1.2rem' }}>
+                ₹{parseFloat(order.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </p>
             </div>
             <div>
               <span style={{ fontSize: '0.8rem', color: '#64748b', textTransform: 'uppercase' }}>Resolved Info</span>
@@ -123,6 +125,13 @@ export default function OrderDetailPage() {
                 {order.resolved_at ? `Resolved on ${new Date(order.resolved_at).toLocaleDateString()}` : 'Order Pending'}
               </p>
             </div>
+          </div>
+
+          <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '24px' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>📝 Extra Notes / Remarks / Special Instructions</span>
+            <p style={{ margin: '8px 0 0 0', whiteSpace: 'pre-wrap', fontSize: '1rem', color: '#1e293b', lineHeight: 1.5, background: 'white', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+              {order.notes || 'No extra notes provided for this order.'}
+            </p>
           </div>
 
           {/* Status Update Quick Buttons */}
@@ -209,6 +218,8 @@ export default function OrderDetailPage() {
                   <th>ITEM DESCRIPTION</th>
                   <th style={{ textAlign: 'center' }}>CURRENT STOCK</th>
                   <th style={{ textAlign: 'right' }}>ORDERED QTY</th>
+                  <th style={{ textAlign: 'right' }}>UNIT PRICE (₹)</th>
+                  <th style={{ textAlign: 'right' }}>SUBTOTAL (₹)</th>
                 </tr>
               </thead>
               <tbody>
@@ -228,14 +239,22 @@ export default function OrderDetailPage() {
                       {it.item_stock} Pcs
                     </td>
                     <td style={{ textAlign: 'right', fontWeight: 800, fontSize: '1.05rem' }}>{it.quantity} Pcs</td>
+                    <td style={{ textAlign: 'right', fontWeight: 600 }}>₹{parseFloat(it.price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 800, color: '#059669' }}>
+                      ₹{parseFloat(it.subtotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
                 <tr style={{ background: '#f8fafc', fontWeight: 800 }}>
-                  <td colSpan="4">TOTAL ORDER QUANTITY</td>
-                  <td style={{ textAlign: 'right', color: '#2563eb', fontSize: '1.2rem' }}>
+                  <td colSpan="4">TOTAL ORDER SUMMARY</td>
+                  <td style={{ textAlign: 'right', color: '#2563eb', fontSize: '1.1rem' }}>
                     {items.reduce((acc, i) => acc + i.quantity, 0)} Pcs
+                  </td>
+                  <td></td>
+                  <td style={{ textAlign: 'right', color: '#059669', fontSize: '1.2rem' }}>
+                    ₹{parseFloat(order.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </td>
                 </tr>
               </tfoot>

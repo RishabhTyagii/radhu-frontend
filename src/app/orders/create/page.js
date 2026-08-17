@@ -18,6 +18,7 @@ export default function CreateOrderPage() {
   const [deadline, setDeadline] = useState('');
   const [notes, setNotes] = useState('');
   const [quantities, setQuantities] = useState({});
+  const [prices, setPrices] = useState({});
   const [activeCategory, setActiveCategory] = useState('all');
 
   useEffect(() => {
@@ -46,6 +47,13 @@ export default function CreateOrderPage() {
     }));
   };
 
+  const handlePriceChange = (key, val) => {
+    setPrices((prev) => ({
+      ...prev,
+      [key]: val,
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedParty) {
@@ -59,7 +67,8 @@ export default function CreateOrderPage() {
       if (qty > 0) {
         // key format: "category:item_id"
         const [category, item_id] = key.split(':');
-        items.push({ category, item_id: parseInt(item_id, 10), quantity: qty });
+        const price = parseFloat(prices[key] || 0) || 0;
+        items.push({ category, item_id: parseInt(item_id, 10), quantity: qty, price });
       }
     });
 
@@ -142,15 +151,16 @@ export default function CreateOrderPage() {
                 />
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Notes / Instructions</label>
-                <input
-                  type="text"
+              <div className="form-group" style={{ gridColumn: 'span 3' }}>
+                <label className="form-label" style={{ fontWeight: 700 }}>Extra Notes / Remarks / Special Instructions</label>
+                <textarea
                   className="form-input"
-                  placeholder="e.g. Urgent dispatch via Jaipur Transport"
+                  rows="4"
+                  style={{ width: '100%', resize: 'vertical', minHeight: '90px', padding: '12px', fontSize: '0.95rem' }}
+                  placeholder="Enter detailed dispatch notes, transport preferences, payment terms, or special instructions here..."
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                />
+                ></textarea>
               </div>
             </div>
           </div>
@@ -193,8 +203,19 @@ export default function CreateOrderPage() {
                 </button>
               </div>
 
-              <div style={{ background: '#f0fdf4', padding: '8px 16px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
-                <span style={{ fontWeight: 700, color: '#166534' }}>Total Order Qty: {totalOrderedItems} Pcs</span>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <div style={{ background: '#f0fdf4', padding: '8px 16px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                  <span style={{ fontWeight: 700, color: '#166534' }}>Total Order Qty: {totalOrderedItems} Pcs</span>
+                </div>
+                <div style={{ background: '#eff6ff', padding: '8px 16px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
+                  <span style={{ fontWeight: 700, color: '#1e40af' }}>
+                    Total Estimated Amount: ₹{Object.keys(quantities).reduce((acc, k) => {
+                      const q = parseInt(quantities[k], 10) || 0;
+                      const p = parseFloat(prices[k]) || 0;
+                      return acc + (q * p);
+                    }, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -210,13 +231,18 @@ export default function CreateOrderPage() {
                       <th style={{ textAlign: 'center' }}>PHYSICAL STOCK</th>
                       <th style={{ textAlign: 'center' }}>PENDING ORDERS</th>
                       <th style={{ textAlign: 'center' }}>AVAILABLE STOCK</th>
-                      <th style={{ width: '130px', textAlign: 'center' }}>ORDER QTY</th>
+                      <th style={{ width: '120px', textAlign: 'center' }}>ORDER QTY</th>
+                      <th style={{ width: '130px', textAlign: 'center' }}>UNIT PRICE (₹)</th>
+                      <th style={{ width: '140px', textAlign: 'right' }}>SUBTOTAL (₹)</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredCatalog.map((item) => {
                       const itemKey = `${item.category}:${item.item_id}`;
                       const currentVal = quantities[itemKey] || '';
+                      const currentPrice = prices[itemKey] || '';
+                      const subtotal = (parseInt(currentVal, 10) || 0) * (parseFloat(currentPrice) || 0);
+
                       return (
                         <tr key={itemKey} style={{ background: currentVal > 0 ? '#f0fdf4' : 'transparent' }}>
                           <td>
@@ -244,12 +270,27 @@ export default function CreateOrderPage() {
                               onChange={(e) => handleQtyChange(itemKey, e.target.value)}
                             />
                           </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              className="form-input"
+                              placeholder="₹0.00"
+                              style={{ textAlign: 'center', fontWeight: 600, borderColor: currentPrice > 0 ? '#3b82f6' : '#cbd5e1' }}
+                              value={currentPrice}
+                              onChange={(e) => handlePriceChange(itemKey, e.target.value)}
+                            />
+                          </td>
+                          <td style={{ textAlign: 'right', fontWeight: 800, color: subtotal > 0 ? '#059669' : '#64748b' }}>
+                            ₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </td>
                         </tr>
                       );
                     })}
                     {!filteredCatalog.length && (
                       <tr>
-                        <td colSpan="6" style={{ textAlign: 'center', color: '#64748b', padding: '30px' }}>
+                        <td colSpan="8" style={{ textAlign: 'center', color: '#64748b', padding: '30px' }}>
                           No catalog items found.
                         </td>
                       </tr>
