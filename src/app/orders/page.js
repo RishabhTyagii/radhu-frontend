@@ -40,11 +40,12 @@ export default function MyOrders() {
     setAddingParty(false);
 
     if (res && res.ok && res.data) {
-      setMessage({ type: 'success', text: `Party "${partyName}" added!` });
+      setMessage({ type: 'success', text: `Party "${res.data.name || partyName}" saved successfully!` });
       setPartyName('');
       fetchData();
     } else {
-      setMessage({ type: 'error', text: res?.data?.error || 'Failed to add party' });
+      const errText = res?.data?.error || res?.data?.detail || (res?.data && typeof res.data === 'object' ? JSON.stringify(res.data) : 'Failed to add party');
+      setMessage({ type: 'error', text: errText });
     }
   };
 
