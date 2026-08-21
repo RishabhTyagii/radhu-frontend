@@ -48,13 +48,10 @@ export async function apiFetch(endpoint, options = {}) {
   
   const res = await fetch(url, config);
   
-  if (res.status === 403 || res.status === 401) {
+  if (res.status === 401) {
     if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-      // If 403 because CSRF or unauthenticated
-      if (res.status === 401) {
-        window.location.href = '/login';
-        return null;
-      }
+      window.location.href = '/login';
+      return null;
     }
   }
   
@@ -81,11 +78,20 @@ export async function apiPost(endpoint, data) {
       body: isFormData ? data : JSON.stringify(data),
     });
     if (!res) return null;
-    const json = await res.json();
+    
+    // Read as text first to avoid JSON parse errors swallowing real errors
+    const text = await res.text();
+    let json;
+    try {
+      json = JSON.parse(text);
+    } catch {
+      // Backend returned non-JSON (e.g. 500 HTML page)
+      return { ok: false, status: res.status, data: { error: `Server error (${res.status}): ${text.substring(0, 300)}` } };
+    }
     return { ok: res.ok, status: res.status, data: json };
   } catch (e) {
     console.error('API POST error:', e);
-    return null;
+    return { ok: false, status: 0, data: { error: `Network error: ${e.message}` } };
   }
 }
 

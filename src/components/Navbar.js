@@ -36,6 +36,8 @@ export default function Navbar() {
       setActiveModule('orders');
     } else if (pathname.startsWith('/users')) {
       setActiveModule('users');
+    } else if (pathname.startsWith('/ai-agent')) {
+      setActiveModule('ai');
     } else if (pathname.startsWith('/stock')) {
       setActiveModule('stock');
     }
@@ -60,6 +62,7 @@ export default function Navbar() {
     { id: 'tallysync', name: 'Tally Sync', icon: '📊', path: '/tallysync', color: '#7c3aed' },
     { id: 'hrms', name: 'HRMS', icon: '👥', path: '/hrms', color: '#0284c7' },
     { id: 'orders', name: 'Orders', icon: '📦', path: '/orders', color: '#e11d48' },
+    { id: 'ai', name: 'RADHU AI', icon: '🤖', path: '/ai-agent', color: '#7c3aed' },
     ...(userData?.is_superuser ? [{ id: 'users', name: 'Users', icon: '⚙️', path: '/users', color: '#475569' }] : []),
   ];
 
@@ -125,6 +128,11 @@ export default function Navbar() {
     { name: 'Create User', path: '/users/create', icon: 'fas fa-user-plus', color: '#10b981', key: 'create_user' },
   ];
 
+  const aiNavItems = [
+    { name: 'AI Chat', path: '/ai-agent', icon: 'fas fa-robot', color: '#a78bfa', key: 'ai_agent' },
+    { name: 'Audit Log', path: '/ai-agent/logs', icon: 'fas fa-clipboard-list', color: '#38bdf8', key: 'ai_audit_log' },
+  ];
+
   if (!userData) return null;
 
   let currentNavItems = stockNavItems;
@@ -134,8 +142,11 @@ export default function Navbar() {
   if (activeModule === 'hrms') currentNavItems = hrmsNavItems;
   if (activeModule === 'orders') currentNavItems = ordersNavItems;
   if (activeModule === 'users') currentNavItems = usersNavItems;
+  if (activeModule === 'ai') currentNavItems = aiNavItems;
 
-  const filteredNavItems = currentNavItems.filter((item) => isPageAllowed(item.key));
+  const filteredNavItems = currentNavItems.filter((item) => (
+    item.key === 'ai_agent' || item.key === 'ai_audit_log' || isPageAllowed(item.key)
+  ));
 
   return (
     <nav className="navbar">
@@ -165,7 +176,36 @@ export default function Navbar() {
         </div>
 
         {/* User Account Section */}
-        <div className="user-section">
+        <div className="user-section" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* Django Admin Button - Only visible for Super Admin */}
+          {userData?.is_superuser && (
+            <a
+              href="https://api.radhuerp.site/admin/"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                background: 'linear-gradient(135deg, #064e3b, #047857)',
+                border: '1px solid #10b981',
+                color: '#d1fae5',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                textDecoration: 'none',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 2px 8px rgba(16,185,129,0.2)',
+              }}
+              title="Open Django Admin Panel (Radhu Industries Portal)"
+            >
+              <span>🐍</span>
+              <span>Django Admin</span>
+              <i className="fas fa-external-link-alt" style={{ fontSize: '0.65rem', opacity: 0.8 }}></i>
+            </a>
+          )}
+
           <div className="avatar">{userData.username?.charAt(0).toUpperCase()}</div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#f8fafc', lineHeight: 1.2 }}>

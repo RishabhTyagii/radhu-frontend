@@ -270,7 +270,7 @@ export default function AutoTyreProduction() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr', gap: '10px', marginBottom: '14px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: theme.text }}>Production (+)</label>
                   <input type="number" name="production_tyre" value={form.production_tyre} onChange={handleChange} style={{ width: '100%', padding: '8px 10px', border: `1px solid ${theme.border}`, borderRadius: '8px', backgroundColor: theme.bg, color: theme.text }} />
@@ -282,6 +282,14 @@ export default function AutoTyreProduction() {
                 <div>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: theme.text }}>2nd Grade (-)</label>
                   <input type="number" name="second_grade" value={form.second_grade} onChange={handleChange} style={{ width: '100%', padding: '8px 10px', border: `1px solid ${theme.border}`, borderRadius: '8px', backgroundColor: theme.bg, color: theme.text }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#ef4444' }}>3rd Grade (-)</label>
+                  <input type="number" name="third_grade" value={form.third_grade} onChange={handleChange} style={{ width: '100%', padding: '8px 10px', border: `1px solid ${theme.border}`, borderRadius: '8px', backgroundColor: theme.bg, color: theme.text }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#ef4444' }}>Lose Tyre (-)</label>
+                  <input type="number" name="lose_tyre" value={form.lose_tyre} onChange={handleChange} style={{ width: '100%', padding: '8px 10px', border: `1px solid ${theme.border}`, borderRadius: '8px', backgroundColor: theme.bg, color: theme.text }} />
                 </div>
               </div>
 

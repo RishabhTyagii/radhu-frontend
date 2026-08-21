@@ -92,7 +92,11 @@ export default function CreateOrderPage() {
       alert(`Order #${res.data.id} booked successfully with ${items.length} line items!`);
       router.push(`/orders/${res.data.id}`);
     } else {
-      setMessage({ type: 'error', text: res?.data?.error || 'Failed to place order' });
+      const errText = res?.data?.error
+        || res?.data?.detail
+        || (res?.data && typeof res.data === 'object' ? JSON.stringify(res.data) : null)
+        || `Failed to place order (HTTP ${res?.status || 'unknown'})`;
+      setMessage({ type: 'error', text: errText });
     }
   };
 

@@ -71,6 +71,17 @@ export default function HomePage() {
 
   const modules = [
     {
+      title: 'RADHU AI',
+      icon: '🤖',
+      description: 'Gemini ERP assistant — stock Q&A plus confirm-to-save add/delete/import, with a full audit log',
+      path: '/ai-agent',
+      color: '#7c3aed',
+      gradient: 'linear-gradient(135deg, #7c3aed, #2563eb)',
+          features: ['Confirm before save', 'Excel item import', 'Typed DELETE', 'Audit log', 'Hindi + English'],
+      keys: ['ai_agent'],
+      alwaysShow: true,
+    },
+    {
       title: 'Auto Tyre',
       icon: '🚗',
       description: 'Auto tyre stock management — production, dispatch, adjustments, reports & daily summary',
@@ -152,7 +163,7 @@ export default function HomePage() {
     },
   ];
 
-  const visibleModules = modules.filter((mod) => isModuleAllowed(mod.keys));
+  const visibleModules = modules.filter((mod) => mod.alwaysShow || isModuleAllowed(mod.keys));
 
   return (
     <div style={{
