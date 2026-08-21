@@ -46,6 +46,7 @@ function payloadPreview(action) {
     .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
     .join('\n');
 }
+function nowTime() {
   return new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 }
 
