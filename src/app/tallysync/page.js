@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { apiGet, apiPost } from '@/lib/api';
@@ -10,6 +10,7 @@ export default function TallySalesSummary() {
   const [stockItems, setStockItems] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all'); // 'all', 'tyre', 'cycletyre', 'tube'
+  const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     party: '',
     month: '',
@@ -51,6 +52,7 @@ export default function TallySalesSummary() {
 
   const handleReset = () => {
     setFilters({ party: '', month: '', from_date: '', to_date: '' });
+    setSearchTerm('');
   };
 
   const handleExecuteTransfer = async () => {
@@ -62,7 +64,6 @@ export default function TallySalesSummary() {
     setTransferring(true);
     setMessage(null);
 
-    // Get unmapped/first line item name from invoice
     const pendingItem = transferModalInvoice.pending_items?.[0] || {};
     const tallyItemName = pendingItem.tally_item_name || 'Voucher Item';
 
@@ -89,7 +90,6 @@ export default function TallySalesSummary() {
   const invoices = data?.invoices || [];
   const totals = data?.totals || {};
 
-  // Filter invoices for category tabs
   function getInvoiceCategory(inv) {
     const raw = (inv.raw_payload || '').toLowerCase();
     const party = (inv.party_name || '').toLowerCase();
@@ -99,332 +99,605 @@ export default function TallySalesSummary() {
     return 'all';
   }
 
-  const tyreInvoices = invoices.filter(inv => getInvoiceCategory(inv) === 'tyre');
-  const cycleTyreInvoices = invoices.filter(inv => getInvoiceCategory(inv) === 'cycletyre');
-  const tubeInvoices = invoices.filter(inv => getInvoiceCategory(inv) === 'tube');
+  const counts = useMemo(() => {
+    let t = 0, ct = 0, tu = 0;
+    invoices.forEach((inv) => {
+      const cat = getInvoiceCategory(inv);
+      if (cat === 'tyre') t++;
+      else if (cat === 'cycletyre') ct++;
+      else if (cat === 'tube') tu++;
+    });
+    return { all: invoices.length, tyre: t, cycletyre: ct, tube: tu };
+  }, [invoices]);
 
-  let filteredInvoices = invoices;
-  if (activeTab === 'tyre') filteredInvoices = tyreInvoices;
-  else if (activeTab === 'cycletyre') filteredInvoices = cycleTyreInvoices;
-  else if (activeTab === 'tube') filteredInvoices = tubeInvoices;
+  const filteredInvoices = useMemo(() => {
+    return invoices.filter((inv) => {
+      if (activeTab !== 'all') {
+        const cat = getInvoiceCategory(inv);
+        if (cat !== activeTab) return false;
+      }
+      if (searchTerm.trim()) {
+        const q = searchTerm.toLowerCase();
+        const party = (inv.party_name || '').toLowerCase();
+        const vno = (inv.voucher_number || '').toLowerCase();
+        const gstin = (inv.party_gstin || '').toLowerCase();
+        const state = (inv.state_name || '').toLowerCase();
+        if (!party.includes(q) && !vno.includes(q) && !gstin.includes(q) && !state.includes(q)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [invoices, activeTab, searchTerm]);
 
   return (
-    <>
+    <div style={{ minHeight: '100vh', background: '#0b1120', color: '#f8fafc' }}>
       <Navbar />
-      <div className="container">
-        <div className="page-header" style={{ marginBottom: '20px' }}>
+
+      <main style={{ padding: '24px 32px 60px', maxWidth: '100%', margin: '0 auto' }}>
+        
+        {/* Top Header Bar */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '16px',
+          marginBottom: '28px',
+          paddingBottom: '20px',
+          borderBottom: '1px solid rgba(255,255,255,0.08)'
+        }}>
           <div>
-            <h1>📊 Tally Sales & GST Summary</h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-              Real-time synced vouchers from Tally Prime ({data?.invoice_count || 0} invoices)
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
+              <h1 style={{
+                fontSize: '1.85rem',
+                fontWeight: 800,
+                letterSpacing: '-0.03em',
+                margin: 0,
+                background: 'linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}>
+                Tally Prime Vouchers & GST Hub
+              </h1>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'rgba(16, 185, 129, 0.15)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                color: '#34d399',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                padding: '4px 10px',
+                borderRadius: '9999px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block', boxShadow: '0 0 8px #10b981' }}></span>
+                Live Connected
+              </span>
+            </div>
+            <p style={{ color: '#94a3b8', fontSize: '0.9rem', margin: 0 }}>
+              Real-time synchronization for Sales Vouchers, Party GSTIN, Taxable Base, and Inventory Stock Ledger
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <Link href="/tallysync/mapping" className="btn btn-primary" style={{ background: '#2563eb' }}>
-              <i className="fas fa-link mr-1"></i> Item Mappings
+
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <Link
+              href="/tallysync/mapping"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                color: '#ffffff',
+                fontWeight: 600,
+                fontSize: '0.875rem',
+                padding: '10px 18px',
+                borderRadius: '10px',
+                textDecoration: 'none',
+                boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <i className="fas fa-link"></i> Item Mappings
             </Link>
-            <Link href="/tallysync/logs" className="btn btn-primary" style={{ background: '#475569' }}>
-              <i className="fas fa-history mr-1"></i> Sync Logs ({data?.unmapped_count || 0} Pending)
+
+            <Link
+              href="/tallysync/logs"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: 'rgba(30, 41, 59, 0.8)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                color: '#e2e8f0',
+                fontWeight: 600,
+                fontSize: '0.875rem',
+                padding: '10px 18px',
+                borderRadius: '10px',
+                textDecoration: 'none',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <i className="fas fa-history"></i> Sync Logs
+              {Boolean(data?.unmapped_count) && (
+                <span style={{
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  padding: '2px 7px',
+                  borderRadius: '9999px',
+                  marginLeft: '4px'
+                }}>
+                  {data.unmapped_count}
+                </span>
+              )}
             </Link>
+
+            <button
+              onClick={fetchSummary}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                color: '#94a3b8',
+                fontWeight: 600,
+                fontSize: '0.875rem',
+                padding: '10px 14px',
+                borderRadius: '10px',
+                cursor: 'pointer',
+              }}
+              title="Refresh Data"
+            >
+              <i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`}></i>
+            </button>
           </div>
         </div>
 
-        {message && <div className={`message ${message.type}`} style={{ marginBottom: '20px' }}>{message.text}</div>}
+        {/* Message Banner */}
+        {message && (
+          <div style={{
+            background: message.type === 'success' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+            border: `1px solid ${message.type === 'success' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+            color: message.type === 'success' ? '#34d399' : '#f87171',
+            padding: '14px 20px',
+            borderRadius: '12px',
+            marginBottom: '24px',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+          }}>
+            <i className={`fas ${message.type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle'}`}></i>
+            {message.text}
+          </div>
+        )}
 
+        {/* Pending Sync Alert */}
         {Boolean(data?.unmapped_count) && (
-          <div className="message warning" style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <i className="fas fa-exclamation-triangle" style={{ marginRight: '8px' }}></i>
-              <strong>{data.unmapped_count} invoice(s)</strong> have unmapped items or pending stock sync.
+          <div style={{
+            background: 'linear-gradient(90deg, rgba(245, 158, 11, 0.12) 0%, rgba(245, 158, 11, 0.04) 100%)',
+            border: '1px solid rgba(245, 158, 11, 0.3)',
+            padding: '16px 24px',
+            borderRadius: '14px',
+            marginBottom: '28px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                background: 'rgba(245, 158, 11, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fbbf24',
+                fontSize: '1.1rem'
+              }}>
+                <i className="fas fa-exclamation-triangle"></i>
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, color: '#fbbf24', fontSize: '0.95rem' }}>
+                  {data.unmapped_count} Voucher(s) Require Stock Item Mapping
+                </div>
+                <div style={{ color: '#cbd5e1', fontSize: '0.85rem' }}>
+                  Line items exist that could not be automatically deducted from ERP stock buckets.
+                </div>
+              </div>
             </div>
-            <Link href="/tallysync/logs" style={{ color: '#b45309', fontWeight: 600, textDecoration: 'underline' }}>
-              View & Resolve in Sync Logs →
+            <Link
+              href="/tallysync/logs"
+              style={{
+                background: '#f59e0b',
+                color: '#000000',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              Resolve Items <i className="fas fa-arrow-right"></i>
             </Link>
           </div>
         )}
 
-        {/* Filters Card */}
-        <div className="card" style={{ marginBottom: '24px', padding: '20px' }}>
-          <div className="grid-4" style={{ alignItems: 'flex-end' }}>
-            <div className="form-group">
-              <label className="form-label">Search Party / Voucher</label>
+        {/* Top KPI Summary Metrics Cards */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '16px',
+          marginBottom: '28px',
+        }}>
+          {/* Total Sales */}
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%)',
+            border: '1px solid rgba(59, 130, 246, 0.3)',
+            borderRadius: '16px',
+            padding: '20px',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+          }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #3b82f6, #60a5fa)' }}></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Invoiced Sales</span>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <i className="fas fa-wallet"></i>
+              </div>
+            </div>
+            <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.02em', marginBottom: '4px' }}>
+              ₹{Number(totals.total_sale || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </div>
+            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+              Across {data?.invoice_count || 0} sync vouchers
+            </div>
+          </div>
+
+          {/* Taxable Base */}
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '16px',
+            padding: '20px',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+          }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #a855f7, #c084fc)' }}></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Taxable Base Amount</span>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <i className="fas fa-file-invoice-dollar"></i>
+              </div>
+            </div>
+            <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.02em', marginBottom: '4px' }}>
+              ₹{Number(totals.total_taxable || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </div>
+            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+              Goods value before GST
+            </div>
+          </div>
+
+          {/* Total GST */}
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%)',
+            border: '1px solid rgba(16, 185, 129, 0.3)',
+            borderRadius: '16px',
+            padding: '20px',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+          }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #10b981, #34d399)' }}></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total GST Collected</span>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <i className="fas fa-percentage"></i>
+              </div>
+            </div>
+            <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#34d399', letterSpacing: '-0.02em', marginBottom: '4px' }}>
+              ₹{Number(totals.total_gst || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </div>
+            <div style={{ display: 'flex', gap: '8px', fontSize: '0.75rem', color: '#94a3b8' }}>
+              <span>C: ₹{Number(totals.total_cgst || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+              <span>•</span>
+              <span>S: ₹{Number(totals.total_sgst || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+              <span>•</span>
+              <span>I: ₹{Number(totals.total_igst || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+            </div>
+          </div>
+
+          {/* Total Invoices / Sync Status */}
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '16px',
+            padding: '20px',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+          }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #f59e0b, #fbbf24)' }}></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Inventory Sync Health</span>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <i className="fas fa-boxes"></i>
+              </div>
+            </div>
+            <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.02em', marginBottom: '4px' }}>
+              {((invoices.length - (data?.unmapped_count || 0)) / (invoices.length || 1) * 100).toFixed(0)}% Synced
+            </div>
+            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+              {invoices.length - (data?.unmapped_count || 0)} of {invoices.length} fully updated
+            </div>
+          </div>
+        </div>
+
+        {/* Global Filter Bar */}
+        <div style={{
+          background: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: '16px',
+          padding: '18px 22px',
+          marginBottom: '28px',
+          boxShadow: '0 12px 30px rgba(0,0,0,0.25)',
+        }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '16px',
+            alignItems: 'flex-end',
+          }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '6px' }}>
+                <i className="fas fa-search mr-1"></i> Search Party / Voucher / GST
+              </label>
               <input
                 type="text"
-                className="form-input"
-                placeholder="Party name or voucher no..."
-                value={filters.party}
-                onChange={(e) => setFilters({ ...filters, party: e.target.value })}
+                placeholder="Type party name or voucher..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{
+                  width: '100%',
+                  background: 'rgba(30, 41, 59, 0.8)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  borderRadius: '10px',
+                  color: '#ffffff',
+                  padding: '10px 14px',
+                  fontSize: '0.875rem',
+                  outline: 'none',
+                }}
               />
             </div>
-            <div className="form-group">
-              <label className="form-label">Month Filter</label>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '6px' }}>
+                <i className="fas fa-calendar-alt mr-1"></i> Month Preset
+              </label>
               <input
                 type="month"
-                className="form-input"
                 value={filters.month}
-                onChange={(e) => setFilters({ ...filters, month: e.target.value })}
+                onChange={(e) => setFilters({ ...filters, month: e.target.value, from_date: '', to_date: '' })}
+                style={{
+                  width: '100%',
+                  background: 'rgba(30, 41, 59, 0.8)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  borderRadius: '10px',
+                  color: '#ffffff',
+                  padding: '10px 14px',
+                  fontSize: '0.875rem',
+                  outline: 'none',
+                }}
               />
             </div>
-            <div className="form-group">
-              <label className="form-label">From Date</label>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '6px' }}>
+                From Date
+              </label>
               <input
                 type="date"
-                className="form-input"
                 value={filters.from_date}
-                onChange={(e) => setFilters({ ...filters, from_date: e.target.value })}
+                onChange={(e) => setFilters({ ...filters, from_date: e.target.value, month: '' })}
+                style={{
+                  width: '100%',
+                  background: 'rgba(30, 41, 59, 0.8)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  borderRadius: '10px',
+                  color: '#ffffff',
+                  padding: '10px 14px',
+                  fontSize: '0.875rem',
+                  outline: 'none',
+                }}
               />
             </div>
-            <div className="form-group" style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
               <div style={{ flex: 1 }}>
-                <label className="form-label">To Date</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '6px' }}>
+                  To Date
+                </label>
                 <input
                   type="date"
-                  className="form-input"
                   value={filters.to_date}
-                  onChange={(e) => setFilters({ ...filters, to_date: e.target.value })}
+                  onChange={(e) => setFilters({ ...filters, to_date: e.target.value, month: '' })}
+                  style={{
+                    width: '100%',
+                    background: 'rgba(30, 41, 59, 0.8)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    borderRadius: '10px',
+                    color: '#ffffff',
+                    padding: '10px 14px',
+                    fontSize: '0.875rem',
+                    outline: 'none',
+                  }}
                 />
               </div>
-              <button onClick={handleReset} className="btn" style={{ background: '#f1f5f9', color: '#475569', height: '42px' }}>
+
+              <button
+                onClick={handleReset}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  color: '#e2e8f0',
+                  padding: '10px 16px',
+                  borderRadius: '10px',
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
+                  cursor: 'pointer',
+                  height: '42px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
                 Reset
               </button>
             </div>
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid-4" style={{ marginBottom: '24px', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
-          <div className="stat-card">
-            <span className="stat-label">Total Sale</span>
-            <span className="stat-number" style={{ color: '#2563eb' }}>₹{Number(totals.total_sale || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-label">Taxable Value</span>
-            <span className="stat-number">₹{Number(totals.total_taxable || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-label">CGST</span>
-            <span className="stat-number" style={{ color: '#16a34a' }}>₹{Number(totals.total_cgst || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-label">SGST</span>
-            <span className="stat-number" style={{ color: '#16a34a' }}>₹{Number(totals.total_sgst || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-label">IGST</span>
-            <span className="stat-number" style={{ color: '#16a34a' }}>₹{Number(totals.total_igst || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-label">Total GST Payable</span>
-            <span className="stat-number" style={{ color: '#dc2626' }}>₹{Number(totals.total_gst || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-          </div>
-        </div>
+        {/* Transfer Modal if needed */}
+        {transferModalInvoice && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.7)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+          }}>
+            <div style={{
+              width: '500px',
+              maxWidth: '90%',
+              padding: '28px',
+              background: '#1e293b',
+              border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: '16px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+              color: '#f8fafc',
+            }}>
+              <h3 style={{ margin: '0 0 8px', fontSize: '1.2rem', fontWeight: 700 }}>🔄 Transfer & Map Tally Item</h3>
+              <p style={{ color: '#94a3b8', fontSize: '0.875rem', marginBottom: '18px' }}>
+                Voucher: <strong style={{ color: '#60a5fa' }}>{transferModalInvoice.voucher_number}</strong> ({transferModalInvoice.party_name})
+              </p>
 
-        {/* Invoices Table Card with 4 Category Tabs */}
-        <div className="card">
-          {/* 4 Tabs Navigation */}
-          <div style={{ display: 'flex', gap: '8px', borderBottom: '2px solid #e2e8f0', paddingBottom: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
-            <button
-              onClick={() => setActiveTab('all')}
-              className="btn"
-              style={{
-                background: activeTab === 'all' ? '#1e293b' : '#f1f5f9',
-                color: activeTab === 'all' ? 'white' : '#475569',
-                fontWeight: 600,
-                fontSize: '0.85rem',
-              }}
-            >
-              🌟 All Invoices ({invoices.length})
-            </button>
+              <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '14px', borderRadius: '10px', marginBottom: '18px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>Tally Item Name:</div>
+                <div style={{ fontWeight: 700, color: '#f8fafc', fontSize: '0.95rem' }}>
+                  {transferModalInvoice.pending_items?.[0]?.tally_item_name || 'Voucher Item'}
+                </div>
+              </div>
 
-            <button
-              onClick={() => setActiveTab('tyre')}
-              className="btn"
-              style={{
-                background: activeTab === 'tyre' ? '#2563eb' : '#f1f5f9',
-                color: activeTab === 'tyre' ? 'white' : '#475569',
-                fontWeight: 600,
-                fontSize: '0.85rem',
-              }}
-            >
-              🏎️ Auto Tyre ({tyreInvoices.length})
-            </button>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '6px' }}>Select Target Module</label>
+                <select
+                  style={{
+                    width: '100%',
+                    background: '#0f172a',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: '10px',
+                    color: '#ffffff',
+                    padding: '10px 14px',
+                    fontSize: '0.875rem',
+                    outline: 'none',
+                  }}
+                  value={transferModule}
+                  onChange={(e) => {
+                    setTransferModule(e.target.value);
+                    setTransferItemId('');
+                  }}
+                >
+                  <option value="tyre">🏎️ Auto Tyre</option>
+                  <option value="cycletyre">🚲 Cycle Tyre</option>
+                  <option value="tube">⭕ Cycle Tube</option>
+                </select>
+              </div>
 
-            <button
-              onClick={() => setActiveTab('cycletyre')}
-              className="btn"
-              style={{
-                background: activeTab === 'cycletyre' ? '#059669' : '#f1f5f9',
-                color: activeTab === 'cycletyre' ? 'white' : '#475569',
-                fontWeight: 600,
-                fontSize: '0.85rem',
-              }}
-            >
-              🚴 Cycle Tyre ({cycleTyreInvoices.length})
-            </button>
-
-            <button
-              onClick={() => setActiveTab('tube')}
-              className="btn"
-              style={{
-                background: activeTab === 'tube' ? '#d97706' : '#f1f5f9',
-                color: activeTab === 'tube' ? 'white' : '#475569',
-                fontWeight: 600,
-                fontSize: '0.85rem',
-              }}
-            >
-              🚲 Cycle Tube ({tubeInvoices.length})
-            </button>
-          </div>
-
-          <div className="table-container">
-            {loading ? (
-              <div style={{ textAlign: 'center', padding: '40px' }}>Loading Tally invoices...</div>
-            ) : (
-              <table>
-                <thead>
-                  <tr style={{ background: '#1e293b', color: 'white' }}>
-                    <th>DATE</th>
-                    <th>VOUCHER NO.</th>
-                    <th>PARTY NAME</th>
-                    <th>GSTIN</th>
-                    <th style={{ textAlign: 'right' }}>TAXABLE (₹)</th>
-                    <th style={{ textAlign: 'right' }}>GST (₹)</th>
-                    <th style={{ textAlign: 'right' }}>TOTAL (₹)</th>
-                    <th>STOCK SYNC</th>
-                    <th style={{ textAlign: 'center', minWidth: '150px' }}>ACTION / TRANSFER</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredInvoices.map((inv) => (
-                    <tr key={inv.id}>
-                      <td style={{ whiteSpace: 'nowrap' }}>{inv.voucher_date}</td>
-                      <td style={{ fontWeight: 600 }}>{inv.voucher_number}</td>
-                      <td style={{ fontWeight: 500 }}>{inv.party_name || '-'}</td>
-                      <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{inv.party_gstin || '-'}</td>
-                      <td style={{ textAlign: 'right' }}>₹{Number(inv.taxable_value).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      <td style={{ textAlign: 'right', color: '#16a34a' }}>₹{Number(inv.gst_total).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 'bold' }}>₹{Number(inv.total_value).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      <td>
-                        {inv.stock_synced ? (
-                          <span className="badge green"><i className="fas fa-check-circle mr-1"></i> Synced</span>
-                        ) : (
-                          <span className="badge red"><i className="fas fa-exclamation-triangle mr-1"></i> Pending</span>
-                        )}
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
-                          <Link href={`/tallysync/invoice/${inv.id}`} className="btn" style={{ padding: '4px 10px', fontSize: '0.75rem', background: '#f1f5f9', color: '#1e293b' }}>
-                            <i className="fas fa-eye mr-1"></i> View
-                          </Link>
-
-                          <button
-                            onClick={() => {
-                              setTransferModalInvoice(inv);
-                              setTransferModule('tyre');
-                              setTransferItemId('');
-                            }}
-                            className="btn"
-                            style={{ padding: '4px 10px', fontSize: '0.75rem', background: '#e0e7ff', color: '#3730a3' }}
-                            title="Transfer / Assign category tab"
-                          >
-                            <i className="fas fa-exchange-alt mr-1"></i> Transfer
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '6px' }}>Select Corresponding ERP Stock Item</label>
+                <select
+                  style={{
+                    width: '100%',
+                    background: '#0f172a',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: '10px',
+                    color: '#ffffff',
+                    padding: '10px 14px',
+                    fontSize: '0.875rem',
+                    outline: 'none',
+                  }}
+                  value={transferItemId}
+                  onChange={(e) => setTransferItemId(e.target.value)}
+                >
+                  <option value="">-- Choose Item --</option>
+                  {transferModule === 'tyre' && stockItems?.tyre_items?.map(t => (
+                    <option key={t.id} value={t.id}>{t.label}</option>
                   ))}
-                  {!filteredInvoices.length && (
-                    <tr>
-                      <td colSpan="9" style={{ textAlign: 'center', color: '#64748b', padding: '30px' }}>
-                        No synced invoices found in this tab filter.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-                {filteredInvoices.length > 0 && (
-                  <tfoot>
-                    <tr style={{ background: '#f8fafc', fontWeight: 'bold' }}>
-                      <td colSpan="4">TOTAL ({filteredInvoices.length} invoices)</td>
-                      <td style={{ textAlign: 'right' }}>₹{Number(totals.total_taxable || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      <td style={{ textAlign: 'right', color: '#16a34a' }}>₹{Number(totals.total_gst || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      <td style={{ textAlign: 'right', color: '#2563eb' }}>₹{Number(totals.total_sale || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      <td colSpan="2"></td>
-                    </tr>
-                  </tfoot>
-                )}
-              </table>
-            )}
-          </div>
-        </div>
-      </div>
+                  {transferModule === 'cycletyre' && stockItems?.cycletyre_items?.map(ct => (
+                    <option key={ct.id} value={ct.id}>{ct.label}</option>
+                  ))}
+                  {transferModule === 'tube' && stockItems?.tube_items?.map(tb => (
+                    <option key={tb.id} value={tb.id}>{tb.label}</option>
+                  ))}
+                </select>
+              </div>
 
-      {/* Category Transfer Modal */}
-      {transferModalInvoice && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-        }}>
-          <div className="card" style={{ maxWidth: '480px', width: '90%', padding: '24px' }}>
-            <h3 style={{ color: '#1e293b', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <i className="fas fa-exchange-alt" style={{ color: '#2563eb' }}></i> Transfer Voucher Category Tab
-            </h3>
-            <p style={{ marginBottom: '16px', fontSize: '0.88rem', color: '#475569' }}>
-              Voucher <strong>#{transferModalInvoice.voucher_number}</strong> ({transferModalInvoice.party_name}) ko kis category tab mein transfer/map karna chahte hain?
-            </p>
-
-            <div className="form-group">
-              <label className="form-label">Target Module Tab *</label>
-              <select
-                className="form-select"
-                value={transferModule}
-                onChange={(e) => {
-                  setTransferModule(e.target.value);
-                  setTransferItemId('');
-                }}
-              >
-                <option value="tyre">🏎️ Auto Tyre</option>
-                <option value="cycletyre">🚴 Cycle Tyre</option>
-                <option value="tube">🚲 Cycle Tube</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Select Matching Stock Item *</label>
-              <select
-                className="form-select"
-                value={transferItemId}
-                onChange={(e) => setTransferItemId(e.target.value)}
-              >
-                <option value="">-- Select Item --</option>
-                {transferModule === 'tyre' && stockItems?.tyre_items?.map((it) => (
-                  <option key={`tyre:${it.id}`} value={it.id}>Auto Tyre: {it.label}</option>
-                ))}
-                {transferModule === 'cycletyre' && stockItems?.cycletyre_items?.map((it) => (
-                  <option key={`cycletyre:${it.id}`} value={it.id}>Cycle Tyre: {it.label}</option>
-                ))}
-                {transferModule === 'tube' && stockItems?.tube_items?.map((it) => (
-                  <option key={`tube:${it.id}`} value={it.id}>Cycle Tube: {it.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
-              <button onClick={() => setTransferModalInvoice(null)} className="btn" style={{ background: '#e2e8f0', color: '#475569' }}>
-                Cancel
-              </button>
-              <button
-                onClick={handleExecuteTransfer}
-                className="btn btn-primary"
-                style={{ background: '#2563eb' }}
-                disabled={transferring}
-              >
-                {transferring ? 'Transferring...' : 'Execute Transfer'}
-              </button>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => setTransferModalInvoice(null)}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#e2e8f0',
+                    padding: '10px 18px',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                  }}
+                  disabled={transferring}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleExecuteTransfer}
+                  style={{
+                    background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                    border: 'none',
+                    color: '#ffffff',
+                    padding: '10px 20px',
+                    borderRadius: '10px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)',
+                  }}
+                  disabled={transferring || !transferItemId}
+                >
+                  {transferring ? 'Mapping...' : 'Confirm Transfer'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </>
+        )}
+      </main>
+    </div>
   );
 }
