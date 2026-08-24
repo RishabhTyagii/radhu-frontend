@@ -570,6 +570,276 @@ export default function TallySalesSummary() {
           </div>
         </div>
 
+        {/* Category Pill Navigation Bar */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+          marginBottom: '20px',
+        }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setActiveTab('all')}
+              style={{
+                background: activeTab === 'all' ? '#2563eb' : 'rgba(30, 41, 59, 0.8)',
+                color: activeTab === 'all' ? '#ffffff' : '#94a3b8',
+                border: `1px solid ${activeTab === 'all' ? '#3b82f6' : 'rgba(255,255,255,0.1)'}`,
+                padding: '8px 16px',
+                borderRadius: '10px',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <span>🌟 All Invoices</span>
+              <span style={{
+                background: activeTab === 'all' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)',
+                padding: '2px 8px',
+                borderRadius: '9999px',
+                fontSize: '0.75rem',
+              }}>{counts.all}</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('tyre')}
+              style={{
+                background: activeTab === 'tyre' ? '#2563eb' : 'rgba(30, 41, 59, 0.8)',
+                color: activeTab === 'tyre' ? '#ffffff' : '#94a3b8',
+                border: `1px solid ${activeTab === 'tyre' ? '#3b82f6' : 'rgba(255,255,255,0.1)'}`,
+                padding: '8px 16px',
+                borderRadius: '10px',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <span>🏎️ Auto Tyre</span>
+              <span style={{
+                background: activeTab === 'tyre' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)',
+                padding: '2px 8px',
+                borderRadius: '9999px',
+                fontSize: '0.75rem',
+              }}>{counts.tyre}</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('cycletyre')}
+              style={{
+                background: activeTab === 'cycletyre' ? '#2563eb' : 'rgba(30, 41, 59, 0.8)',
+                color: activeTab === 'cycletyre' ? '#ffffff' : '#94a3b8',
+                border: `1px solid ${activeTab === 'cycletyre' ? '#3b82f6' : 'rgba(255,255,255,0.1)'}`,
+                padding: '8px 16px',
+                borderRadius: '10px',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <span>🚴 Cycle Tyre</span>
+              <span style={{
+                background: activeTab === 'cycletyre' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)',
+                padding: '2px 8px',
+                borderRadius: '9999px',
+                fontSize: '0.75rem',
+              }}>{counts.cycletyre}</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('tube')}
+              style={{
+                background: activeTab === 'tube' ? '#2563eb' : 'rgba(30, 41, 59, 0.8)',
+                color: activeTab === 'tube' ? '#ffffff' : '#94a3b8',
+                border: `1px solid ${activeTab === 'tube' ? '#3b82f6' : 'rgba(255,255,255,0.1)'}`,
+                padding: '8px 16px',
+                borderRadius: '10px',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <span>⭕ Cycle Tube</span>
+              <span style={{
+                background: activeTab === 'tube' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)',
+                padding: '2px 8px',
+                borderRadius: '9999px',
+                fontSize: '0.75rem',
+              }}>{counts.tube}</span>
+            </button>
+          </div>
+
+          <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+            Showing <strong>{filteredInvoices.length}</strong> of <strong>{invoices.length}</strong> vouchers
+          </div>
+        </div>
+
+        {/* Full Edge-to-Edge Vouchers Data Table Card */}
+        <div style={{
+          background: 'rgba(15, 23, 42, 0.85)',
+          backdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: '20px',
+          overflow: 'hidden',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+        }}>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '60px 20px', color: '#94a3b8' }}>
+              <div style={{ fontSize: '2rem', marginBottom: '12px' }} className="fa-spin">
+                <i className="fas fa-circle-notch"></i>
+              </div>
+              <div>Fetching Tally Sync Invoices...</div>
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(30, 41, 59, 0.9)', color: '#94a3b8', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                    <th style={{ padding: '14px 18px', fontWeight: 700 }}>DATE</th>
+                    <th style={{ padding: '14px 18px', fontWeight: 700 }}>VOUCHER NO.</th>
+                    <th style={{ padding: '14px 18px', fontWeight: 700 }}>PARTY NAME</th>
+                    <th style={{ padding: '14px 18px', fontWeight: 700 }}>GSTIN</th>
+                    <th style={{ padding: '14px 18px', fontWeight: 700, textAlign: 'right' }}>TAXABLE (₹)</th>
+                    <th style={{ padding: '14px 18px', fontWeight: 700, textAlign: 'right' }}>GST (₹)</th>
+                    <th style={{ padding: '14px 18px', fontWeight: 700, textAlign: 'right' }}>TOTAL VALUE (₹)</th>
+                    <th style={{ padding: '14px 18px', fontWeight: 700, textAlign: 'center' }}>STOCK SYNC</th>
+                    <th style={{ padding: '14px 18px', fontWeight: 700, textAlign: 'center' }}>ACTION</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredInvoices.map((inv) => (
+                    <tr
+                      key={inv.id}
+                      style={{
+                        borderBottom: '1px solid rgba(255,255,255,0.05)',
+                        transition: 'background 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(30, 41, 59, 0.5)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <td style={{ padding: '14px 18px', color: '#cbd5e1', whiteSpace: 'nowrap' }}>
+                        {inv.voucher_date}
+                      </td>
+                      <td style={{ padding: '14px 18px', fontWeight: 700, color: '#60a5fa' }}>
+                        {inv.voucher_number}
+                      </td>
+                      <td style={{ padding: '14px 18px', fontWeight: 600, color: '#f8fafc' }}>
+                        {inv.party_name || '—'}
+                      </td>
+                      <td style={{ padding: '14px 18px', color: '#94a3b8', fontSize: '0.8rem', fontFamily: 'monospace' }}>
+                        {inv.party_gstin || '—'}
+                      </td>
+                      <td style={{ padding: '14px 18px', textAlign: 'right', fontWeight: 600, color: '#e2e8f0' }}>
+                        ₹{Number(inv.taxable_value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td style={{ padding: '14px 18px', textAlign: 'right', fontWeight: 600, color: '#34d399' }}>
+                        ₹{Number(inv.gst_total || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td style={{ padding: '14px 18px', textAlign: 'right', fontWeight: 800, color: '#ffffff' }}>
+                        ₹{Number(inv.total_value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td style={{ padding: '14px 18px', textAlign: 'center' }}>
+                        {inv.stock_synced ? (
+                          <span style={{
+                            background: 'rgba(16, 185, 129, 0.15)',
+                            color: '#34d399',
+                            border: '1px solid rgba(16, 185, 129, 0.3)',
+                            padding: '3px 10px',
+                            borderRadius: '9999px',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                          }}>
+                            ✓ Synced
+                          </span>
+                        ) : (
+                          <span style={{
+                            background: 'rgba(239, 68, 68, 0.15)',
+                            color: '#f87171',
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            padding: '3px 10px',
+                            borderRadius: '9999px',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                          }}>
+                            Pending
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ padding: '14px 18px', textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                          <Link
+                            href={`/tallysync/invoice/${inv.id}`}
+                            style={{
+                              background: 'rgba(59, 130, 246, 0.15)',
+                              border: '1px solid rgba(59, 130, 246, 0.3)',
+                              color: '#60a5fa',
+                              padding: '5px 12px',
+                              borderRadius: '8px',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              textDecoration: 'none',
+                            }}
+                          >
+                            View Invoice
+                          </Link>
+                          <button
+                            onClick={() => {
+                              setTransferModalInvoice(inv);
+                              setTransferModule('tyre');
+                              setTransferItemId('');
+                            }}
+                            style={{
+                              background: 'rgba(255, 255, 255, 0.08)',
+                              border: '1px solid rgba(255, 255, 255, 0.15)',
+                              color: '#cbd5e1',
+                              padding: '5px 10px',
+                              borderRadius: '8px',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                            }}
+                            title="Transfer / Remap Item"
+                          >
+                            Transfer
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+
+                  {!filteredInvoices.length && (
+                    <tr>
+                      <td colSpan="9" style={{ textAlign: 'center', padding: '50px 20px', color: '#64748b' }}>
+                        <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🔍</div>
+                        <div style={{ fontSize: '1rem', fontWeight: 600, color: '#cbd5e1' }}>No synced invoices found</div>
+                        <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '4px' }}>
+                          Try clearing your search term or month filter.
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
         {/* Transfer Modal if needed */}
         {transferModalInvoice && (
           <div style={{
@@ -701,3 +971,4 @@ export default function TallySalesSummary() {
     </div>
   );
 }
+
