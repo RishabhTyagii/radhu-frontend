@@ -799,6 +799,7 @@ export default function TallySalesSummary() {
                     <th style={{ padding: '14px 18px', fontWeight: 700, textAlign: 'right' }}>TAXABLE (₹)</th>
                     <th style={{ padding: '14px 18px', fontWeight: 700, textAlign: 'right' }}>GST (₹)</th>
                     <th style={{ padding: '14px 18px', fontWeight: 700, textAlign: 'right' }}>TOTAL VALUE (₹)</th>
+                    <th style={{ padding: '14px 18px', fontWeight: 700, textAlign: 'center' }}>TOTAL PCS</th>
                     <th style={{ padding: '14px 18px', fontWeight: 700, textAlign: 'center' }}>STOCK SYNC</th>
                     <th style={{ padding: '14px 18px', fontWeight: 700, textAlign: 'center' }}>ACTION</th>
                   </tr>
@@ -834,6 +835,9 @@ export default function TallySalesSummary() {
                       </td>
                       <td style={{ padding: '14px 18px', textAlign: 'right', fontWeight: 800, color: colors.textTitle }}>
                         ₹{Number(inv.total_value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td style={{ padding: '14px 18px', textAlign: 'center', fontWeight: 700, color: '#f59e0b' }}>
+                        {inv.total_pcs > 0 ? `${Number(inv.total_pcs).toLocaleString('en-IN')} pcs` : '—'}
                       </td>
                       <td style={{ padding: '14px 18px', textAlign: 'center' }}>
                         {inv.stock_synced ? (
