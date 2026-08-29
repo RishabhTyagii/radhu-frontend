@@ -56,7 +56,7 @@ export default function TallySalesSummary() {
 
   async function fetchSummary() {
     setLoading(true);
-    let query = '?';
+    let query = '?all_months=true&';
     if (filters.party) query += `party=${encodeURIComponent(filters.party)}&`;
     if (filters.from_date || filters.to_date) {
       if (filters.from_date) query += `from_date=${filters.from_date}&`;
@@ -117,12 +117,12 @@ export default function TallySalesSummary() {
   const totals = data?.totals || {};
 
   function getInvoiceCategory(inv) {
-    const raw = (inv.raw_payload || '').toLowerCase();
-    const party = (inv.party_name || '').toLowerCase();
-    if (raw.includes('tube') || raw.includes('tb') || raw.includes('mld') || raw.includes('jt')) return 'tube';
-    if (raw.includes('cycle') && raw.includes('tyre')) return 'cycletyre';
-    if (raw.includes('tyre') || party.includes('tyre')) return 'tyre';
-    return 'all';
+    if (inv.category && inv.category !== 'all') return inv.category;
+    const text = ((inv.items_summary || '') + ' ' + (inv.party_name || '') + ' ' + (inv.raw_payload || '')).toLowerCase();
+    if (text.includes('tube') || text.includes('tb') || text.includes('mld') || text.includes('jt')) return 'tube';
+    if (text.includes('cycle') && text.includes('tyre')) return 'cycletyre';
+    if (text.includes('tyre') || text.includes('tl') || text.includes('radial') || text.includes('nylon')) return 'tyre';
+    return 'tyre';
   }
 
   const counts = useMemo(() => {
@@ -822,7 +822,12 @@ export default function TallySalesSummary() {
                         {inv.voucher_number}
                       </td>
                       <td style={{ padding: '14px 18px', fontWeight: 600, color: colors.textMain }}>
-                        {inv.party_name || '—'}
+                        <div>{inv.party_name || '—'}</div>
+                        {inv.items_summary && (
+                          <div style={{ color: colors.textMuted, fontSize: '0.75rem', fontWeight: 400, marginTop: '2px' }}>
+                            {inv.items_summary}
+                          </div>
+                        )}
                       </td>
                       <td style={{ padding: '14px 18px', color: colors.textMuted, fontSize: '0.8rem', fontFamily: 'monospace' }}>
                         {inv.party_gstin || '—'}
