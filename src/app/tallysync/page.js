@@ -18,6 +18,7 @@ export default function TallySalesSummary() {
     month: '',
     from_date: '',
     to_date: '',
+    ledger: '',
   });
 
   // Pagination state
@@ -58,6 +59,7 @@ export default function TallySalesSummary() {
     setLoading(true);
     let query = '?all_months=true&';
     if (filters.party) query += `party=${encodeURIComponent(filters.party)}&`;
+    if (filters.ledger) query += `ledger=${encodeURIComponent(filters.ledger)}&`;
     if (filters.from_date || filters.to_date) {
       if (filters.from_date) query += `from_date=${filters.from_date}&`;
       if (filters.to_date) query += `to_date=${filters.to_date}&`;
@@ -76,7 +78,7 @@ export default function TallySalesSummary() {
   }
 
   const handleReset = () => {
-    setFilters({ party: '', month: '', from_date: '', to_date: '' });
+    setFilters({ party: '', month: '', from_date: '', to_date: '', ledger: '' });
     setSearchTerm('');
     setCurrentPage(1);
   };
@@ -90,13 +92,10 @@ export default function TallySalesSummary() {
     setTransferring(true);
     setMessage(null);
 
-    const pendingItem = transferModalInvoice.pending_items?.[0] || {};
-    const tallyItemName = pendingItem.tally_item_name || 'Voucher Item';
-
-    const res = await apiPost('/tallysync/add-mapping/', {
-      tally_item_name: tallyItemName,
-      module: transferModule,
-      item_id: transferItemId,
+    const res = await apiPost('/tallysync/transfer-item/', {
+      voucher_number: transferModalInvoice.voucher_number,
+      target_module: transferModule,
+      target_item_id: Number(transferItemId),
     });
 
     setTransferring(false);
@@ -114,7 +113,6 @@ export default function TallySalesSummary() {
   };
 
   const invoices = data?.invoices || [];
-  const totals = data?.totals || {};
 
   function getInvoiceCategory(inv) {
     if (inv.category && inv.category !== 'all') return inv.category;
@@ -143,19 +141,60 @@ export default function TallySalesSummary() {
         const cat = getInvoiceCategory(inv);
         if (cat !== activeTab) return false;
       }
+      if (filters.ledger) {
+        const lq = filters.ledger.toLowerCase();
+        const sledger = (inv.sales_ledger || '').toLowerCase();
+        const isummary = (inv.items_summary || '').toLowerCase();
+        if (!sledger.includes(lq) && !isummary.includes(lq)) {
+          return false;
+        }
+      }
       if (searchTerm.trim()) {
         const q = searchTerm.toLowerCase();
         const party = (inv.party_name || '').toLowerCase();
         const vno = (inv.voucher_number || '').toLowerCase();
         const gstin = (inv.party_gstin || '').toLowerCase();
         const state = (inv.state_name || '').toLowerCase();
-        if (!party.includes(q) && !vno.includes(q) && !gstin.includes(q) && !state.includes(q)) {
+        const isummary = (inv.items_summary || '').toLowerCase();
+        const sledger = (inv.sales_ledger || '').toLowerCase();
+        if (!party.includes(q) && !vno.includes(q) && !gstin.includes(q) && !state.includes(q) && !isummary.includes(q) && !sledger.includes(q)) {
           return false;
         }
       }
       return true;
     });
-  }, [invoices, activeTab, searchTerm]);
+  }, [invoices, activeTab, searchTerm, filters.ledger]);
+
+  // Dynamic real-time totals calculated directly over filtered invoices
+  const dynamicTotals = useMemo(() => {
+    let total_sale = 0;
+    let total_taxable = 0;
+    let total_gst = 0;
+    let total_pcs = 0;
+    let total_cgst = 0;
+    let total_sgst = 0;
+    let total_igst = 0;
+
+    filteredInvoices.forEach((inv) => {
+      total_sale += Number(inv.total_value || 0);
+      total_taxable += Number(inv.taxable_value || 0);
+      total_gst += Number(inv.gst_total || 0);
+      total_pcs += Number(inv.total_pcs || 0);
+      total_cgst += Number(inv.cgst || 0);
+      total_sgst += Number(inv.sgst || 0);
+      total_igst += Number(inv.igst || 0);
+    });
+
+    return {
+      total_sale,
+      total_taxable,
+      total_gst,
+      total_pcs,
+      total_cgst,
+      total_sgst,
+      total_igst,
+    };
+  }, [filteredInvoices]);
 
   // Pagination calculation (50 invoices per page)
   const totalPages = Math.ceil(filteredInvoices.length / ITEMS_PER_PAGE) || 1;
@@ -420,7 +459,7 @@ export default function TallySalesSummary() {
         {/* Top KPI Summary Metrics Cards */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
           gap: '16px',
           marginBottom: '28px',
         }}>
@@ -442,10 +481,37 @@ export default function TallySalesSummary() {
               </div>
             </div>
             <div style={{ fontSize: '1.65rem', fontWeight: 800, color: colors.textTitle, letterSpacing: '-0.02em', marginBottom: '4px' }}>
-              ₹{Number(totals.total_sale || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              ₹{Number(dynamicTotals.total_sale || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </div>
             <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>
-              Across {data?.invoice_count || 0} sync vouchers
+              Across {filteredInvoices.length} filtered vouchers
+            </div>
+          </div>
+
+          {/* Total Pieces (Pcs) - NEW KPI CARD */}
+          <div style={{
+            background: colors.kpiBg,
+            border: `1px solid ${isDark ? 'rgba(6, 182, 212, 0.3)' : '#cbd5e1'}`,
+            borderRadius: '16px',
+            padding: '20px',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.06)',
+          }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #06b6d4, #22d3ee)' }}></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <span style={{ color: '#06b6d4', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <i className="fas fa-cubes mr-1"></i> Total Pieces (Pcs)
+              </span>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(6, 182, 212, 0.15)', color: '#06b6d4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <i className="fas fa-layer-group"></i>
+              </div>
+            </div>
+            <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#06b6d4', letterSpacing: '-0.02em', marginBottom: '4px' }}>
+              {Number(dynamicTotals.total_pcs || 0).toLocaleString('en-IN')} <span style={{ fontSize: '0.9rem', fontWeight: 600, color: colors.textMuted }}>pcs</span>
+            </div>
+            <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>
+              Total quantity in selected range
             </div>
           </div>
 
@@ -467,7 +533,7 @@ export default function TallySalesSummary() {
               </div>
             </div>
             <div style={{ fontSize: '1.65rem', fontWeight: 800, color: colors.textTitle, letterSpacing: '-0.02em', marginBottom: '4px' }}>
-              ₹{Number(totals.total_taxable || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              ₹{Number(dynamicTotals.total_taxable || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </div>
             <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>
               Goods value before GST
@@ -487,19 +553,19 @@ export default function TallySalesSummary() {
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #10b981, #34d399)' }}></div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
               <span style={{ color: colors.textMuted, fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total GST Collected</span>
-              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(168, 85, 129, 0.15)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <i className="fas fa-percentage"></i>
               </div>
             </div>
             <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#10b981', letterSpacing: '-0.02em', marginBottom: '4px' }}>
-              ₹{Number(totals.total_gst || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              ₹{Number(dynamicTotals.total_gst || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </div>
             <div style={{ display: 'flex', gap: '8px', fontSize: '0.75rem', color: colors.textMuted }}>
-              <span>C: ₹{Number(totals.total_cgst || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+              <span>C: ₹{Number(dynamicTotals.total_cgst || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
               <span>•</span>
-              <span>S: ₹{Number(totals.total_sgst || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+              <span>S: ₹{Number(dynamicTotals.total_sgst || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
               <span>•</span>
-              <span>I: ₹{Number(totals.total_igst || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+              <span>I: ₹{Number(dynamicTotals.total_igst || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
             </div>
           </div>
 
@@ -521,10 +587,10 @@ export default function TallySalesSummary() {
               </div>
             </div>
             <div style={{ fontSize: '1.65rem', fontWeight: 800, color: colors.textTitle, letterSpacing: '-0.02em', marginBottom: '4px' }}>
-              {((invoices.length - (data?.unmapped_count || 0)) / (invoices.length || 1) * 100).toFixed(0)}% Synced
+              {((filteredInvoices.length - (data?.unmapped_count || 0)) / (filteredInvoices.length || 1) * 100).toFixed(0)}% Synced
             </div>
             <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>
-              {invoices.length - (data?.unmapped_count || 0)} of {invoices.length} fully updated
+              {filteredInvoices.length - (data?.unmapped_count || 0)} of {filteredInvoices.length} fully updated
             </div>
           </div>
         </div>
@@ -540,17 +606,17 @@ export default function TallySalesSummary() {
         }}>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
             gap: '16px',
             alignItems: 'flex-end',
           }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: colors.textMuted, textTransform: 'uppercase', marginBottom: '6px' }}>
-                <i className="fas fa-search mr-1"></i> Active Global Search (Party / Voucher / GST)
+                <i className="fas fa-search mr-1"></i> Global Search
               </label>
               <input
                 type="text"
-                placeholder="Type party name, invoice #, GSTIN..."
+                placeholder="Party, bill #, GSTIN..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{
@@ -608,31 +674,61 @@ export default function TallySalesSummary() {
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: colors.textMuted, textTransform: 'uppercase', marginBottom: '6px' }}>
-                  To Date
-                </label>
-                <input
-                  type="date"
-                  value={filters.to_date}
-                  onChange={(e) => setFilters({ ...filters, to_date: e.target.value, month: '' })}
-                  style={{
-                    width: '100%',
-                    background: colors.inputBg,
-                    border: `1px solid ${colors.inputBorder}`,
-                    borderRadius: '10px',
-                    color: colors.textMain,
-                    padding: '10px 14px',
-                    fontSize: '0.875rem',
-                    outline: 'none',
-                  }}
-                />
-              </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: colors.textMuted, textTransform: 'uppercase', marginBottom: '6px' }}>
+                To Date
+              </label>
+              <input
+                type="date"
+                value={filters.to_date}
+                onChange={(e) => setFilters({ ...filters, to_date: e.target.value, month: '' })}
+                style={{
+                  width: '100%',
+                  background: colors.inputBg,
+                  border: `1px solid ${colors.inputBorder}`,
+                  borderRadius: '10px',
+                  color: colors.textMain,
+                  padding: '10px 14px',
+                  fontSize: '0.875rem',
+                  outline: 'none',
+                }}
+              />
+            </div>
 
+            {/* Sales Ledger Filter Dropdown */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: colors.textMuted, textTransform: 'uppercase', marginBottom: '6px' }}>
+                <i className="fas fa-book mr-1"></i> Sales / GST Ledger
+              </label>
+              <select
+                value={filters.ledger || ''}
+                onChange={(e) => setFilters({ ...filters, ledger: e.target.value })}
+                style={{
+                  width: '100%',
+                  background: colors.inputBg,
+                  border: `1px solid ${colors.inputBorder}`,
+                  borderRadius: '10px',
+                  color: colors.textMain,
+                  padding: '10px 14px',
+                  fontSize: '0.875rem',
+                  outline: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                <option value="">All Sales Ledgers</option>
+                {data?.available_ledgers?.map((ledger, idx) => (
+                  <option key={idx} value={ledger}>
+                    {ledger}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
               <button
                 onClick={handleReset}
                 style={{
+                  width: '100%',
                   background: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
                   border: `1px solid ${colors.cardBorder}`,
                   color: colors.textMain,
@@ -645,7 +741,7 @@ export default function TallySalesSummary() {
                   whiteSpace: 'nowrap',
                 }}
               >
-                Reset
+                <i className="fas fa-undo mr-1"></i> Reset
               </button>
             </div>
           </div>
