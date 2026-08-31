@@ -278,11 +278,44 @@ export default function TallyInvoiceDetail() {
             </div>
           </div>
 
-          {/* Party & Shipping Details Grid */}
+          {/* e-Invoice & E-Way Bill Compliance Banner (if available) */}
+          {(invoice.irn || invoice.eway_bill_number || invoice.ack_number) && (
+            <div style={{
+              background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+              color: '#f8fafc',
+              borderRadius: '12px',
+              padding: '16px 20px',
+              marginBottom: '28px',
+              border: '1px solid #334155',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '8px' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <i className="fas fa-shield-alt mr-1"></i> GST e-Invoice & E-Way Bill Details
+                </span>
+                {invoice.ack_number && (
+                  <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                    Ack No: <strong style={{ color: '#ffffff' }}>{invoice.ack_number}</strong> {invoice.ack_date ? `(${invoice.ack_date})` : ''}
+                  </span>
+                )}
+              </div>
+              {invoice.irn && (
+                <div style={{ fontSize: '0.75rem', color: '#cbd5e1', wordBreak: 'break-all', marginBottom: '6px' }}>
+                  <span style={{ color: '#94a3b8', fontWeight: 600 }}>IRN:</span> <span style={{ fontFamily: 'monospace' }}>{invoice.irn}</span>
+                </div>
+              )}
+              {invoice.eway_bill_number && (
+                <div style={{ fontSize: '0.85rem', color: '#34d399', fontWeight: 700 }}>
+                  <i className="fas fa-barcode mr-1"></i> E-Way Bill No: {invoice.eway_bill_number} {invoice.eway_bill_date ? `(Date: ${invoice.eway_bill_date})` : ''}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Party, Shipping & Logistics Grid */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '24px',
+            gap: '20px',
             marginBottom: '32px',
           }}>
             {/* Bill To */}
@@ -290,7 +323,7 @@ export default function TallyInvoiceDetail() {
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
               borderRadius: '14px',
-              padding: '20px',
+              padding: '18px',
             }}>
               <div style={{
                 fontSize: '0.75rem',
@@ -305,7 +338,7 @@ export default function TallyInvoiceDetail() {
               }}>
                 <i className="fas fa-building"></i> Details of Receiver / Billed To
               </div>
-              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
+              <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
                 {invoice.party_name || 'Cash Customer'}
               </div>
               {invoice.party_gstin && (
@@ -315,7 +348,7 @@ export default function TallyInvoiceDetail() {
               )}
               {invoice.party_address && (
                 <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5, marginBottom: '6px' }}>
-                  <span style={{ color: '#64748b', fontWeight: 600 }}>Address:</span> {invoice.party_address}
+                  <span style={{ color: '#64748b', fontWeight: 600 }}>Address:</span> {invoice.party_address} {invoice.party_pincode ? ` - ${invoice.party_pincode}` : ''}
                 </div>
               )}
               <div style={{ display: 'flex', gap: '16px', fontSize: '0.85rem', color: '#475569', marginTop: '6px' }}>
@@ -329,7 +362,7 @@ export default function TallyInvoiceDetail() {
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
               borderRadius: '14px',
-              padding: '20px',
+              padding: '18px',
             }}>
               <div style={{
                 fontSize: '0.75rem',
@@ -344,7 +377,7 @@ export default function TallyInvoiceDetail() {
               }}>
                 <i className="fas fa-truck"></i> Details of Consignee / Shipped To
               </div>
-              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
+              <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
                 {invoice.consignee_name || invoice.party_name || 'Same as Billed To'}
               </div>
               {invoice.consignee_gstin && (
@@ -352,12 +385,59 @@ export default function TallyInvoiceDetail() {
                   <span style={{ color: '#64748b', fontWeight: 600 }}>Consignee GSTIN:</span> <strong style={{ fontFamily: 'monospace' }}>{invoice.consignee_gstin}</strong>
                 </div>
               )}
+              {invoice.consignee_address && (
+                <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5, marginBottom: '6px' }}>
+                  <span style={{ color: '#64748b', fontWeight: 600 }}>Ship-To Address:</span> {invoice.consignee_address} {invoice.consignee_pincode ? ` - ${invoice.consignee_pincode}` : ''}
+                </div>
+              )}
               <div style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: 1.5 }}>
                 Registration Type: <strong style={{ color: '#0f172a' }}>{invoice.gst_registration_type || 'Regular'}</strong>
               </div>
-              <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '12px' }}>
-                Synced to Cloud: {new Date(invoice.synced_at).toLocaleString('en-IN')}
+            </div>
+
+            {/* Transporter & Logistics Details */}
+            <div style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '14px',
+              padding: '18px',
+            }}>
+              <div style={{
+                fontSize: '0.75rem',
+                fontWeight: 800,
+                color: '#f59e0b',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                marginBottom: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <i className="fas fa-shipping-fast"></i> Transporter & Logistics
               </div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>
+                {invoice.transporter_name || '— (Direct / Self)'}
+              </div>
+              {invoice.transporter_id && (
+                <div style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '4px' }}>
+                  <span style={{ color: '#64748b', fontWeight: 600 }}>Transporter ID:</span> {invoice.transporter_id}
+                </div>
+              )}
+              {invoice.vehicle_number && (
+                <div style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '4px' }}>
+                  <span style={{ color: '#64748b', fontWeight: 600 }}>Vehicle No:</span> <strong style={{ color: '#0f172a' }}>{invoice.vehicle_number}</strong>
+                </div>
+              )}
+              {invoice.lr_number && (
+                <div style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '4px' }}>
+                  <span style={{ color: '#64748b', fontWeight: 600 }}>LR / Doc No:</span> {invoice.lr_number} {invoice.lr_date ? `(${invoice.lr_date})` : ''}
+                </div>
+              )}
+              {invoice.sales_ledger && (
+                <div style={{ marginTop: '8px', padding: '4px 8px', background: '#e0f2fe', color: '#0369a1', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700 }}>
+                  <i className="fas fa-book mr-1"></i> {invoice.sales_ledger}
+                </div>
+              )}
             </div>
           </div>
 
@@ -387,7 +467,24 @@ export default function TallyInvoiceDetail() {
                       }}
                     >
                       <td style={{ padding: '12px 16px', color: '#64748b', fontWeight: 600 }}>{idx + 1}</td>
-                      <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0f172a' }}>{item.name}</td>
+                      <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0f172a' }}>
+                        <div>{item.name}</div>
+                        {item.sales_ledger && (
+                          <span style={{
+                            display: 'inline-block',
+                            background: '#eff6ff',
+                            color: '#1d4ed8',
+                            border: '1px solid #bfdbfe',
+                            borderRadius: '4px',
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            padding: '2px 6px',
+                            marginTop: '4px',
+                          }}>
+                            {item.sales_ledger}
+                          </span>
+                        )}
+                      </td>
                       <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 800, color: '#0f172a' }}>
                         {qty.toLocaleString('en-IN')} <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 500 }}>pcs</span>
                       </td>
