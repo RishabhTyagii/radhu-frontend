@@ -8,8 +8,13 @@ import { apiGet, apiPost, apiDelete } from '@/lib/api';
 export default function MyOrders() {
   const [orders, setOrders] = useState([]);
   const [parties, setParties] = useState([]);
+  const [tallyParties, setTallyParties] = useState([]);
   const [loading, setLoading] = useState(true);
+  
   const [partyName, setPartyName] = useState('');
+  const [partyGstin, setPartyGstin] = useState('');
+  const [partyAddress, setPartyAddress] = useState('');
+  
   const [addingParty, setAddingParty] = useState(false);
   const [message, setMessage] = useState(null);
 
@@ -19,15 +24,27 @@ export default function MyOrders() {
 
   async function fetchData() {
     setLoading(true);
-    const [ordRes, partyRes] = await Promise.all([
+    const [ordRes, partyRes, tallyRes] = await Promise.all([
       apiGet('/orders/'),
       apiGet('/orders/parties/'),
+      apiGet('/orders/tally-parties/'),
     ]);
 
     if (ordRes) setOrders(ordRes);
     if (partyRes) setParties(partyRes);
+    if (tallyRes) setTallyParties(tallyRes);
     setLoading(false);
   }
+
+  const handleTallyPartySelect = (e) => {
+    const val = e.target.value;
+    setPartyName(val);
+    const tp = tallyParties.find(p => p.name === val);
+    if (tp) {
+      setPartyGstin(tp.gstin || '');
+      setPartyAddress(tp.address || '');
+    }
+  };
 
   const handleAddParty = async (e) => {
     e.preventDefault();
@@ -36,12 +53,18 @@ export default function MyOrders() {
     setAddingParty(true);
     setMessage(null);
 
-    const res = await apiPost('/orders/parties/', { name: partyName.trim() });
+    const res = await apiPost('/orders/parties/', { 
+      name: partyName.trim(),
+      gstin: partyGstin.trim(),
+      address: partyAddress.trim()
+    });
     setAddingParty(false);
 
     if (res && res.ok && res.data) {
       setMessage({ type: 'success', text: `Party "${res.data.name || partyName}" saved successfully!` });
       setPartyName('');
+      setPartyGstin('');
+      setPartyAddress('');
       fetchData();
     } else {
       const errText = res?.data?.error || res?.data?.detail || (res?.data && typeof res.data === 'object' ? JSON.stringify(res.data) : 'Failed to add party');
@@ -60,7 +83,7 @@ export default function MyOrders() {
   return (
     <>
       <Navbar />
-      <div className="container">
+      <div className="container" style={{ maxWidth: '100%', padding: '0 20px' }}>
         <div className="page-header" style={{ marginBottom: '20px' }}>
           <div>
             <h1>📦 Order Management & Booking</h1>
@@ -150,6 +173,8 @@ export default function MyOrders() {
                 <thead>
                   <tr>
                     <th>Party Name</th>
+                    <th>GSTIN</th>
+                    <th>Address</th>
                     <th style={{ textAlign: 'center' }}>Action</th>
                   </tr>
                 </thead>
@@ -157,6 +182,8 @@ export default function MyOrders() {
                   {parties.map((p) => (
                     <tr key={p.id}>
                       <td style={{ fontWeight: 600 }}>{p.name}</td>
+                      <td>{p.gstin || '-'}</td>
+                      <td>{p.address || '-'}</td>
                       <td style={{ textAlign: 'center' }}>
                         <button
                           onClick={() => handleDeleteParty(p.id, p.name)}
@@ -170,7 +197,7 @@ export default function MyOrders() {
                   ))}
                   {!parties.length && (
                     <tr>
-                      <td colSpan="2" style={{ textAlign: 'center', color: '#64748b', padding: '20px' }}>
+                      <td colSpan="4" style={{ textAlign: 'center', color: '#64748b', padding: '20px' }}>
                         No party added yet.
                       </td>
                     </tr>
@@ -185,18 +212,47 @@ export default function MyOrders() {
             <h2>Add Customer Party</h2>
             <form onSubmit={handleAddParty} style={{ marginTop: '16px' }}>
               <div className="form-group">
-                <label className="form-label">Party / Customer Name *</label>
+                <label className="form-label">Party Name (Select from Tally or Type New) *</label>
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="e.g. Sharma Trading Co, Radhu Agencies"
+                  list="tallyPartiesList"
+                  placeholder="e.g. Sharma Trading Co..."
                   value={partyName}
-                  onChange={(e) => setPartyName(e.target.value)}
+                  onChange={handleTallyPartySelect}
                   required
                 />
+                <datalist id="tallyPartiesList">
+                  {tallyParties.map((tp, idx) => (
+                    <option key={idx} value={tp.name} />
+                  ))}
+                </datalist>
+                <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px' }}>
+                  Select a name to auto-fill Tally details, or type a new one.
+                </p>
+              </div>
+              <div className="form-group">
+                <label className="form-label">GSTIN (Optional)</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="22AAAAA0000A1Z5"
+                  value={partyGstin}
+                  onChange={(e) => setPartyGstin(e.target.value)}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Address (Optional)</label>
+                <textarea
+                  className="form-input"
+                  rows="2"
+                  placeholder="Complete address..."
+                  value={partyAddress}
+                  onChange={(e) => setPartyAddress(e.target.value)}
+                ></textarea>
               </div>
               <button type="submit" className="btn btn-primary" style={{ width: '100%', background: '#10b981' }} disabled={addingParty}>
-                {addingParty ? 'Adding...' : 'Save Party'}
+                {addingParty ? 'Saving...' : 'Save Party'}
               </button>
             </form>
           </div>

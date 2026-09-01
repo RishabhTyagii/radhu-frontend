@@ -86,12 +86,14 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
-        {message && <div className={`message ${message.type}`} style={{ marginBottom: '20px' }}>{message.text}</div>}
+        {message && <div className={`message ${message.type} no-print`} style={{ marginBottom: '20px' }}>{message.text}</div>}
 
         <div className="card" style={{ marginBottom: '24px', padding: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #e2e8f0', paddingBottom: '16px', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #e2e8f0', paddingBottom: '16px', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
             <div>
               <h2 style={{ margin: 0, color: '#1e293b' }}>Party: {order.party_name}</h2>
+              {order.party_gstin && <p style={{ margin: '4px 0 0', color: '#334155', fontSize: '0.9rem' }}><strong>GSTIN:</strong> {order.party_gstin}</p>}
+              {order.party_address && <p style={{ margin: '4px 0 0', color: '#334155', fontSize: '0.9rem' }}><strong>Address:</strong> {order.party_address}</p>}
               <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.875rem' }}>Booked By User: {order.user_name}</p>
             </div>
             <div style={{ textAlign: 'right' }}>
