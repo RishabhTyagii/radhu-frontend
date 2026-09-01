@@ -19,6 +19,7 @@ export default function CreateOrderPage() {
   const [notes, setNotes] = useState('');
   const [quantities, setQuantities] = useState({});
   const [prices, setPrices] = useState({});
+  const [gstPrices, setGstPrices] = useState({});
   const [activeCategory, setActiveCategory] = useState('all');
 
   useEffect(() => {
@@ -47,10 +48,25 @@ export default function CreateOrderPage() {
     }));
   };
 
-  const handlePriceChange = (key, val) => {
+  const handlePriceChange = (key, val, gstRate) => {
     setPrices((prev) => ({
       ...prev,
       [key]: val,
+    }));
+    setGstPrices((prev) => ({
+      ...prev,
+      [key]: val === '' ? '' : (parseFloat(val || 0) * (1 + gstRate)).toFixed(2),
+    }));
+  };
+
+  const handleGstPriceChange = (key, val, gstRate) => {
+    setGstPrices((prev) => ({
+      ...prev,
+      [key]: val,
+    }));
+    setPrices((prev) => ({
+      ...prev,
+      [key]: val === '' ? '' : (parseFloat(val || 0) / (1 + gstRate)).toFixed(2),
     }));
   };
 
@@ -110,7 +126,7 @@ export default function CreateOrderPage() {
   return (
     <>
       <Navbar />
-      <div className="container">
+      <div className="container" style={{ maxWidth: '100%', padding: '0 20px' }}>
         <div className="page-header" style={{ marginBottom: '20px' }}>
           <div>
             <h1>🛒 Book New Multi-Item Order</h1>
@@ -232,6 +248,7 @@ export default function CreateOrderPage() {
                     <tr style={{ background: '#1e293b', color: 'white' }}>
                       <th>CATEGORY</th>
                       <th>ITEM DESCRIPTION</th>
+                      <th style={{ textAlign: 'center', width: '80px' }}>TYPE</th>
                       <th style={{ textAlign: 'center' }}>PHYSICAL STOCK</th>
                       <th style={{ textAlign: 'center' }}>PENDING ORDERS</th>
                       <th style={{ textAlign: 'center' }}>AVAILABLE STOCK</th>
@@ -246,9 +263,9 @@ export default function CreateOrderPage() {
                       const itemKey = `${item.category}:${item.item_id}`;
                       const currentVal = quantities[itemKey] || '';
                       const currentPrice = prices[itemKey] || '';
+                      const currentGstPrice = gstPrices[itemKey] || '';
                       
                       const gstRate = item.category === 'auto_tyre' ? 0.18 : 0.05;
-                      const gstPriceVal = currentPrice ? (parseFloat(currentPrice) * (1 + gstRate)).toFixed(2) : '';
                       
                       const subtotal = (parseInt(currentVal, 10) || 0) * (parseFloat(currentPrice) || 0);
 
@@ -263,6 +280,22 @@ export default function CreateOrderPage() {
                             </span>
                           </td>
                           <td style={{ fontWeight: 600 }}>{item.display}</td>
+                          <td style={{ textAlign: 'center' }}>
+                            {item.item_type && (
+                              <span style={{
+                                padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700,
+                                background: item.item_type.toLowerCase() === 'tl' ? '#dbeafe' : 
+                                           item.item_type.toLowerCase() === 'tt' ? '#d1fae5' : '#f1f5f9',
+                                color: item.item_type.toLowerCase() === 'tl' ? '#1d4ed8' : 
+                                       item.item_type.toLowerCase() === 'tt' ? '#047857' : '#475569',
+                                border: '1px solid',
+                                borderColor: item.item_type.toLowerCase() === 'tl' ? '#bfdbfe' : 
+                                            item.item_type.toLowerCase() === 'tt' ? '#a7f3d0' : '#e2e8f0'
+                              }}>
+                                {item.item_type}
+                              </span>
+                            )}
+                          </td>
                           <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{item.total_stock}</td>
                           <td style={{ textAlign: 'center', color: '#64748b' }}>{item.my_orders + item.other_orders}</td>
                           <td style={{ textAlign: 'center', fontWeight: 800, color: item.available > 0 ? '#16a34a' : '#dc2626' }}>
@@ -288,7 +321,7 @@ export default function CreateOrderPage() {
                               placeholder="₹ Base"
                               style={{ textAlign: 'center', fontWeight: 600, borderColor: currentPrice > 0 ? '#3b82f6' : '#cbd5e1' }}
                               value={currentPrice}
-                              onChange={(e) => handlePriceChange(itemKey, e.target.value)}
+                              onChange={(e) => handlePriceChange(itemKey, e.target.value, gstRate)}
                             />
                           </td>
                           <td style={{ textAlign: 'center' }}>
@@ -298,16 +331,9 @@ export default function CreateOrderPage() {
                               step="0.01"
                               className="form-input"
                               placeholder={`₹ +${gstRate*100}% GST`}
-                              style={{ textAlign: 'center', fontWeight: 600, borderColor: gstPriceVal > 0 ? '#8b5cf6' : '#cbd5e1', backgroundColor: '#f5f3ff' }}
-                              value={gstPriceVal}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                if (!val) handlePriceChange(itemKey, '');
-                                else {
-                                  const base = (parseFloat(val) / (1 + gstRate)).toFixed(2);
-                                  handlePriceChange(itemKey, base);
-                                }
-                              }}
+                              style={{ textAlign: 'center', fontWeight: 600, borderColor: currentGstPrice > 0 ? '#8b5cf6' : '#cbd5e1', backgroundColor: '#f5f3ff' }}
+                              value={currentGstPrice}
+                              onChange={(e) => handleGstPriceChange(itemKey, e.target.value, gstRate)}
                             />
                           </td>
                           <td style={{ textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>
