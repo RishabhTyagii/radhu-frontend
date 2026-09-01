@@ -235,9 +235,10 @@ export default function CreateOrderPage() {
                       <th style={{ textAlign: 'center' }}>PHYSICAL STOCK</th>
                       <th style={{ textAlign: 'center' }}>PENDING ORDERS</th>
                       <th style={{ textAlign: 'center' }}>AVAILABLE STOCK</th>
-                      <th style={{ width: '120px', textAlign: 'center' }}>ORDER QTY</th>
-                      <th style={{ width: '130px', textAlign: 'center' }}>UNIT PRICE (₹)</th>
-                      <th style={{ width: '140px', textAlign: 'right' }}>SUBTOTAL (₹)</th>
+                      <th style={{ width: '100px', textAlign: 'center' }}>ORDER QTY</th>
+                      <th style={{ width: '110px', textAlign: 'center' }}>PRICE (BASE)</th>
+                      <th style={{ width: '110px', textAlign: 'center' }}>PRICE (+GST)</th>
+                      <th style={{ width: '130px', textAlign: 'right' }}>SUBTOTAL (₹)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -245,6 +246,10 @@ export default function CreateOrderPage() {
                       const itemKey = `${item.category}:${item.item_id}`;
                       const currentVal = quantities[itemKey] || '';
                       const currentPrice = prices[itemKey] || '';
+                      
+                      const gstRate = item.category === 'auto_tyre' ? 0.18 : 0.05;
+                      const gstPriceVal = currentPrice ? (parseFloat(currentPrice) * (1 + gstRate)).toFixed(2) : '';
+                      
                       const subtotal = (parseInt(currentVal, 10) || 0) * (parseFloat(currentPrice) || 0);
 
                       return (
@@ -280,13 +285,32 @@ export default function CreateOrderPage() {
                               min="0"
                               step="0.01"
                               className="form-input"
-                              placeholder="₹0.00"
+                              placeholder="₹ Base"
                               style={{ textAlign: 'center', fontWeight: 600, borderColor: currentPrice > 0 ? '#3b82f6' : '#cbd5e1' }}
                               value={currentPrice}
                               onChange={(e) => handlePriceChange(itemKey, e.target.value)}
                             />
                           </td>
-                          <td style={{ textAlign: 'right', fontWeight: 800, color: subtotal > 0 ? '#059669' : '#64748b' }}>
+                          <td style={{ textAlign: 'center' }}>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              className="form-input"
+                              placeholder={`₹ +${gstRate*100}% GST`}
+                              style={{ textAlign: 'center', fontWeight: 600, borderColor: gstPriceVal > 0 ? '#8b5cf6' : '#cbd5e1', backgroundColor: '#f5f3ff' }}
+                              value={gstPriceVal}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (!val) handlePriceChange(itemKey, '');
+                                else {
+                                  const base = (parseFloat(val) / (1 + gstRate)).toFixed(2);
+                                  handlePriceChange(itemKey, base);
+                                }
+                              }}
+                            />
+                          </td>
+                          <td style={{ textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>
                             ₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </td>
                         </tr>
@@ -294,7 +318,7 @@ export default function CreateOrderPage() {
                     })}
                     {!filteredCatalog.length && (
                       <tr>
-                        <td colSpan="8" style={{ textAlign: 'center', color: '#64748b', padding: '30px' }}>
+                        <td colSpan="9" style={{ textAlign: 'center', color: '#64748b', padding: '30px' }}>
                           No catalog items found.
                         </td>
                       </tr>
