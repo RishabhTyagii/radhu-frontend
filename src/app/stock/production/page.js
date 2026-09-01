@@ -333,7 +333,7 @@ export default function AutoTyreProduction() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: theme.bg, transition: 'all 0.3s ease' }}>
-      <Navbar />
+      {activeViewMode !== 'sheet' && <Navbar />}
 
       <div style={{
         maxWidth: activeViewMode === 'sheet' ? '100%' : '1440px',
@@ -662,10 +662,17 @@ export default function AutoTyreProduction() {
                             <div style={{ fontWeight: 800, color: theme.text, fontSize: '0.9rem' }}>
                               {t.tyre} <span style={{ color: '#2563eb' }}>{t.pattern}</span>
                             </div>
-                            <div style={{ fontSize: '0.75rem', color: theme.text2, display: 'flex', gap: '8px', marginTop: '2px' }}>
-                              <span>Type: <strong>{t.type}</strong></span>
-                              <span>•</span>
-                              <span>Curr Stock: <strong style={{ color: '#10b981' }}>{t.stock} pcs</strong></span>
+                            <div style={{ fontSize: '0.75rem', marginTop: '4px', display: 'flex', alignItems: 'center' }}>
+                              <span style={{ 
+                                backgroundColor: t.type === 'TL' ? (darkMode ? 'rgba(59, 130, 246, 0.2)' : '#dbeafe') : (darkMode ? 'rgba(16, 185, 129, 0.2)' : '#d1fae5'),
+                                color: t.type === 'TL' ? (darkMode ? '#93c5fd' : '#1d4ed8') : (darkMode ? '#6ee7b7' : '#047857'),
+                                padding: '2px 8px',
+                                borderRadius: '6px',
+                                fontWeight: 800,
+                                fontSize: '0.7rem'
+                              }}>
+                                {t.type}
+                              </span>
                             </div>
                           </td>
 
