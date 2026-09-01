@@ -335,18 +335,26 @@ export default function AutoTyreProduction() {
     <div style={{ minHeight: '100vh', backgroundColor: theme.bg, transition: 'all 0.3s ease' }}>
       <Navbar />
 
-      <div style={{ maxWidth: '1440px', margin: '0 auto', padding: isMobile ? '12px' : '24px' }}>
+      <div style={{
+        maxWidth: activeViewMode === 'sheet' ? '100%' : '1440px',
+        margin: '0 auto',
+        padding: activeViewMode === 'sheet' ? '0' : (isMobile ? '12px' : '24px'),
+      }}>
         
         {/* Header with Mode Switcher */}
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: '24px',
+          marginBottom: activeViewMode === 'sheet' ? '0' : '24px',
           flexWrap: 'wrap',
           gap: '16px',
-          paddingBottom: '20px',
+          paddingBottom: '16px',
+          paddingTop: activeViewMode === 'sheet' ? '12px' : '0',
+          paddingLeft: activeViewMode === 'sheet' ? '16px' : '0',
+          paddingRight: activeViewMode === 'sheet' ? '16px' : '0',
           borderBottom: `1px solid ${theme.border}`,
+          backgroundColor: activeViewMode === 'sheet' ? theme.bg2 : 'transparent',
         }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -465,9 +473,9 @@ export default function AutoTyreProduction() {
         {/* Global Alert Message */}
         {msg && (
           <div style={{
-            marginBottom: '20px',
+            marginBottom: activeViewMode === 'sheet' ? '0' : '20px',
             padding: '14px 20px',
-            borderRadius: '12px',
+            borderRadius: activeViewMode === 'sheet' ? '0' : '12px',
             backgroundColor: msg.type === 'success' ? (darkMode ? 'rgba(16,185,129,0.15)' : '#f0fdf4') : (darkMode ? 'rgba(239,68,68,0.15)' : '#fef2f2'),
             color: msg.type === 'success' ? (darkMode ? '#34d399' : '#166534') : (darkMode ? '#f87171' : '#991b1b'),
             border: `2px solid ${msg.type === 'success' ? '#34d399' : '#f87171'}`,
@@ -485,16 +493,17 @@ export default function AutoTyreProduction() {
         {/* VIEW 1: FULL SPREADSHEET SHEET ENTRY MODE */}
         {/* ============================================================ */}
         {activeViewMode === 'sheet' && (
-          <div style={{ marginBottom: '40px' }}>
+          <div style={{ marginBottom: '0' }}>
             
             {/* Sheet Control Bar & Live Stats */}
             <div style={{
               backgroundColor: theme.bg2,
-              borderRadius: '16px',
-              border: `2px solid ${darkMode ? 'rgba(16, 185, 129, 0.4)' : '#10b981'}`,
+              borderRadius: '0',
+              border: 'none',
+              borderBottom: `2px solid ${darkMode ? 'rgba(16, 185, 129, 0.4)' : '#10b981'}`,
               boxShadow: theme.shadow,
-              padding: '20px',
-              marginBottom: '20px',
+              padding: '14px 16px',
+              marginBottom: '0',
             }}>
               <div style={{
                 display: 'flex',
@@ -608,12 +617,12 @@ export default function AutoTyreProduction() {
             {/* Interactive Sheet Table */}
             <div style={{
               backgroundColor: theme.bg2,
-              borderRadius: '16px',
-              border: `1px solid ${theme.border}`,
-              boxShadow: theme.shadow,
+              borderRadius: '0',
+              border: 'none',
+              boxShadow: 'none',
               overflow: 'hidden',
             }}>
-              <div style={{ overflowX: 'auto', maxHeight: '75vh' }}>
+              <div style={{ overflowX: 'auto', maxHeight: 'calc(100vh - 260px)' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
                   <thead style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: darkMode ? '#0f172a' : '#0f172a', color: '#ffffff' }}>
                     <tr>
@@ -849,9 +858,13 @@ export default function AutoTyreProduction() {
 
               {/* Bottom Sticky Action Bar */}
               <div style={{
-                padding: '16px 20px',
+                position: 'sticky',
+                bottom: 0,
+                zIndex: 20,
+                padding: '12px 20px',
                 backgroundColor: theme.bg2,
-                borderTop: `1px solid ${theme.border}`,
+                borderTop: `2px solid ${darkMode ? 'rgba(16, 185, 129, 0.4)' : '#10b981'}`,
+                boxShadow: '0 -4px 20px rgba(0,0,0,0.12)',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
