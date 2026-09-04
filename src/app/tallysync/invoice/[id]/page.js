@@ -505,7 +505,7 @@ export default function TallyInvoiceDetail() {
                       No inventory line items recorded on this voucher.
                     </td>
                   </tr>
-                )}
+                )}y
               </tbody>
             </table>
           </div>
@@ -528,7 +528,7 @@ export default function TallyInvoiceDetail() {
                 <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.8rem', color: '#64748b', lineHeight: 1.6 }}>
                   <li>Goods once sold will not be taken back or exchanged.</li>
                   <li>Interest @ 18% p.a. will be charged if payment is not made within due time.</li>
-                  <li>Subject to Kannauj (Uttar Pradesh) Jurisdiction only.</li>
+                  <li>Subject to GHAZIABAD U.P Jurisdiction only.</li>
                 </ul>
               </div>
             </div>

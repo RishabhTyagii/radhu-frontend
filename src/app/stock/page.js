@@ -4,24 +4,18 @@ import { useState, useEffect, useMemo } from 'react';
 import Navbar from '@/components/Navbar';
 import { apiGet } from '@/lib/api';
 
-/* ---------------------------------------------------------
-   Design language: factory control-room panel.
-   Rubber-black base, hazard-amber accent, hairline dividers,
-   condensed industrial numerals for data-heavy readouts.
---------------------------------------------------------- */
-
 export default function AutoTyreDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
 
+  // Filter state
   const [selectedMonth, setSelectedMonth] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [customRange, setCustomRange] = useState(false);
-  const [expandedRow, setExpandedRow] = useState(null);
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -134,459 +128,233 @@ export default function AutoTyreDashboard() {
     URL.revokeObjectURL(url);
   };
 
-  const isMobile = windowWidth < 860;
-  const isTablet = windowWidth >= 860 && windowWidth < 1180;
+  const isMobile = windowWidth < 768;
 
-  /* ---------------- Theme tokens ---------------- */
-  const theme = darkMode ? {
-    bg: '#0b0c0e',
-    panel: '#15171b',
-    panel2: '#1b1e23',
-    ink: '#eef0f2',
-    inkMute: '#82868f',
-    line: '#26292f',
-    lineStrong: '#34383f',
-    amber: '#ffb020',
-    steel: '#5b9bd5',
-    green: '#3ecf8e',
-    red: '#f0555c',
-    violet: '#b48cf2',
-    rowAlt: '#121317',
-  } : {
-    bg: '#eef0ee',
-    panel: '#ffffff',
-    panel2: '#f6f7f5',
-    ink: '#14171a',
-    inkMute: '#666c72',
-    line: '#dcdfdc',
-    lineStrong: '#c5c9c5',
-    amber: '#b9760a',
-    steel: '#2f6690',
-    green: '#1f8f5f',
-    red: '#c0323a',
-    violet: '#7a4fc9',
-    rowAlt: '#f4f5f3',
+  const theme = {
+    bg: darkMode ? '#0f172a' : '#f1f5f9',
+    bg2: darkMode ? '#1e293b' : '#ffffff',
+    text: darkMode ? '#f1f5f9' : '#1e293b',
+    text2: darkMode ? '#94a3b8' : '#64748b',
+    border: darkMode ? '#334155' : '#e2e8f0',
+    shadow: darkMode ? '0 4px 24px rgba(0,0,0,0.4)' : '0 4px 24px rgba(0,0,0,0.08)',
+    hdr: darkMode ? '#0f172a' : '#f8fafc',
+    rowHover: darkMode ? '#1e293b' : '#f8fafc',
   };
 
-  const numeralFont = "'Oswald', 'Barlow Condensed', 'Arial Narrow', sans-serif";
-
-  const KpiCard = ({ label, value, accent, unit }) => (
+  const KpiCard = ({ label, value, icon, color }) => (
     <div style={{
-      backgroundColor: theme.panel,
-      border: `1px solid ${theme.line}`,
-      borderTop: `3px solid ${accent}`,
-      padding: isMobile ? '14px 14px' : '18px 20px',
-      minWidth: 0,
+      backgroundColor: theme.bg2, borderRadius: '14px', padding: isMobile ? '12px' : '18px',
+      boxShadow: theme.shadow, border: `2px solid ${theme.border}`,
+      borderLeft: `6px solid ${color}`, minWidth: 0,
     }}>
-      <div style={{
-        fontSize: '0.68rem', fontWeight: 600, color: theme.inkMute,
-        letterSpacing: '0.04em', marginBottom: '8px',
-      }}>{label}</div>
-      <div style={{
-        fontFamily: numeralFont, fontSize: isMobile ? '1.5rem' : '2rem',
-        fontWeight: 600, color: theme.ink, lineHeight: 1, letterSpacing: '0.01em',
-      }}>
-        {value ?? '—'}
-        {unit && <span style={{ fontSize: '0.9rem', color: theme.inkMute, marginLeft: '6px', fontFamily: 'inherit' }}>{unit}</span>}
-      </div>
+      <div style={{ fontSize: '0.7rem', fontWeight: 600, color: theme.text2, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{icon} {label}</div>
+      <div style={{ fontSize: isMobile ? '1.2rem' : '1.6rem', fontWeight: 800, color, marginTop: '4px' }}>{value ?? '-'}</div>
     </div>
   );
 
   const thStyle = {
-    padding: '9px 10px', fontSize: '0.66rem', fontWeight: 600,
-    letterSpacing: '0.03em', whiteSpace: 'nowrap', position: 'sticky', top: 0,
-    backgroundColor: theme.panel2, color: theme.inkMute, borderBottom: `1px solid ${theme.lineStrong}`,
-    textAlign: 'center', zIndex: 2,
+    padding: '8px 10px', fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase',
+    letterSpacing: '0.3px', whiteSpace: 'nowrap', position: 'sticky', top: 0,
+    backgroundColor: theme.hdr, color: theme.text2, borderBottom: `2px solid ${theme.border}`,
+    textAlign: 'center',
   };
   const tdStyle = {
-    padding: '8px 10px', fontFamily: numeralFont, fontSize: '0.86rem', color: theme.ink,
-    textAlign: 'center', borderBottom: `1px solid ${theme.line}`, whiteSpace: 'nowrap',
+    padding: '7px 10px', fontSize: '0.8rem', color: theme.text, textAlign: 'center',
+    borderBottom: `1px solid ${theme.border}`, whiteSpace: 'nowrap',
   };
-
-  const sectionColors = {
-    lastClosing: theme.steel,
-    production: theme.green,
-    dispatch: theme.red,
-    rfm: theme.violet,
-    closing: theme.amber,
-  };
-
-  const badgeStyle = (color) => ({
-    padding: '2px 9px', border: `1px solid ${color}55`, color,
-    fontSize: '0.68rem', fontWeight: 700, fontFamily: numeralFont, letterSpacing: '0.02em',
-  });
-
-  const monthLabel = customRange && startDate && endDate
-    ? `${startDate} → ${endDate}`
-    : availableMonths.find(m => m.value === selectedMonth)?.label || selectedMonth;
 
   return (
-    <div style={{
-      minHeight: '100vh', width: '100%', backgroundColor: theme.bg,
-      color: theme.ink, fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-      transition: 'background-color 0.2s ease',
-    }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
-        * { box-sizing: border-box; }
-        ::selection { background: ${theme.amber}; color: #111; }
-        input[type="date"]::-webkit-calendar-picker-indicator { filter: ${darkMode ? 'invert(1)' : 'none'}; opacity: 0.6; cursor: pointer; }
-      `}</style>
-
+    <div style={{ minHeight: '100vh', backgroundColor: theme.bg, transition: 'all 0.3s ease' }}>
       <Navbar />
 
-      {/* ---- Edge-to-edge industrial header strip ---- */}
-      <div style={{
-        borderBottom: `1px solid ${theme.line}`,
-        backgroundColor: theme.panel,
-      }}>
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          flexWrap: 'wrap', gap: '12px',
-          padding: isMobile ? '14px 16px' : '18px 28px',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-            <div style={{
-              width: '38px', height: '38px', flexShrink: 0,
-              border: `2px solid ${theme.amber}`, borderRadius: '50%',
-              position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <div style={{ width: '14px', height: '14px', borderRadius: '50%', border: `2px solid ${theme.amber}` }} />
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{
-                fontFamily: numeralFont, fontWeight: 600, letterSpacing: '0.01em',
-                fontSize: isMobile ? '1.05rem' : '1.35rem', lineHeight: 1.1,
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-              }}>
-                AUTO TYRE STOCK
-              </div>
-              <div style={{ fontSize: '0.72rem', color: theme.inkMute, marginTop: '2px' }}>
-                Production &amp; dispatch control · {monthLabel || 'no period selected'}
-              </div>
-            </div>
+      <div style={{ maxWidth: '1600px', margin: '0 auto', padding: isMobile ? '10px' : '20px' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+          <div>
+            <h1 style={{ fontSize: isMobile ? '1.2rem' : '1.8rem', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, #0d9488, #2563eb)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              🚗 Auto Tyre Stock Dashboard
+            </h1>
           </div>
-
-          <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-            <button onClick={exportCSV} style={{
-              padding: '9px 16px', border: `1px solid ${theme.amber}`, backgroundColor: 'transparent',
-              color: theme.amber, cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700,
-              letterSpacing: '0.03em', fontFamily: 'inherit',
-            }}>
-              Export CSV
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button onClick={exportCSV} style={{ padding: '7px 16px', borderRadius: '50px', border: `2px solid #10b981`, backgroundColor: 'transparent', color: '#10b981', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}>
+              📥 CSV
             </button>
-            <button onClick={() => setDarkMode(!darkMode)} style={{
-              padding: '9px 14px', border: `1px solid ${theme.line}`, backgroundColor: theme.panel2,
-              color: theme.ink, cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, fontFamily: 'inherit',
-            }}>
-              {darkMode ? 'Light' : 'Dark'}
+            <button onClick={() => setDarkMode(!darkMode)} style={{ padding: '7px 16px', borderRadius: '50px', border: `2px solid ${theme.border}`, backgroundColor: theme.bg2, color: theme.text, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}>
+              {darkMode ? '🌙 Dark' : '☀️ Light'}
             </button>
           </div>
         </div>
-      </div>
 
-      {/* ---- Filters — edge to edge ---- */}
-      <div style={{ backgroundColor: theme.panel2, borderBottom: `1px solid ${theme.line}` }}>
+        {/* Filters */}
         <div style={{
-          display: 'flex', flexWrap: 'wrap', gap: isMobile ? '10px' : '0',
-          padding: isMobile ? '12px 16px' : '0 28px',
+          backgroundColor: theme.bg2, borderRadius: '14px', padding: isMobile ? '12px' : '16px',
+          boxShadow: theme.shadow, border: `2px solid ${theme.border}`, marginBottom: '16px',
+          display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'flex-end',
         }}>
-          {[
-            {
-              label: 'Month', node: (
-                <select
-                  value={customRange ? '' : selectedMonth}
-                  onChange={(e) => handleMonthChange(e.target.value)}
-                  style={selectStyle(theme)}
-                >
-                  <option value="">Select month</option>
-                  {availableMonths.map(m => (
-                    <option key={m.value} value={m.value}>{m.label}</option>
+          {/* Month */}
+          <div style={{ flex: '1 1 180px', minWidth: '140px' }}>
+            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: theme.text2, marginBottom: '4px' }}>📅 MONTH</label>
+            <select
+              value={customRange ? '' : selectedMonth}
+              onChange={(e) => handleMonthChange(e.target.value)}
+              style={{ width: '100%', padding: '8px 12px', border: `2px solid ${theme.border}`, borderRadius: '10px', backgroundColor: theme.bg, color: theme.text, fontSize: '0.85rem', fontWeight: 600 }}
+            >
+              <option value="">-- Select --</option>
+              {availableMonths.map(m => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Date Range */}
+          <div style={{ flex: '1 1 140px', minWidth: '130px' }}>
+            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: theme.text2, marginBottom: '4px' }}>📆 START DATE</label>
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
+              style={{ width: '100%', padding: '8px 10px', border: `2px solid ${theme.border}`, borderRadius: '10px', backgroundColor: theme.bg, color: theme.text, fontSize: '0.8rem' }} />
+          </div>
+          <div style={{ flex: '1 1 140px', minWidth: '130px' }}>
+            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: theme.text2, marginBottom: '4px' }}>📆 END DATE</label>
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
+              style={{ width: '100%', padding: '8px 10px', border: `2px solid ${theme.border}`, borderRadius: '10px', backgroundColor: theme.bg, color: theme.text, fontSize: '0.8rem' }} />
+          </div>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button onClick={handleApplyRange} disabled={!startDate || !endDate}
+              style={{ padding: '8px 18px', borderRadius: '10px', border: 'none', backgroundColor: '#2563eb', color: 'white', cursor: (!startDate || !endDate) ? 'not-allowed' : 'pointer', fontSize: '0.8rem', fontWeight: 700, opacity: (!startDate || !endDate) ? 0.5 : 1 }}>
+              ✅ Apply
+            </button>
+            <button onClick={handleResetRange}
+              style={{ padding: '8px 18px', borderRadius: '10px', border: `2px solid ${theme.border}`, backgroundColor: theme.bg2, color: theme.text, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}>
+              🔄 Reset
+            </button>
+          </div>
+
+          {/* Search */}
+          <div style={{ flex: '1 1 200px', minWidth: '160px' }}>
+            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: theme.text2, marginBottom: '4px' }}>🔍 SEARCH</label>
+            <input type="text" placeholder="Search tyre, pattern, type..." value={search} onChange={(e) => setSearch(e.target.value)}
+              style={{ width: '100%', padding: '8px 12px', border: `2px solid ${theme.border}`, borderRadius: '10px', backgroundColor: theme.bg, color: theme.text, fontSize: '0.85rem' }} />
+          </div>
+        </div>
+
+        {/* KPI Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: '12px', marginBottom: '16px' }}>
+          <KpiCard label="Today Production" value={stats.today_production} icon="🏭" color="#0d9488" />
+          <KpiCard label="Today Dispatch" value={stats.today_dispatch} icon="🚛" color="#f59e0b" />
+          <KpiCard label="Month Production" value={stats.month_prod_total} icon="📦" color="#2563eb" />
+          <KpiCard label="Total Closing" value={stats.total_closing} icon="📊" color="#7c3aed" />
+          <KpiCard label="Total RFM" value={filteredTotals.rfm_ok_tyre} icon="🔧" color="#ec4899" />
+        </div>
+
+        {/* Stock Table */}
+        <div style={{
+          backgroundColor: theme.bg2, borderRadius: '14px', boxShadow: theme.shadow,
+          border: `2px solid ${theme.border}`, overflow: 'hidden',
+        }}>
+          <div style={{ overflowX: 'auto', maxHeight: '70vh' }}>
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '60px', color: theme.text2, fontSize: '1rem' }}>⏳ Loading stock data...</div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1400px' }}>
+                <thead>
+                  <tr>
+                    <th style={{ ...thStyle, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2, backgroundColor: theme.hdr }} rowSpan={2}>TYRE</th>
+                    <th style={{ ...thStyle, textAlign: 'left' }} rowSpan={2}>PATTERN</th>
+                    <th style={{ ...thStyle }} rowSpan={2}>TYPE</th>
+                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#1a2744' : '#eff6ff', borderBottom: `1px solid ${theme.border}` }} colSpan={3}>LAST CLOSING</th>
+                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#0f2922' : '#ecfdf5', borderBottom: `1px solid ${theme.border}` }} colSpan={4}>PRODUCTION</th>
+                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#2d1a1a' : '#fef2f2', borderBottom: `1px solid ${theme.border}` }} colSpan={3}>SALE / DISPATCH</th>
+                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#2d1f3d' : '#faf5ff' }} rowSpan={2}>RFM</th>
+                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#1a2744' : '#f0f9ff', borderBottom: `1px solid ${theme.border}` }} colSpan={3}>CLOSING STOCK</th>
+                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#1e293b' : '#f1f5f9' }} rowSpan={2}>TOTAL</th>
+                  </tr>
+                  <tr>
+                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#1a2744' : '#eff6ff', fontSize: '0.6rem' }}>1st</th>
+                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#1a2744' : '#eff6ff', fontSize: '0.6rem' }}>2nd</th>
+                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#1a2744' : '#eff6ff', fontSize: '0.6rem' }}>3rd</th>
+                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#0f2922' : '#ecfdf5', fontSize: '0.6rem' }}>Total</th>
+                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#0f2922' : '#ecfdf5', fontSize: '0.6rem' }}>1st</th>
+                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#0f2922' : '#ecfdf5', fontSize: '0.6rem' }}>2nd</th>
+                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#0f2922' : '#ecfdf5', fontSize: '0.6rem' }}>3rd</th>
+                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#2d1a1a' : '#fef2f2', fontSize: '0.6rem' }}>1st</th>
+                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#2d1a1a' : '#fef2f2', fontSize: '0.6rem' }}>2nd</th>
+                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#2d1a1a' : '#fef2f2', fontSize: '0.6rem' }}>3rd</th>
+                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#1a2744' : '#f0f9ff', fontSize: '0.6rem' }}>1st</th>
+                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#1a2744' : '#f0f9ff', fontSize: '0.6rem' }}>2nd</th>
+                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#1a2744' : '#f0f9ff', fontSize: '0.6rem' }}>3rd</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredItems.map((item, idx) => (
+                    <tr key={item.id} style={{ backgroundColor: idx % 2 === 0 ? 'transparent' : (darkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.015)') }}>
+                      <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 700, position: 'sticky', left: 0, backgroundColor: idx % 2 === 0 ? theme.bg2 : (darkMode ? '#1a2333' : '#fafbfc'), zIndex: 1 }}>{item.tyre}</td>
+                      <td style={{ ...tdStyle, textAlign: 'left', fontSize: '0.75rem' }}>{item.pattern}</td>
+                      <td style={tdStyle}><span style={{ padding: '2px 8px', borderRadius: '50px', backgroundColor: item.type === 'TL' ? (darkMode ? 'rgba(37,99,235,0.2)' : '#dbeafe') : (darkMode ? 'rgba(249,115,22,0.2)' : '#ffedd5'), color: item.type === 'TL' ? '#2563eb' : '#ea580c', fontSize: '0.7rem', fontWeight: 700 }}>{item.type}</span></td>
+                      {/* Last Closing */}
+                      <td style={{ ...tdStyle, backgroundColor: darkMode ? 'rgba(37,99,235,0.05)' : '#f7faff' }}>{item.prev_closing_first}</td>
+                      <td style={{ ...tdStyle, backgroundColor: darkMode ? 'rgba(37,99,235,0.05)' : '#f7faff' }}>{item.prev_closing_second}</td>
+                      <td style={{ ...tdStyle, backgroundColor: darkMode ? 'rgba(37,99,235,0.05)' : '#f7faff' }}>{item.prev_closing_third}</td>
+                      {/* Production */}
+                      <td style={{ ...tdStyle, fontWeight: 700, color: '#10b981', backgroundColor: darkMode ? 'rgba(16,185,129,0.05)' : '#f0fdf4' }}>{item.month_prod_total}</td>
+                      <td style={{ ...tdStyle, backgroundColor: darkMode ? 'rgba(16,185,129,0.05)' : '#f0fdf4' }}>{item.month_prod_first}</td>
+                      <td style={{ ...tdStyle, backgroundColor: darkMode ? 'rgba(16,185,129,0.05)' : '#f0fdf4' }}>{item.month_prod_second}</td>
+                      <td style={{ ...tdStyle, backgroundColor: darkMode ? 'rgba(16,185,129,0.05)' : '#f0fdf4' }}>{item.month_prod_third}</td>
+                      {/* Sales */}
+                      <td style={{ ...tdStyle, color: '#ef4444', fontWeight: 600, backgroundColor: darkMode ? 'rgba(239,68,68,0.05)' : '#fef7f7' }}>{item.month_sale_first}</td>
+                      <td style={{ ...tdStyle, color: '#ef4444', backgroundColor: darkMode ? 'rgba(239,68,68,0.05)' : '#fef7f7' }}>{item.month_sale_second}</td>
+                      <td style={{ ...tdStyle, color: '#ef4444', backgroundColor: darkMode ? 'rgba(239,68,68,0.05)' : '#fef7f7' }}>{item.month_sale_third}</td>
+                      {/* RFM */}
+                      <td style={{ ...tdStyle, color: '#7c3aed', fontWeight: 600, backgroundColor: darkMode ? 'rgba(124,58,237,0.05)' : '#faf5ff' }}>{item.rfm_ok_tyre}</td>
+                      {/* Closing */}
+                      <td style={{ ...tdStyle, fontWeight: 700, backgroundColor: darkMode ? 'rgba(37,99,235,0.05)' : '#f0f9ff' }}>{item.closing_first}</td>
+                      <td style={{ ...tdStyle, backgroundColor: darkMode ? 'rgba(37,99,235,0.05)' : '#f0f9ff' }}>{item.closing_second}</td>
+                      <td style={{ ...tdStyle, backgroundColor: darkMode ? 'rgba(37,99,235,0.05)' : '#f0f9ff' }}>{item.closing_third}</td>
+                      {/* Total */}
+                      <td style={{ ...tdStyle, fontWeight: 800, fontSize: '0.9rem', color: '#2563eb' }}>{item.total_closing}</td>
+                    </tr>
                   ))}
-                </select>
-              )
-            },
-            {
-              label: 'From', node: (
-                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={selectStyle(theme)} />
-              )
-            },
-            {
-              label: 'To', node: (
-                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={selectStyle(theme)} />
-              )
-            },
-          ].map((f, i) => (
-            <div key={f.label} style={{
-              flex: isMobile ? '1 1 100%' : '0 0 auto',
-              padding: isMobile ? '0' : '12px 20px',
-              borderRight: !isMobile ? `1px solid ${theme.line}` : 'none',
-              minWidth: isMobile ? 'auto' : '170px',
-            }}>
-              <label style={filterLabelStyle(theme)}>{f.label}</label>
-              {f.node}
-            </div>
-          ))}
-
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '8px',
-            padding: isMobile ? '2px 0 0' : '12px 20px',
-            borderRight: !isMobile ? `1px solid ${theme.line}` : 'none',
-          }}>
-            <button onClick={handleApplyRange} disabled={!startDate || !endDate} style={{
-              padding: '9px 16px', border: 'none', backgroundColor: theme.amber, color: '#141414',
-              cursor: (!startDate || !endDate) ? 'not-allowed' : 'pointer', fontSize: '0.76rem', fontWeight: 700,
-              opacity: (!startDate || !endDate) ? 0.4 : 1, fontFamily: 'inherit',
-            }}>
-              Apply
-            </button>
-            <button onClick={handleResetRange} style={{
-              padding: '9px 16px', border: `1px solid ${theme.line}`, backgroundColor: 'transparent',
-              color: theme.inkMute, cursor: 'pointer', fontSize: '0.76rem', fontWeight: 700, fontFamily: 'inherit',
-            }}>
-              Reset
-            </button>
-          </div>
-
-          <div style={{
-            flex: isMobile ? '1 1 100%' : '1 1 220px',
-            padding: isMobile ? '0' : '12px 20px',
-            minWidth: '180px',
-          }}>
-            <label style={filterLabelStyle(theme)}>Search</label>
-            <input
-              type="text" placeholder="Tyre, pattern, type…" value={search}
-              onChange={(e) => setSearch(e.target.value)} style={selectStyle(theme)}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* ---- KPI strip — edge to edge ---- */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)',
-        gap: '1px', backgroundColor: theme.line,
-        borderBottom: `1px solid ${theme.line}`,
-      }}>
-        <KpiCard label="TODAY'S PRODUCTION" value={stats.today_production} accent={theme.green} />
-        <KpiCard label="TODAY'S DISPATCH" value={stats.today_dispatch} accent={theme.red} />
-        <KpiCard label="MONTH PRODUCTION" value={stats.month_prod_total} accent={theme.steel} />
-        <KpiCard label="RFM STOCK" value={filteredTotals.rfm_ok_tyre} accent={theme.violet} />
-        <KpiCard label="TOTAL CLOSING" value={stats.total_closing} accent={theme.amber} />
-      </div>
-
-      {/* ==================================================
-          DESKTOP / TABLET — full table, edge to edge
-      ================================================== */}
-      {!isMobile && (
-        <div style={{ overflowX: 'auto', maxHeight: '68vh' }}>
-          {loading ? (
-            <LoadingRow theme={theme} />
-          ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1380px' }}>
-              <thead>
-                <tr>
-                  <th style={{ ...thStyle, textAlign: 'left', position: 'sticky', left: 0, zIndex: 3, backgroundColor: theme.panel2 }} rowSpan={2}>TYRE</th>
-                  <th style={{ ...thStyle, textAlign: 'left' }} rowSpan={2}>PATTERN</th>
-                  <th style={thStyle} rowSpan={2}>TYPE</th>
-                  <th style={{ ...thStyle, color: sectionColors.lastClosing, borderBottom: `1px solid ${theme.line}` }} colSpan={3}>LAST CLOSING</th>
-                  <th style={{ ...thStyle, color: sectionColors.production, borderBottom: `1px solid ${theme.line}` }} colSpan={4}>PRODUCTION</th>
-                  <th style={{ ...thStyle, color: sectionColors.dispatch, borderBottom: `1px solid ${theme.line}` }} colSpan={3}>SALE / DISPATCH</th>
-                  <th style={{ ...thStyle, color: sectionColors.rfm }} rowSpan={2}>RFM</th>
-                  <th style={{ ...thStyle, color: sectionColors.closing, borderBottom: `1px solid ${theme.line}` }} colSpan={3}>CLOSING STOCK</th>
-                  <th style={thStyle} rowSpan={2}>TOTAL</th>
-                </tr>
-                <tr>
-                  <th style={thStyle}>1st</th><th style={thStyle}>2nd</th><th style={thStyle}>3rd</th>
-                  <th style={thStyle}>Total</th><th style={thStyle}>1st</th><th style={thStyle}>2nd</th><th style={thStyle}>3rd</th>
-                  <th style={thStyle}>1st</th><th style={thStyle}>2nd</th><th style={thStyle}>3rd</th>
-                  <th style={thStyle}>1st</th><th style={thStyle}>2nd</th><th style={thStyle}>3rd</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredItems.map((item, idx) => (
-                  <tr key={item.id} style={{ backgroundColor: idx % 2 === 0 ? 'transparent' : theme.rowAlt }}>
-                    <td style={{ ...tdStyle, fontFamily: 'inherit', textAlign: 'left', fontWeight: 700, position: 'sticky', left: 0, backgroundColor: idx % 2 === 0 ? theme.panel : theme.rowAlt, zIndex: 1 }}>{item.tyre}</td>
-                    <td style={{ ...tdStyle, fontFamily: 'inherit', textAlign: 'left', fontSize: '0.78rem', color: theme.inkMute }}>{item.pattern}</td>
-                    <td style={tdStyle}><span style={badgeStyle(item.type === 'TL' ? theme.steel : theme.amber)}>{item.type}</span></td>
-                    <td style={tdStyle}>{item.prev_closing_first}</td>
-                    <td style={tdStyle}>{item.prev_closing_second}</td>
-                    <td style={tdStyle}>{item.prev_closing_third}</td>
-                    <td style={{ ...tdStyle, fontWeight: 700, color: sectionColors.production }}>{item.month_prod_total}</td>
-                    <td style={tdStyle}>{item.month_prod_first}</td>
-                    <td style={tdStyle}>{item.month_prod_second}</td>
-                    <td style={tdStyle}>{item.month_prod_third}</td>
-                    <td style={{ ...tdStyle, color: sectionColors.dispatch, fontWeight: 600 }}>{item.month_sale_first}</td>
-                    <td style={{ ...tdStyle, color: sectionColors.dispatch }}>{item.month_sale_second}</td>
-                    <td style={{ ...tdStyle, color: sectionColors.dispatch }}>{item.month_sale_third}</td>
-                    <td style={{ ...tdStyle, color: sectionColors.rfm, fontWeight: 600 }}>{item.rfm_ok_tyre}</td>
-                    <td style={{ ...tdStyle, fontWeight: 700 }}>{item.closing_first}</td>
-                    <td style={tdStyle}>{item.closing_second}</td>
-                    <td style={tdStyle}>{item.closing_third}</td>
-                    <td style={{ ...tdStyle, fontWeight: 700, fontSize: '0.95rem', color: theme.amber }}>{item.total_closing}</td>
-                  </tr>
-                ))}
-                {!filteredItems.length && <EmptyRow colSpan={18} theme={theme} loading={loading} search={search} />}
-              </tbody>
-              {filteredItems.length > 0 && (
-                <tfoot>
-                  <tr style={{ backgroundColor: theme.panel2, fontWeight: 700 }}>
-                    <td style={{ ...tdStyle, fontFamily: 'inherit', textAlign: 'left', position: 'sticky', left: 0, backgroundColor: theme.panel2 }} colSpan={3}>TOTALS</td>
-                    <td style={tdStyle}>{filteredTotals.prev_closing_first}</td>
-                    <td style={tdStyle}>{filteredTotals.prev_closing_second}</td>
-                    <td style={tdStyle}>{filteredTotals.prev_closing_third}</td>
-                    <td style={{ ...tdStyle, color: sectionColors.production }}>{filteredTotals.month_prod_total}</td>
-                    <td style={tdStyle}>{filteredTotals.month_prod_first}</td>
-                    <td style={tdStyle}>{filteredTotals.month_prod_second}</td>
-                    <td style={tdStyle}>{filteredTotals.month_prod_third}</td>
-                    <td style={{ ...tdStyle, color: sectionColors.dispatch }}>{filteredTotals.month_sale_first}</td>
-                    <td style={tdStyle}>{filteredTotals.month_sale_second}</td>
-                    <td style={tdStyle}>{filteredTotals.month_sale_third}</td>
-                    <td style={{ ...tdStyle, color: sectionColors.rfm }}>{filteredTotals.rfm_ok_tyre}</td>
-                    <td style={tdStyle}>{filteredTotals.closing_first}</td>
-                    <td style={tdStyle}>{filteredTotals.closing_second}</td>
-                    <td style={tdStyle}>{filteredTotals.closing_third}</td>
-                    <td style={{ ...tdStyle, fontSize: '1rem', color: theme.amber }}>{filteredTotals.total_closing}</td>
-                  </tr>
-                </tfoot>
-              )}
-            </table>
-          )}
-        </div>
-      )}
-
-      {/* ==================================================
-          MOBILE — stacked cards, tap to expand full breakdown
-      ================================================== */}
-      {isMobile && (
-        <div style={{ padding: '10px 12px 24px' }}>
-          {loading ? (
-            <LoadingRow theme={theme} />
-          ) : !filteredItems.length ? (
-            <EmptyRow theme={theme} loading={loading} search={search} mobile />
-          ) : (
-            filteredItems.map((item) => {
-              const open = expandedRow === item.id;
-              return (
-                <div key={item.id} style={{
-                  border: `1px solid ${theme.line}`, borderLeft: `3px solid ${theme.amber}`,
-                  backgroundColor: theme.panel, marginBottom: '8px',
-                }}>
-                  <button
-                    onClick={() => setExpandedRow(open ? null : item.id)}
-                    style={{
-                      width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
-                    }}
-                  >
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: '0.9rem', color: theme.ink, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {item.tyre}
-                        <span style={badgeStyle(item.type === 'TL' ? theme.steel : theme.amber)}>{item.type}</span>
-                      </div>
-                      <div style={{ fontSize: '0.74rem', color: theme.inkMute, marginTop: '2px' }}>{item.pattern}</div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontFamily: numeralFont, fontSize: '1.15rem', fontWeight: 700, color: theme.amber, lineHeight: 1 }}>{item.total_closing}</div>
-                        <div style={{ fontSize: '0.62rem', color: theme.inkMute, marginTop: '2px' }}>TOTAL STOCK</div>
-                      </div>
-                      <span style={{ color: theme.inkMute, fontSize: '0.8rem', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>▾</span>
-                    </div>
-                  </button>
-
-                  {open && (
-                    <div style={{ borderTop: `1px solid ${theme.line}`, padding: '12px 14px' }}>
-                      <MobileStatGroup theme={theme} label="PRODUCTION" color={sectionColors.production}
-                        cells={[['1st', item.month_prod_first], ['2nd', item.month_prod_second], ['3rd', item.month_prod_third], ['Total', item.month_prod_total]]} />
-                      <MobileStatGroup theme={theme} label="SALE / DISPATCH" color={sectionColors.dispatch}
-                        cells={[['1st', item.month_sale_first], ['2nd', item.month_sale_second], ['3rd', item.month_sale_third]]} />
-                      <MobileStatGroup theme={theme} label="CLOSING STOCK" color={sectionColors.closing}
-                        cells={[['1st', item.closing_first], ['2nd', item.closing_second], ['3rd', item.closing_third]]} />
-                      <MobileStatGroup theme={theme} label="LAST CLOSING" color={sectionColors.lastClosing}
-                        cells={[['1st', item.prev_closing_first], ['2nd', item.prev_closing_second], ['3rd', item.prev_closing_third]]} />
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: theme.inkMute, marginTop: '4px' }}>
-                        <span>RFM</span>
-                        <span style={{ fontFamily: numeralFont, fontWeight: 700, color: sectionColors.rfm }}>{item.rfm_ok_tyre}</span>
-                      </div>
-                    </div>
+                  {!filteredItems.length && (
+                    <tr>
+                      <td colSpan="18" style={{ textAlign: 'center', color: theme.text2, padding: '40px', fontSize: '0.9rem' }}>
+                        {loading ? '⏳ Loading...' : search ? '🔍 No matching tyres found' : 'No tyres found. Add tyres first.'}
+                      </td>
+                    </tr>
                   )}
-                </div>
-              );
-            })
-          )}
-
-          {filteredItems.length > 0 && (
-            <div style={{
-              backgroundColor: theme.panel2, border: `1px solid ${theme.lineStrong}`,
-              padding: '12px 14px', marginTop: '12px',
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: theme.inkMute }}>TOTAL CLOSING · {filteredItems.length} tyres</span>
-              <span style={{ fontFamily: numeralFont, fontSize: '1.2rem', fontWeight: 700, color: theme.amber }}>{filteredTotals.total_closing}</span>
-            </div>
-          )}
-        </div>
-      )}
-
-      <div style={{
-        textAlign: 'center', padding: '12px', color: theme.inkMute, fontSize: '0.7rem',
-        borderTop: `1px solid ${theme.line}`,
-      }}>
-        Showing {filteredItems.length} of {items.length} tyres
-      </div>
-    </div>
-  );
-}
-
-function MobileStatGroup({ theme, label, color, cells }) {
-  return (
-    <div style={{ marginBottom: '10px' }}>
-      <div style={{ fontSize: '0.66rem', fontWeight: 700, color, letterSpacing: '0.03em', marginBottom: '4px' }}>{label}</div>
-      <div style={{ display: 'flex', gap: '1px', backgroundColor: theme.line }}>
-        {cells.map(([k, v]) => (
-          <div key={k} style={{ flex: 1, backgroundColor: theme.panel2, padding: '6px 4px', textAlign: 'center' }}>
-            <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: '0.92rem', fontWeight: 700, color: theme.ink }}>{v ?? 0}</div>
-            <div style={{ fontSize: '0.6rem', color: theme.inkMute, marginTop: '1px' }}>{k}</div>
+                </tbody>
+                {filteredItems.length > 0 && (
+                  <tfoot>
+                    <tr style={{ backgroundColor: darkMode ? '#0f172a' : '#f1f5f9', fontWeight: 800, fontSize: '0.8rem' }}>
+                      <td style={{ ...tdStyle, textAlign: 'left', position: 'sticky', left: 0, backgroundColor: darkMode ? '#0f172a' : '#f1f5f9', zIndex: 1 }} colSpan={3}>TOTALS</td>
+                      <td style={{ ...tdStyle, color: '#2563eb' }}>{filteredTotals.prev_closing_first}</td>
+                      <td style={tdStyle}>{filteredTotals.prev_closing_second}</td>
+                      <td style={tdStyle}>{filteredTotals.prev_closing_third}</td>
+                      <td style={{ ...tdStyle, color: '#10b981' }}>{filteredTotals.month_prod_total}</td>
+                      <td style={tdStyle}>{filteredTotals.month_prod_first}</td>
+                      <td style={tdStyle}>{filteredTotals.month_prod_second}</td>
+                      <td style={tdStyle}>{filteredTotals.month_prod_third}</td>
+                      <td style={{ ...tdStyle, color: '#ef4444' }}>{filteredTotals.month_sale_first}</td>
+                      <td style={tdStyle}>{filteredTotals.month_sale_second}</td>
+                      <td style={tdStyle}>{filteredTotals.month_sale_third}</td>
+                      <td style={{ ...tdStyle, color: '#7c3aed' }}>{filteredTotals.rfm_ok_tyre}</td>
+                      <td style={{ ...tdStyle, fontWeight: 800 }}>{filteredTotals.closing_first}</td>
+                      <td style={tdStyle}>{filteredTotals.closing_second}</td>
+                      <td style={tdStyle}>{filteredTotals.closing_third}</td>
+                      <td style={{ ...tdStyle, fontSize: '0.95rem', color: '#2563eb' }}>{filteredTotals.total_closing}</td>
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            )}
           </div>
-        ))}
+        </div>
+
+        <div style={{ textAlign: 'center', padding: '14px', color: theme.text2, fontSize: '0.7rem' }}>
+          Showing {filteredItems.length} of {items.length} items
+          {customRange && startDate && endDate ? ` • Custom Range: ${startDate} to ${endDate}` : selectedMonth ? ` • ${availableMonths.find(m => m.value === selectedMonth)?.label || selectedMonth}` : ''}
+        </div>
       </div>
     </div>
   );
 }
 
-function LoadingRow({ theme }) {
-  return (
-    <div style={{ textAlign: 'center', padding: '60px 20px', color: theme.inkMute, fontSize: '0.9rem' }}>
-      Loading stock data…
-    </div>
-  );
-}
 
-function EmptyRow({ colSpan, theme, loading, search, mobile }) {
-  const message = loading ? 'Loading…' : search ? 'No matching tyres found' : 'No tyres found. Add tyres first.';
-  if (mobile) {
-    return <div style={{ textAlign: 'center', padding: '40px 20px', color: theme.inkMute, fontSize: '0.85rem' }}>{message}</div>;
-  }
-  return (
-    <tr>
-      <td colSpan={colSpan} style={{ textAlign: 'center', color: theme.inkMute, padding: '40px', fontSize: '0.88rem' }}>{message}</td>
-    </tr>
-  );
-}
-
-function selectStyle(theme) {
-  return {
-    width: '100%', padding: '8px 10px', border: `1px solid ${theme.line}`,
-    backgroundColor: theme.panel, color: theme.ink, fontSize: '0.82rem',
-    fontFamily: 'inherit', outline: 'none',
-  };
-}
-
-function filterLabelStyle(theme) {
-  return {
-    display: 'block', fontSize: '0.66rem', fontWeight: 700, color: theme.inkMute,
-    letterSpacing: '0.03em', marginBottom: '5px',
-  };
-}
+  
