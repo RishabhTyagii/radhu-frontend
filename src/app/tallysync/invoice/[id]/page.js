@@ -250,11 +250,12 @@ export default function TallyInvoiceDetail() {
                 RADHU INDUSTRIES
               </h1>
               <p style={{ color: '#475569', margin: '4px 0 0', fontSize: '0.9rem', fontWeight: 500 }}>
-                Manufacturer of Premium Bicycle Tyres, Tubes & Auto Tyres
+              
               </p>
               <p style={{ color: '#64748b', margin: '2px 0 0', fontSize: '0.85rem' }}>
-                G.T. Road, Gurusahayganj, Kannauj, Uttar Pradesh - 209722
+               17/5, MILE STONE, DUHAI MEERUT ROAD  MURAD NAGAR, Ghaziabad, Uttar Pradesh 201206  
               </p>
+              <p>GSTIN / UIN  : 09AAEPR4168E1ZJ </p>
             </div>
 
             <div style={{
