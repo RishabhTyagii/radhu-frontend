@@ -11,6 +11,8 @@ export default function AutoTyreDashboard() {
   const [darkMode, setDarkMode] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
 
+  const [showNavbar, setShowNavbar] = useState(true);
+
   // Filter state
   const [selectedMonth, setSelectedMonth] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -165,9 +167,13 @@ export default function AutoTyreDashboard() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: theme.bg, transition: 'all 0.3s ease' }}>
-      <Navbar />
+      <style>{`
+        ${!showNavbar ? 'footer { display: none !important; }' : ''}
+      `}</style>
+      
+      {showNavbar && <Navbar />}
 
-      <div style={{ maxWidth: '1600px', margin: '0 auto', padding: isMobile ? '10px' : '20px' }}>
+      <div style={{ maxWidth: showNavbar ? '1600px' : '100%', margin: '0 auto', padding: isMobile ? '10px' : (showNavbar ? '20px' : '10px 20px') }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
           <div>
@@ -176,6 +182,9 @@ export default function AutoTyreDashboard() {
             </h1>
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button onClick={() => setShowNavbar(!showNavbar)} style={{ padding: '7px 16px', borderRadius: '50px', border: `2px solid #8b5cf6`, backgroundColor: 'transparent', color: '#8b5cf6', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}>
+              {showNavbar ? '↕️ Hide Navbar' : '↔️ Show Navbar'}
+            </button>
             <button onClick={exportCSV} style={{ padding: '7px 16px', borderRadius: '50px', border: `2px solid #10b981`, backgroundColor: 'transparent', color: '#10b981', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}>
               📥 CSV
             </button>
@@ -184,7 +193,6 @@ export default function AutoTyreDashboard() {
             </button>
           </div>
         </div>
-
 
         {/* Filters */}
         <div style={{
