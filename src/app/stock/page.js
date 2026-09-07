@@ -169,9 +169,9 @@ export default function AutoTyreDashboard() {
       overflow: 'hidden',
     }}>
       <style>{`footer { display: none !important; }`}</style>
-      
+
       {/* Invisible hover trigger zone at the very top */}
-      <div 
+      <div
         style={{
           position: 'fixed',
           top: 0, left: 0, width: '100%', height: '18px',
@@ -181,7 +181,7 @@ export default function AutoTyreDashboard() {
       />
 
       {/* Dropdown Navbar on Hover */}
-      <div 
+      <div
         style={{
           position: 'fixed', top: 0, left: 0, width: '100%',
           zIndex: 9998,
@@ -381,7 +381,14 @@ export default function AutoTyreDashboard() {
                   </tr>
                   <tr style={{ backgroundColor: darkMode ? '#1e293b' : '#f1f5f9', borderBottom: `2px solid ${theme.border}`, color: theme.text2, fontWeight: 800, textTransform: 'uppercase', fontSize: '0.6rem' }}>
                     <th style={{ padding: '4px 8px', textAlign: 'right', borderLeft: `1px solid ${theme.border}` }}>1ST</th><th style={{ padding: '4px 8px', textAlign: 'right' }}>2ND</th><th style={{ padding: '4px 8px', textAlign: 'right' }}>3RD</th>
-                    <th style={{ padding: '4px 8px', textAlign: 'right', borderLeft: `1px solid ${theme.border}`, color: '#10b981' }}>TOT</th><th style={{ padding: '4px 8px', textAlign: 'right' }}>1ST</th><th style={{ padding: '4px 8px', textAlign: 'right' }}>2ND</th><th style={{ padding: '4px 8px', textAlign: 'right' }}>3RD</th>
+                    
+                    
+                    <th style={{ padding: '4px 8px', textAlign: 'right' }}>1ST</th>
+                    <th style={{ padding: '4px 8px', textAlign: 'right' }}>2ND</th>
+                    <th style={{ padding: '4px 8px', textAlign: 'right' }}>3RD</th>
+
+<th style={{ padding: '4px 8px', textAlign: 'right', borderLeft: `1px solid ${theme.border}`, color: '#10b981' }}>TOT</th>
+
                     <th style={{ padding: '4px 8px', textAlign: 'right', borderLeft: `1px solid ${theme.border}` }}>1ST</th><th style={{ padding: '4px 8px', textAlign: 'right' }}>2ND</th><th style={{ padding: '4px 8px', textAlign: 'right' }}>3RD</th>
                     <th style={{ padding: '4px 8px', textAlign: 'right', borderLeft: `1px solid ${theme.border}` }}>1ST</th><th style={{ padding: '4px 8px', textAlign: 'right' }}>2ND</th><th style={{ padding: '4px 8px', textAlign: 'right' }}>3RD</th>
                   </tr>
@@ -397,11 +404,16 @@ export default function AutoTyreDashboard() {
                       <td style={{ padding: '6px 8px', textAlign: 'right', borderLeft: `1px solid ${theme.border}` }}>{item.prev_closing_first}</td>
                       <td style={{ padding: '6px 8px', textAlign: 'right' }}>{item.prev_closing_second}</td>
                       <td style={{ padding: '6px 8px', textAlign: 'right' }}>{item.prev_closing_third}</td>
-                      {/* Production */}
-                      <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, color: '#10b981', borderLeft: `1px solid ${theme.border}` }}>{item.month_prod_total}</td>
+
                       <td style={{ padding: '6px 8px', textAlign: 'right', color: theme.text2 }}>{item.month_prod_first}</td>
                       <td style={{ padding: '6px 8px', textAlign: 'right', color: theme.text2 }}>{item.month_prod_second}</td>
                       <td style={{ padding: '6px 8px', textAlign: 'right', color: theme.text2 }}>{item.month_prod_third}</td>
+
+
+
+                      {/* Production */}
+                      <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, color: '#10b981', borderLeft: `1px solid ${theme.border}` }}>{item.month_prod_total}</td>
+
                       {/* Sale */}
                       <td style={{ padding: '6px 8px', textAlign: 'right', color: '#ef4444', fontWeight: 600, borderLeft: `1px solid ${theme.border}` }}>{item.month_sale_first}</td>
                       <td style={{ padding: '6px 8px', textAlign: 'right', color: '#ef4444' }}>{item.month_sale_second}</td>
