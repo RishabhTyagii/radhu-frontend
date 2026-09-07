@@ -166,98 +166,113 @@ export default function AutoTyreDashboard() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: theme.bg, transition: 'all 0.3s ease' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: theme.bg, transition: 'all 0.3s ease', width: '100%', overflowX: 'hidden' }}>
+      {/* Permanently hide footer on this page */}
       <style>{`
-        ${!showNavbar ? 'footer { display: none !important; }' : ''}
+        footer { display: none !important; }
       `}</style>
       
-      {showNavbar && <Navbar />}
+      <div style={{ display: showNavbar ? 'block' : 'none' }}>
+        <Navbar />
+      </div>
 
-      <div style={{ maxWidth: showNavbar ? '1600px' : '100%', margin: '0 auto', padding: isMobile ? '10px' : (showNavbar ? '20px' : '10px 20px') }}>
+      <div style={{ width: '100%', padding: isMobile ? '8px' : '10px 1.5vw', transition: 'padding 0.3s ease' }}>
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
-          <div>
-            <h1 style={{ fontSize: isMobile ? '1.2rem' : '1.8rem', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, #0d9488, #2563eb)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <h1 style={{ fontSize: isMobile ? '1.2rem' : '1.6rem', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, #0d9488, #2563eb)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               🚗 Auto Tyre Stock Dashboard
             </h1>
+            <button onClick={() => setShowNavbar(!showNavbar)} style={{ padding: '5px 12px', borderRadius: '6px', border: `1px solid ${showNavbar ? '#8b5cf6' : '#10b981'}`, backgroundColor: showNavbar ? 'transparent' : '#10b981', color: showNavbar ? '#8b5cf6' : 'white', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, transition: 'all 0.2s' }}>
+              {showNavbar ? '⬆️ Hide Navbar' : '⬇️ Show Navbar'}
+            </button>
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <button onClick={() => setShowNavbar(!showNavbar)} style={{ padding: '7px 16px', borderRadius: '50px', border: `2px solid #8b5cf6`, backgroundColor: 'transparent', color: '#8b5cf6', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}>
-              {showNavbar ? '↕️ Hide Navbar' : '↔️ Show Navbar'}
-            </button>
-            <button onClick={exportCSV} style={{ padding: '7px 16px', borderRadius: '50px', border: `2px solid #10b981`, backgroundColor: 'transparent', color: '#10b981', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}>
+            <button onClick={exportCSV} style={{ padding: '6px 14px', borderRadius: '50px', border: `2px solid #10b981`, backgroundColor: 'transparent', color: '#10b981', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
               📥 CSV
             </button>
-            <button onClick={() => setDarkMode(!darkMode)} style={{ padding: '7px 16px', borderRadius: '50px', border: `2px solid ${theme.border}`, backgroundColor: theme.bg2, color: theme.text, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}>
+            <button onClick={() => setDarkMode(!darkMode)} style={{ padding: '6px 14px', borderRadius: '50px', border: `2px solid ${theme.border}`, backgroundColor: theme.bg2, color: theme.text, cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
               {darkMode ? '🌙 Dark' : '☀️ Light'}
             </button>
           </div>
         </div>
 
-        {/* Filters */}
-        <div style={{
-          backgroundColor: theme.bg2, borderRadius: '14px', padding: isMobile ? '12px' : '16px',
-          boxShadow: theme.shadow, border: `2px solid ${theme.border}`, marginBottom: '16px',
-          display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'flex-end',
-        }}>
-          {/* Month */}
-          <div style={{ flex: '1 1 180px', minWidth: '140px' }}>
-            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: theme.text2, marginBottom: '4px' }}>📅 MONTH</label>
-            <select
-              value={customRange ? '' : selectedMonth}
-              onChange={(e) => handleMonthChange(e.target.value)}
-              style={{ width: '100%', padding: '8px 12px', border: `2px solid ${theme.border}`, borderRadius: '10px', backgroundColor: theme.bg, color: theme.text, fontSize: '0.85rem', fontWeight: 600 }}
-            >
-              <option value="">-- Select --</option>
-              {availableMonths.map(m => (
-                <option key={m.value} value={m.value}>{m.label}</option>
-              ))}
-            </select>
+        {/* Filters & KPI Row (Compact) */}
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '12px', marginBottom: '12px' }}>
+          
+          {/* Filters Box */}
+          <div style={{
+            backgroundColor: theme.bg2, borderRadius: '10px', padding: '10px 14px',
+            boxShadow: theme.shadow, border: `1px solid ${theme.border}`,
+            display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', flex: 1
+          }}>
+            {/* Month */}
+            <div style={{ minWidth: '120px' }}>
+              <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 700, color: theme.text2, marginBottom: '2px' }}>📅 MONTH</label>
+              <select
+                value={customRange ? '' : selectedMonth}
+                onChange={(e) => handleMonthChange(e.target.value)}
+                style={{ width: '100%', padding: '6px 10px', border: `1px solid ${theme.border}`, borderRadius: '6px', backgroundColor: theme.bg, color: theme.text, fontSize: '0.8rem', fontWeight: 600 }}
+              >
+                <option value="">-- Select --</option>
+                {availableMonths.map(m => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Date Range */}
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'flex-end' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 700, color: theme.text2, marginBottom: '2px' }}>📆 RANGE</label>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
+                    style={{ padding: '6px 8px', border: `1px solid ${theme.border}`, borderRadius: '6px', backgroundColor: theme.bg, color: theme.text, fontSize: '0.75rem' }} />
+                  <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
+                    style={{ padding: '6px 8px', border: `1px solid ${theme.border}`, borderRadius: '6px', backgroundColor: theme.bg, color: theme.text, fontSize: '0.75rem' }} />
+                </div>
+              </div>
+              <button onClick={handleApplyRange} disabled={!startDate || !endDate}
+                style={{ padding: '6px 12px', height: '32px', borderRadius: '6px', border: 'none', backgroundColor: '#2563eb', color: 'white', cursor: (!startDate || !endDate) ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 700, opacity: (!startDate || !endDate) ? 0.5 : 1 }}>
+                Apply
+              </button>
+              <button onClick={handleResetRange}
+                style={{ padding: '6px 12px', height: '32px', borderRadius: '6px', border: `1px solid ${theme.border}`, backgroundColor: theme.bg2, color: theme.text, cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
+                Reset
+              </button>
+            </div>
+
+            {/* Search */}
+            <div style={{ flex: 1, minWidth: '150px' }}>
+              <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 700, color: theme.text2, marginBottom: '2px' }}>🔍 SEARCH</label>
+              <input type="text" placeholder="Search tyre, pattern..." value={search} onChange={(e) => setSearch(e.target.value)}
+                style={{ width: '100%', padding: '6px 10px', border: `1px solid ${theme.border}`, borderRadius: '6px', backgroundColor: theme.bg, color: theme.text, fontSize: '0.8rem' }} />
+            </div>
           </div>
 
-          {/* Date Range */}
-          <div style={{ flex: '1 1 140px', minWidth: '130px' }}>
-            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: theme.text2, marginBottom: '4px' }}>📆 START DATE</label>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-              style={{ width: '100%', padding: '8px 10px', border: `2px solid ${theme.border}`, borderRadius: '10px', backgroundColor: theme.bg, color: theme.text, fontSize: '0.8rem' }} />
+          {/* Mini KPI Cards */}
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {[
+              { label: "Today Prod", val: stats.today_production, color: "#0d9488" },
+              { label: "Today Disp", val: stats.today_dispatch, color: "#f59e0b" },
+              { label: "Total Closing", val: stats.total_closing, color: "#7c3aed" }
+            ].map(k => (
+              <div key={k.label} style={{
+                backgroundColor: theme.bg2, borderRadius: '10px', padding: '8px 14px',
+                boxShadow: theme.shadow, border: `1px solid ${theme.border}`, borderBottom: `3px solid ${k.color}`,
+                minWidth: '110px', display: 'flex', flexDirection: 'column', justifyContent: 'center'
+              }}>
+                <span style={{ fontSize: '0.6rem', fontWeight: 700, color: theme.text2, textTransform: 'uppercase' }}>{k.label}</span>
+                <span style={{ fontSize: '1.2rem', fontWeight: 800, color: k.color }}>{k.val ?? '-'}</span>
+              </div>
+            ))}
           </div>
-          <div style={{ flex: '1 1 140px', minWidth: '130px' }}>
-            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: theme.text2, marginBottom: '4px' }}>📆 END DATE</label>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
-              style={{ width: '100%', padding: '8px 10px', border: `2px solid ${theme.border}`, borderRadius: '10px', backgroundColor: theme.bg, color: theme.text, fontSize: '0.8rem' }} />
-          </div>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            <button onClick={handleApplyRange} disabled={!startDate || !endDate}
-              style={{ padding: '8px 18px', borderRadius: '10px', border: 'none', backgroundColor: '#2563eb', color: 'white', cursor: (!startDate || !endDate) ? 'not-allowed' : 'pointer', fontSize: '0.8rem', fontWeight: 700, opacity: (!startDate || !endDate) ? 0.5 : 1 }}>
-              ✅ Apply
-            </button>
-            <button onClick={handleResetRange}
-              style={{ padding: '8px 18px', borderRadius: '10px', border: `2px solid ${theme.border}`, backgroundColor: theme.bg2, color: theme.text, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}>
-              🔄 Reset
-            </button>
-          </div>
-
-          {/* Search */}
-          <div style={{ flex: '1 1 200px', minWidth: '160px' }}>
-            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: theme.text2, marginBottom: '4px' }}>🔍 SEARCH</label>
-            <input type="text" placeholder="Search tyre, pattern, type..." value={search} onChange={(e) => setSearch(e.target.value)}
-              style={{ width: '100%', padding: '8px 12px', border: `2px solid ${theme.border}`, borderRadius: '10px', backgroundColor: theme.bg, color: theme.text, fontSize: '0.85rem' }} />
-          </div>
-        </div>
-
-        {/* KPI Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: '12px', marginBottom: '16px' }}>
-          <KpiCard label="Today Production" value={stats.today_production} icon="🏭" color="#0d9488" />
-          <KpiCard label="Today Dispatch" value={stats.today_dispatch} icon="🚛" color="#f59e0b" />
-          <KpiCard label="Month Production" value={stats.month_prod_total} icon="📦" color="#2563eb" />
-          <KpiCard label="Total Closing" value={stats.total_closing} icon="📊" color="#7c3aed" />
-          <KpiCard label="Total RFM" value={filteredTotals.rfm_ok_tyre} icon="🔧" color="#ec4899" />
         </div>
 
         {/* Stock Table */}
         <div style={{
-          backgroundColor: theme.bg2, borderRadius: '14px', boxShadow: theme.shadow,
-          border: `2px solid ${theme.border}`, overflow: 'hidden',
+          backgroundColor: theme.bg2, borderRadius: '10px', boxShadow: theme.shadow,
+          border: `1px solid ${theme.border}`, overflow: 'hidden',
         }}>
           <div style={{ overflowX: 'auto', maxHeight: '70vh' }}>
             {loading ? (
