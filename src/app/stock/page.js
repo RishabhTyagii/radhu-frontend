@@ -8,16 +8,14 @@ export default function AutoTyreDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [darkMode, setDarkMode] = useState(false);
-  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
-
-  const [showNavbar, setShowNavbar] = useState(true);
-
-  // Filter state
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [customRange, setCustomRange] = useState(false);
+  const [isCustomRange, setIsCustomRange] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+  const [darkMode, setDarkMode] = useState(false);
+  const [showNavbar, setShowNavbar] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -25,83 +23,92 @@ export default function AutoTyreDashboard() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const fetchData = async (month, sd, ed) => {
-    setLoading(true);
-    let url = '/stock/dashboard/?';
-    if (sd && ed) {
-      url += `start_date=${sd}&end_date=${ed}`;
-    } else if (month) {
-      url += `month=${month}`;
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    if (!isCustomRange) {
+      fetchDashboard({ month: selectedMonth });
     }
-    const result = await apiGet(url);
+  }, [selectedMonth]);
+
+  async function fetchDashboard({ month = '', start = '', end = '' } = {}) {
+    setLoading(true);
+    let params = [];
+    if (start && end) {
+      params.push(`start_date=${start}`);
+      params.push(`end_date=${end}`);
+    } else if (month) {
+      params.push(`month=${month}`);
+    }
+    const query = params.length ? `?${params.join('&')}` : '';
+    const result = await apiGet(`/stock/dashboard/${query}`);
     if (result) {
       setData(result);
-      if (!month && result.selected_month) {
+      if (!selectedMonth && result.selected_month && result.selected_month !== 'custom') {
         setSelectedMonth(result.selected_month);
+      }
+      if (result.start_date && result.end_date) {
+        setStartDate(result.start_date);
+        setEndDate(result.end_date);
       }
     }
     setLoading(false);
+  }
+
+  const handleApplyDateRange = () => {
+    if (!startDate || !endDate) return;
+    setIsCustomRange(true);
+    fetchDashboard({ start: startDate, end: endDate });
   };
 
-  useEffect(() => {
-    fetchData('', '', '');
-  }, []);
+  const handleMonthChange = (month) => {
+    setIsCustomRange(false);
+    setSelectedMonth(month);
+  };
 
-  const handleMonthChange = (val) => {
-    setSelectedMonth(val);
-    setCustomRange(false);
+  const handleResetFilters = () => {
+    setIsCustomRange(false);
+    setSelectedMonth('');
     setStartDate('');
     setEndDate('');
-    fetchData(val, '', '');
+    fetchDashboard();
   };
 
-  const handleApplyRange = () => {
-    if (startDate && endDate) {
-      setCustomRange(true);
-      fetchData('', startDate, endDate);
-    }
-  };
-
-  const handleResetRange = () => {
-    setCustomRange(false);
-    setStartDate('');
-    setEndDate('');
-    fetchData(selectedMonth, '', '');
-  };
-
-  const items = data?.items || [];
-  const totals = data?.totals || {};
-  const stats = data?.stats || {};
-  const availableMonths = data?.available_months || [];
-
-  const filteredItems = useMemo(() => {
-    if (!search.trim()) return items;
-    const q = search.toLowerCase();
-    return items.filter(item =>
-      (item.tyre || '').toLowerCase().includes(q) ||
-      (item.pattern || '').toLowerCase().includes(q) ||
-      (item.type || '').toLowerCase().includes(q)
+  const rawItems = data?.items || [];
+  const items = useMemo(() => {
+    if (!debouncedSearch) return rawItems;
+    const term = debouncedSearch.toLowerCase();
+    return rawItems.filter(item =>
+      (item.tyre || '').toLowerCase().includes(term) ||
+      (item.pattern || '').toLowerCase().includes(term) ||
+      (item.type || '').toLowerCase().includes(term)
     );
-  }, [items, search]);
+  }, [rawItems, debouncedSearch]);
 
+  const stats = data?.stats || {};
   const filteredTotals = useMemo(() => {
-    if (!search.trim()) return totals;
-    return filteredItems.reduce((acc, item) => {
-      acc.prev_closing_first += item.prev_closing_first || 0;
-      acc.prev_closing_second += item.prev_closing_second || 0;
-      acc.prev_closing_third += item.prev_closing_third || 0;
-      acc.month_prod_total += item.month_prod_total || 0;
-      acc.month_prod_first += item.month_prod_first || 0;
-      acc.month_prod_second += item.month_prod_second || 0;
-      acc.month_prod_third += item.month_prod_third || 0;
-      acc.month_sale_first += item.month_sale_first || 0;
-      acc.month_sale_second += item.month_sale_second || 0;
-      acc.month_sale_third += item.month_sale_third || 0;
-      acc.rfm_ok_tyre += item.rfm_ok_tyre || 0;
-      acc.closing_first += item.closing_first || 0;
-      acc.closing_second += item.closing_second || 0;
-      acc.closing_third += item.closing_third || 0;
-      acc.total_closing += item.total_closing || 0;
+    if (!debouncedSearch) return data?.totals || {};
+    return items.reduce((acc, item) => {
+      acc.prev_closing_first = (acc.prev_closing_first || 0) + (item.prev_closing_first || 0);
+      acc.prev_closing_second = (acc.prev_closing_second || 0) + (item.prev_closing_second || 0);
+      acc.prev_closing_third = (acc.prev_closing_third || 0) + (item.prev_closing_third || 0);
+      acc.month_prod_total = (acc.month_prod_total || 0) + (item.month_prod_total || 0);
+      acc.month_prod_first = (acc.month_prod_first || 0) + (item.month_prod_first || 0);
+      acc.month_prod_second = (acc.month_prod_second || 0) + (item.month_prod_second || 0);
+      acc.month_prod_third = (acc.month_prod_third || 0) + (item.month_prod_third || 0);
+      acc.month_sale_first = (acc.month_sale_first || 0) + (item.month_sale_first || 0);
+      acc.month_sale_second = (acc.month_sale_second || 0) + (item.month_sale_second || 0);
+      acc.month_sale_third = (acc.month_sale_third || 0) + (item.month_sale_third || 0);
+      acc.rfm_ok_tyre = (acc.rfm_ok_tyre || 0) + (item.rfm_ok_tyre || 0);
+      acc.closing_first = (acc.closing_first || 0) + (item.closing_first || 0);
+      acc.closing_second = (acc.closing_second || 0) + (item.closing_second || 0);
+      acc.closing_third = (acc.closing_third || 0) + (item.closing_third || 0);
+      acc.total_closing = (acc.total_closing || 0) + (item.total_closing || 0);
       return acc;
     }, {
       prev_closing_first: 0, prev_closing_second: 0, prev_closing_third: 0,
@@ -110,12 +117,16 @@ export default function AutoTyreDashboard() {
       rfm_ok_tyre: 0,
       closing_first: 0, closing_second: 0, closing_third: 0, total_closing: 0,
     });
-  }, [filteredItems, search, totals]);
+  }, [items, debouncedSearch, data?.totals]);
 
-  const exportCSV = () => {
+  const availableMonths = data?.available_months || [];
+
+  const handleExportCSV = () => {
+    if (!items || !items.length) return;
+    const filename = `Auto_Tyre_Dashboard_${selectedMonth || 'current'}_${new Date().toISOString().slice(0, 10)}.csv`;
     const headers = ['TYRE', 'PATTERN', 'TYPE', 'LAST CL (1ST)', 'LAST CL (2ND)', 'LAST CL (3RD)', 'PROD (TOTAL)', 'PROD (1ST)', 'PROD (2ND)', 'PROD (3RD)', 'SALE (1ST)', 'SALE (2ND)', 'SALE (3RD)', 'RFM', 'CLOSING (1ST)', 'CLOSING (2ND)', 'CLOSING (3RD)', 'TOTAL STOCK'];
-    const rows = filteredItems.map(item => [
-      item.tyre, item.pattern, item.type,
+    const rows = items.map(item => [
+      `"${item.tyre}"`, `"${item.pattern}"`, `"${item.type}"`,
       item.prev_closing_first, item.prev_closing_second, item.prev_closing_third,
       item.month_prod_total, item.month_prod_first, item.month_prod_second, item.month_prod_third,
       item.month_sale_first, item.month_sale_second, item.month_sale_third,
@@ -126,259 +137,314 @@ export default function AutoTyreDashboard() {
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = 'auto_tyre_stock.csv'; a.click();
+    a.href = url; a.download = filename; a.click();
     URL.revokeObjectURL(url);
   };
 
   const isMobile = windowWidth < 768;
 
   const theme = {
-    bg: darkMode ? '#0f172a' : '#f1f5f9',
+    bg: darkMode ? '#0f172a' : '#f8fafc',
     bg2: darkMode ? '#1e293b' : '#ffffff',
-    text: darkMode ? '#f1f5f9' : '#1e293b',
+    text: darkMode ? '#f8fafc' : '#0f172a',
     text2: darkMode ? '#94a3b8' : '#64748b',
     border: darkMode ? '#334155' : '#e2e8f0',
-    shadow: darkMode ? '0 4px 24px rgba(0,0,0,0.4)' : '0 4px 24px rgba(0,0,0,0.08)',
-    hdr: darkMode ? '#0f172a' : '#f8fafc',
-    rowHover: darkMode ? '#1e293b' : '#f8fafc',
-  };
-
-  const KpiCard = ({ label, value, icon, color }) => (
-    <div style={{
-      backgroundColor: theme.bg2, borderRadius: '14px', padding: isMobile ? '12px' : '18px',
-      boxShadow: theme.shadow, border: `2px solid ${theme.border}`,
-      borderLeft: `6px solid ${color}`, minWidth: 0,
-    }}>
-      <div style={{ fontSize: '0.7rem', fontWeight: 600, color: theme.text2, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{icon} {label}</div>
-      <div style={{ fontSize: isMobile ? '1.2rem' : '1.6rem', fontWeight: 800, color, marginTop: '4px' }}>{value ?? '-'}</div>
-    </div>
-  );
-
-  const thStyle = {
-    padding: '8px 10px', fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase',
-    letterSpacing: '0.3px', whiteSpace: 'nowrap', position: 'sticky', top: 0,
-    backgroundColor: theme.hdr, color: theme.text2, borderBottom: `2px solid ${theme.border}`,
-    textAlign: 'center',
-  };
-  const tdStyle = {
-    padding: '7px 10px', fontSize: '0.8rem', color: theme.text, textAlign: 'center',
-    borderBottom: `1px solid ${theme.border}`, whiteSpace: 'nowrap',
+    primary: '#2563eb',
+    success: '#10b981',
+    danger: '#ef4444',
+    warning: '#f59e0b',
+    purple: '#8b5cf6',
+    hoverBg: darkMode ? '#1e3a8a22' : '#f0fdf4',
+    shadow: darkMode ? '0 4px 6px -1px rgba(0, 0, 0, 0.5)' : '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: theme.bg, transition: 'all 0.3s ease', width: '100%', overflowX: 'hidden' }}>
-      {/* Permanently hide footer on this page */}
-      <style>{`
-        footer { display: none !important; }
-      `}</style>
+    <div style={{
+      backgroundColor: theme.bg,
+      color: theme.text,
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+      overflow: 'hidden',
+    }}>
+      <style>{`footer { display: none !important; }`}</style>
       
-      <div style={{ display: showNavbar ? 'block' : 'none' }}>
+      {/* Invisible hover trigger zone at the very top */}
+      <div 
+        style={{
+          position: 'fixed',
+          top: 0, left: 0, width: '100%', height: '18px',
+          zIndex: 9999, cursor: 'pointer'
+        }}
+        onMouseEnter={() => setShowNavbar(true)}
+      />
+
+      {/* Dropdown Navbar on Hover */}
+      <div 
+        style={{
+          position: 'fixed', top: 0, left: 0, width: '100%',
+          zIndex: 9998,
+          transform: showNavbar ? 'translateY(0)' : 'translateY(-100%)',
+          transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+          boxShadow: showNavbar ? '0 10px 25px rgba(0,0,0,0.3)' : 'none',
+        }}
+        onMouseLeave={() => setShowNavbar(false)}
+      >
         <Navbar />
       </div>
 
-      <div style={{ width: '100%', padding: isMobile ? '8px' : '10px 1.5vw', transition: 'padding 0.3s ease' }}>
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <h1 style={{ fontSize: isMobile ? '1.2rem' : '1.6rem', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, #0d9488, #2563eb)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              🚗 Auto Tyre Stock Dashboard
-            </h1>
-            <button onClick={() => setShowNavbar(!showNavbar)} style={{ padding: '5px 12px', borderRadius: '6px', border: `1px solid ${showNavbar ? '#8b5cf6' : '#10b981'}`, backgroundColor: showNavbar ? 'transparent' : '#10b981', color: showNavbar ? '#8b5cf6' : 'white', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, transition: 'all 0.2s' }}>
-              {showNavbar ? '⬆️ Hide Navbar' : '⬇️ Show Navbar'}
-            </button>
-          </div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <button onClick={exportCSV} style={{ padding: '6px 14px', borderRadius: '50px', border: `2px solid #10b981`, backgroundColor: 'transparent', color: '#10b981', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
-              📥 CSV
-            </button>
-            <button onClick={() => setDarkMode(!darkMode)} style={{ padding: '6px 14px', borderRadius: '50px', border: `2px solid ${theme.border}`, backgroundColor: theme.bg2, color: theme.text, cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
-              {darkMode ? '🌙 Dark' : '☀️ Light'}
-            </button>
-          </div>
-        </div>
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        overflow: 'hidden',
+      }}>
 
-        {/* Filters & KPI Row (Compact) */}
-        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '12px', marginBottom: '12px' }}>
-          
-          {/* Filters Box */}
-          <div style={{
-            backgroundColor: theme.bg2, borderRadius: '10px', padding: '10px 14px',
-            boxShadow: theme.shadow, border: `1px solid ${theme.border}`,
-            display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', flex: 1
-          }}>
-            {/* Month */}
-            <div style={{ minWidth: '120px' }}>
-              <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 700, color: theme.text2, marginBottom: '2px' }}>📅 MONTH</label>
-              <select
-                value={customRange ? '' : selectedMonth}
-                onChange={(e) => handleMonthChange(e.target.value)}
-                style={{ width: '100%', padding: '6px 10px', border: `1px solid ${theme.border}`, borderRadius: '6px', backgroundColor: theme.bg, color: theme.text, fontSize: '0.8rem', fontWeight: 600 }}
-              >
-                <option value="">-- Select --</option>
-                {availableMonths.map(m => (
-                  <option key={m.value} value={m.value}>{m.label}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Date Range */}
-            <div style={{ display: 'flex', gap: '6px', alignItems: 'flex-end' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 700, color: theme.text2, marginBottom: '2px' }}>📆 RANGE</label>
-                <div style={{ display: 'flex', gap: '4px' }}>
-                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-                    style={{ padding: '6px 8px', border: `1px solid ${theme.border}`, borderRadius: '6px', backgroundColor: theme.bg, color: theme.text, fontSize: '0.75rem' }} />
-                  <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
-                    style={{ padding: '6px 8px', border: `1px solid ${theme.border}`, borderRadius: '6px', backgroundColor: theme.bg, color: theme.text, fontSize: '0.75rem' }} />
-                </div>
-              </div>
-              <button onClick={handleApplyRange} disabled={!startDate || !endDate}
-                style={{ padding: '6px 12px', height: '32px', borderRadius: '6px', border: 'none', backgroundColor: '#2563eb', color: 'white', cursor: (!startDate || !endDate) ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 700, opacity: (!startDate || !endDate) ? 0.5 : 1 }}>
-                Apply
-              </button>
-              <button onClick={handleResetRange}
-                style={{ padding: '6px 12px', height: '32px', borderRadius: '6px', border: `1px solid ${theme.border}`, backgroundColor: theme.bg2, color: theme.text, cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
-                Reset
-              </button>
-            </div>
-
-            {/* Search */}
-            <div style={{ flex: 1, minWidth: '150px' }}>
-              <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 700, color: theme.text2, marginBottom: '2px' }}>🔍 SEARCH</label>
-              <input type="text" placeholder="Search tyre, pattern..." value={search} onChange={(e) => setSearch(e.target.value)}
-                style={{ width: '100%', padding: '6px 10px', border: `1px solid ${theme.border}`, borderRadius: '6px', backgroundColor: theme.bg, color: theme.text, fontSize: '0.8rem' }} />
-            </div>
-          </div>
-
-          {/* Mini KPI Cards */}
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {[
-              { label: "Today Prod", val: stats.today_production, color: "#0d9488" },
-              { label: "Today Disp", val: stats.today_dispatch, color: "#f59e0b" },
-              { label: "Total Closing", val: stats.total_closing, color: "#7c3aed" }
-            ].map(k => (
-              <div key={k.label} style={{
-                backgroundColor: theme.bg2, borderRadius: '10px', padding: '8px 14px',
-                boxShadow: theme.shadow, border: `1px solid ${theme.border}`, borderBottom: `3px solid ${k.color}`,
-                minWidth: '110px', display: 'flex', flexDirection: 'column', justifyContent: 'center'
-              }}>
-                <span style={{ fontSize: '0.6rem', fontWeight: 700, color: theme.text2, textTransform: 'uppercase' }}>{k.label}</span>
-                <span style={{ fontSize: '1.2rem', fontWeight: 800, color: k.color }}>{k.val ?? '-'}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Stock Table */}
+        {/* STICKY HEADER */}
         <div style={{
-          backgroundColor: theme.bg2, borderRadius: '10px', boxShadow: theme.shadow,
-          border: `1px solid ${theme.border}`, overflow: 'hidden',
+          position: 'sticky',
+          top: 0,
+          zIndex: 1000,
+          backgroundColor: theme.bg2,
+          boxShadow: theme.shadow,
         }}>
-          <div style={{ overflowX: 'auto', maxHeight: '70vh' }}>
-            {loading ? (
-              <div style={{ textAlign: 'center', padding: '60px', color: theme.text2, fontSize: '1rem' }}>⏳ Loading stock data...</div>
-            ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1400px' }}>
+
+          {/* Toolbar */}
+          <div style={{
+            borderBottom: `2px solid ${theme.border}`,
+            padding: isMobile ? '8px 10px' : '10px 18px',
+            display: 'flex',
+            flexDirection: isMobile ? 'column' : 'row',
+            justifyContent: 'space-between',
+            alignItems: isMobile ? 'stretch' : 'center',
+            gap: '8px',
+            flexWrap: 'wrap',
+            backgroundColor: theme.bg2,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{
+                fontSize: isMobile ? '1.05rem' : '1.3rem',
+                fontWeight: 900,
+                color: theme.text,
+                background: 'linear-gradient(135deg, #0d9488, #2563eb)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}>
+                🚗 Auto Tyre Dashboard
+              </span>
+
+              {/* Dark Mode Toggle */}
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                style={{
+                  padding: '3px 8px', borderRadius: '16px', border: `1px solid ${theme.border}`,
+                  backgroundColor: darkMode ? '#334155' : '#f1f5f9', color: theme.text,
+                  cursor: 'pointer', fontSize: '0.7rem', fontWeight: 600,
+                }}
+              >
+                {darkMode ? '🌙 Dark' : '☀️ Light'}
+              </button>
+            </div>
+
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', flex: isMobile ? '1' : '0 1 auto',
+            }}>
+              {/* Month Selector */}
+              <select
+                style={{
+                  padding: '5px 10px', border: `2px solid ${!isCustomRange ? theme.primary : theme.border}`,
+                  borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
+                  backgroundColor: !isCustomRange && !darkMode ? '#eff6ff' : theme.bg2,
+                  color: theme.text, height: '34px', minWidth: '115px', outline: 'none',
+                }}
+                value={isCustomRange ? 'custom' : selectedMonth}
+                onChange={(e) => handleMonthChange(e.target.value)}
+              >
+                {availableMonths.map((m) => (
+                  <option key={m.value} value={m.value}>📅 {m.label}</option>
+                ))}
+                {isCustomRange && <option value="custom">📅 Custom Range</option>}
+              </select>
+
+              {/* Custom Date Range Filter */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '4px',
+                backgroundColor: isCustomRange ? (darkMode ? '#1e3a8a33' : '#eff6ff') : 'transparent',
+                padding: '2px 4px', borderRadius: '8px', border: `1px solid ${isCustomRange ? '#3b82f6' : theme.border}`,
+              }}>
+                <input
+                  type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
+                  style={{ padding: '4px 6px', border: `1px solid ${theme.border}`, borderRadius: '6px', fontSize: '0.75rem', backgroundColor: theme.bg2, color: theme.text, height: '28px', outline: 'none' }}
+                />
+                <span style={{ fontSize: '0.7rem', color: theme.text2 }}>to</span>
+                <input
+                  type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
+                  style={{ padding: '4px 6px', border: `1px solid ${theme.border}`, borderRadius: '6px', fontSize: '0.75rem', backgroundColor: theme.bg2, color: theme.text, height: '28px', outline: 'none' }}
+                />
+                <button
+                  onClick={handleApplyDateRange} disabled={!startDate || !endDate}
+                  style={{ padding: '4px 8px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 700, cursor: (!startDate || !endDate) ? 'not-allowed' : 'pointer', height: '28px', opacity: (!startDate || !endDate) ? 0.6 : 1 }}
+                >Apply</button>
+                {isCustomRange && (
+                  <button onClick={handleResetFilters} style={{ padding: '4px 6px', backgroundColor: 'transparent', color: '#ef4444', border: 'none', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700 }}>✖</button>
+                )}
+              </div>
+
+              {/* Search Bar */}
+              <div style={{ position: 'relative', flex: isMobile ? '1' : '0 1 130px', minWidth: '100px' }}>
+                <input
+                  type="text"
+                  style={{ padding: '5px 8px 5px 10px', border: `1px solid ${theme.border}`, borderRadius: '8px', fontSize: '0.75rem', width: '100%', backgroundColor: theme.bg2, color: theme.text, height: '34px', outline: 'none' }}
+                  placeholder="🔍 Search tyre, pattern..." value={search} onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+
+              <button
+                onClick={() => isCustomRange ? fetchDashboard({ start: startDate, end: endDate }) : fetchDashboard({ month: selectedMonth })}
+                style={{ padding: '5px 10px', backgroundColor: darkMode ? '#334155' : '#e2e8f0', color: theme.text, border: `1px solid ${theme.border}`, borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', height: '34px', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                <i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`}></i> {!isMobile && 'Refresh'}
+              </button>
+
+              <button
+                onClick={handleExportCSV}
+                style={{ padding: '5px 12px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', height: '34px', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                <i className="fas fa-file-excel"></i> Export
+              </button>
+            </div>
+          </div>
+
+          {/* TOP SUMMARY KPI CARDS */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: '8px',
+            padding: isMobile ? '8px 10px' : '10px 18px', backgroundColor: darkMode ? '#0f172a' : '#f1f5f9', borderBottom: `1px solid ${theme.border}`,
+          }}>
+            <div style={{ backgroundColor: theme.bg2, padding: '8px 12px', borderRadius: '8px', border: `1px solid ${theme.border}`, borderLeft: '4px solid #0d9488' }}>
+              <div style={{ fontSize: '0.68rem', fontWeight: 700, color: theme.text2, textTransform: 'uppercase' }}>🏭 Today Production</div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0d9488', marginTop: '2px' }}>{(stats.today_production || 0).toLocaleString()}</div>
+            </div>
+            <div style={{ backgroundColor: theme.bg2, padding: '8px 12px', borderRadius: '8px', border: `1px solid ${theme.border}`, borderLeft: '4px solid #f59e0b' }}>
+              <div style={{ fontSize: '0.68rem', fontWeight: 700, color: theme.text2, textTransform: 'uppercase' }}>🚛 Today Dispatch</div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#f59e0b', marginTop: '2px' }}>{(stats.today_dispatch || 0).toLocaleString()}</div>
+            </div>
+            <div style={{ backgroundColor: theme.bg2, padding: '8px 12px', borderRadius: '8px', border: `1px solid ${theme.border}`, borderLeft: '4px solid #ec4899' }}>
+              <div style={{ fontSize: '0.68rem', fontWeight: 700, color: theme.text2, textTransform: 'uppercase' }}>🔧 Total RFM</div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ec4899', marginTop: '2px' }}>{(filteredTotals.rfm_ok_tyre || 0).toLocaleString()}</div>
+            </div>
+            <div style={{ backgroundColor: darkMode ? '#1e3a8a33' : '#eff6ff', padding: '8px 12px', borderRadius: '8px', border: '2px solid #3b82f6', gridColumn: isMobile ? 'span 2' : 'auto' }}>
+              <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#2563eb', textTransform: 'uppercase' }}>🌟 Total Closing Stock</div>
+              <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#1d4ed8', marginTop: '2px' }}>{(stats.total_closing || 0).toLocaleString()} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: theme.text2 }}>TYRES</span></div>
+            </div>
+          </div>
+
+          {/* QUICK TOTALS SUMMARY STRIP */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 18px',
+            backgroundColor: darkMode ? '#1e293b' : '#f8fafc', borderBottom: `1px solid ${theme.border}`,
+            fontSize: '0.75rem', fontWeight: 700, overflowX: 'auto', whiteSpace: 'nowrap', gap: '16px',
+          }}>
+            <span>Showing <strong style={{ color: theme.primary }}>{items.length}</strong> Auto Tyres</span>
+            <div style={{ display: 'flex', gap: '16px', color: theme.text2 }}>
+              <span>Month Prod: <strong style={{ color: '#2563eb' }}>+{(stats.month_prod_total || 0).toLocaleString()}</strong></span>
+              <span>Month Sale: <strong style={{ color: '#ef4444' }}>-{(filteredTotals.month_sale_first + filteredTotals.month_sale_second + filteredTotals.month_sale_third || 0).toLocaleString()}</strong></span>
+              <span>RFM: <strong style={{ color: '#ec4899' }}>{(filteredTotals.rfm_ok_tyre || 0).toLocaleString()}</strong></span>
+              <span>Total Closing: <strong style={{ color: '#10b981' }}>{(stats.total_closing || 0).toLocaleString()}</strong></span>
+            </div>
+          </div>
+        </div>
+
+        {/* DATA TABLE CONTAINER */}
+        <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '8px' : '12px 18px' }}>
+          {loading ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '300px', color: theme.text2, gap: '12px' }}>
+              <i className="fas fa-spinner fa-spin fa-2x" style={{ color: theme.primary }}></i>
+              <span>Calculating stock metrics...</span>
+            </div>
+          ) : (
+            <div style={{ backgroundColor: theme.bg2, borderRadius: '8px', border: `1px solid ${theme.border}`, boxShadow: theme.shadow, overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.72rem', textAlign: 'left', minWidth: '1200px' }}>
                 <thead>
-                  <tr>
-                    <th style={{ ...thStyle, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2, backgroundColor: theme.hdr }} rowSpan={2}>TYRE</th>
-                    <th style={{ ...thStyle, textAlign: 'left' }} rowSpan={2}>PATTERN</th>
-                    <th style={{ ...thStyle }} rowSpan={2}>TYPE</th>
-                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#1a2744' : '#eff6ff', borderBottom: `1px solid ${theme.border}` }} colSpan={3}>LAST CLOSING</th>
-                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#0f2922' : '#ecfdf5', borderBottom: `1px solid ${theme.border}` }} colSpan={4}>PRODUCTION</th>
-                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#2d1a1a' : '#fef2f2', borderBottom: `1px solid ${theme.border}` }} colSpan={3}>SALE / DISPATCH</th>
-                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#2d1f3d' : '#faf5ff' }} rowSpan={2}>RFM</th>
-                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#1a2744' : '#f0f9ff', borderBottom: `1px solid ${theme.border}` }} colSpan={3}>CLOSING STOCK</th>
-                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#1e293b' : '#f1f5f9' }} rowSpan={2}>TOTAL</th>
+                  <tr style={{ backgroundColor: darkMode ? '#1e293b' : '#f1f5f9', borderBottom: `1px solid ${theme.border}`, color: theme.text2, fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>
+                    <th style={{ padding: '8px 10px' }} rowSpan="2">#</th>
+                    <th style={{ padding: '8px 10px' }} rowSpan="2">TYRE</th>
+                    <th style={{ padding: '8px 10px' }} rowSpan="2">PATTERN</th>
+                    <th style={{ padding: '8px 10px' }} rowSpan="2">TYPE</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'center', backgroundColor: darkMode ? '#1a2744' : '#eff6ff', borderLeft: `1px solid ${theme.border}` }} colSpan="3">LAST CLOSING</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'center', backgroundColor: darkMode ? '#0f2922' : '#ecfdf5', borderLeft: `1px solid ${theme.border}` }} colSpan="4">PRODUCTION</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'center', backgroundColor: darkMode ? '#2d1a1a' : '#fef2f2', borderLeft: `1px solid ${theme.border}` }} colSpan="3">SALE / DISPATCH</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'center', backgroundColor: darkMode ? '#2d1f3d' : '#faf5ff', borderLeft: `1px solid ${theme.border}` }} rowSpan="2">RFM</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'center', backgroundColor: darkMode ? '#1a2744' : '#f0f9ff', borderLeft: `1px solid ${theme.border}` }} colSpan="3">CLOSING STOCK</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'center', backgroundColor: darkMode ? '#1e3a8a22' : '#dbeafe', borderLeft: `1px solid ${theme.border}`, color: theme.text }} rowSpan="2">TOTAL</th>
                   </tr>
-                  <tr>
-                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#1a2744' : '#eff6ff', fontSize: '0.6rem' }}>1st</th>
-                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#1a2744' : '#eff6ff', fontSize: '0.6rem' }}>2nd</th>
-                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#1a2744' : '#eff6ff', fontSize: '0.6rem' }}>3rd</th>
-                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#0f2922' : '#ecfdf5', fontSize: '0.6rem' }}>Total</th>
-                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#0f2922' : '#ecfdf5', fontSize: '0.6rem' }}>1st</th>
-                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#0f2922' : '#ecfdf5', fontSize: '0.6rem' }}>2nd</th>
-                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#0f2922' : '#ecfdf5', fontSize: '0.6rem' }}>3rd</th>
-                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#2d1a1a' : '#fef2f2', fontSize: '0.6rem' }}>1st</th>
-                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#2d1a1a' : '#fef2f2', fontSize: '0.6rem' }}>2nd</th>
-                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#2d1a1a' : '#fef2f2', fontSize: '0.6rem' }}>3rd</th>
-                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#1a2744' : '#f0f9ff', fontSize: '0.6rem' }}>1st</th>
-                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#1a2744' : '#f0f9ff', fontSize: '0.6rem' }}>2nd</th>
-                    <th style={{ ...thStyle, backgroundColor: darkMode ? '#1a2744' : '#f0f9ff', fontSize: '0.6rem' }}>3rd</th>
+                  <tr style={{ backgroundColor: darkMode ? '#1e293b' : '#f1f5f9', borderBottom: `2px solid ${theme.border}`, color: theme.text2, fontWeight: 800, textTransform: 'uppercase', fontSize: '0.6rem' }}>
+                    <th style={{ padding: '4px 8px', textAlign: 'right', borderLeft: `1px solid ${theme.border}` }}>1ST</th><th style={{ padding: '4px 8px', textAlign: 'right' }}>2ND</th><th style={{ padding: '4px 8px', textAlign: 'right' }}>3RD</th>
+                    <th style={{ padding: '4px 8px', textAlign: 'right', borderLeft: `1px solid ${theme.border}`, color: '#10b981' }}>TOT</th><th style={{ padding: '4px 8px', textAlign: 'right' }}>1ST</th><th style={{ padding: '4px 8px', textAlign: 'right' }}>2ND</th><th style={{ padding: '4px 8px', textAlign: 'right' }}>3RD</th>
+                    <th style={{ padding: '4px 8px', textAlign: 'right', borderLeft: `1px solid ${theme.border}` }}>1ST</th><th style={{ padding: '4px 8px', textAlign: 'right' }}>2ND</th><th style={{ padding: '4px 8px', textAlign: 'right' }}>3RD</th>
+                    <th style={{ padding: '4px 8px', textAlign: 'right', borderLeft: `1px solid ${theme.border}` }}>1ST</th><th style={{ padding: '4px 8px', textAlign: 'right' }}>2ND</th><th style={{ padding: '4px 8px', textAlign: 'right' }}>3RD</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredItems.map((item, idx) => (
-                    <tr key={item.id} style={{ backgroundColor: idx % 2 === 0 ? 'transparent' : (darkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.015)') }}>
-                      <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 700, position: 'sticky', left: 0, backgroundColor: idx % 2 === 0 ? theme.bg2 : (darkMode ? '#1a2333' : '#fafbfc'), zIndex: 1 }}>{item.tyre}</td>
-                      <td style={{ ...tdStyle, textAlign: 'left', fontSize: '0.75rem' }}>{item.pattern}</td>
-                      <td style={tdStyle}><span style={{ padding: '2px 8px', borderRadius: '50px', backgroundColor: item.type === 'TL' ? (darkMode ? 'rgba(37,99,235,0.2)' : '#dbeafe') : (darkMode ? 'rgba(249,115,22,0.2)' : '#ffedd5'), color: item.type === 'TL' ? '#2563eb' : '#ea580c', fontSize: '0.7rem', fontWeight: 700 }}>{item.type}</span></td>
+                  {items.map((item, idx) => (
+                    <tr key={item.id} style={{ borderBottom: `1px solid ${theme.border}`, transition: 'background-color 0.15s ease' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.hoverBg} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                      <td style={{ padding: '6px 10px', color: theme.text2, fontWeight: 600 }}>{idx + 1}</td>
+                      <td style={{ padding: '6px 10px', fontWeight: 800, color: theme.text }}>{item.tyre}</td>
+                      <td style={{ padding: '6px 10px', color: theme.text2, fontWeight: 600 }}>{item.pattern}</td>
+                      <td style={{ padding: '6px 10px' }}><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 700, backgroundColor: item.type === 'TL' ? (darkMode ? '#1e3a8a55' : '#dbeafe') : (darkMode ? '#7c2d1255' : '#ffedd5'), color: item.type === 'TL' ? '#2563eb' : '#ea580c' }}>{item.type}</span></td>
                       {/* Last Closing */}
-                      <td style={{ ...tdStyle, backgroundColor: darkMode ? 'rgba(37,99,235,0.05)' : '#f7faff' }}>{item.prev_closing_first}</td>
-                      <td style={{ ...tdStyle, backgroundColor: darkMode ? 'rgba(37,99,235,0.05)' : '#f7faff' }}>{item.prev_closing_second}</td>
-                      <td style={{ ...tdStyle, backgroundColor: darkMode ? 'rgba(37,99,235,0.05)' : '#f7faff' }}>{item.prev_closing_third}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', borderLeft: `1px solid ${theme.border}` }}>{item.prev_closing_first}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right' }}>{item.prev_closing_second}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right' }}>{item.prev_closing_third}</td>
                       {/* Production */}
-                      <td style={{ ...tdStyle, fontWeight: 700, color: '#10b981', backgroundColor: darkMode ? 'rgba(16,185,129,0.05)' : '#f0fdf4' }}>{item.month_prod_total}</td>
-                      <td style={{ ...tdStyle, backgroundColor: darkMode ? 'rgba(16,185,129,0.05)' : '#f0fdf4' }}>{item.month_prod_first}</td>
-                      <td style={{ ...tdStyle, backgroundColor: darkMode ? 'rgba(16,185,129,0.05)' : '#f0fdf4' }}>{item.month_prod_second}</td>
-                      <td style={{ ...tdStyle, backgroundColor: darkMode ? 'rgba(16,185,129,0.05)' : '#f0fdf4' }}>{item.month_prod_third}</td>
-                      {/* Sales */}
-                      <td style={{ ...tdStyle, color: '#ef4444', fontWeight: 600, backgroundColor: darkMode ? 'rgba(239,68,68,0.05)' : '#fef7f7' }}>{item.month_sale_first}</td>
-                      <td style={{ ...tdStyle, color: '#ef4444', backgroundColor: darkMode ? 'rgba(239,68,68,0.05)' : '#fef7f7' }}>{item.month_sale_second}</td>
-                      <td style={{ ...tdStyle, color: '#ef4444', backgroundColor: darkMode ? 'rgba(239,68,68,0.05)' : '#fef7f7' }}>{item.month_sale_third}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, color: '#10b981', borderLeft: `1px solid ${theme.border}` }}>{item.month_prod_total}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', color: theme.text2 }}>{item.month_prod_first}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', color: theme.text2 }}>{item.month_prod_second}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', color: theme.text2 }}>{item.month_prod_third}</td>
+                      {/* Sale */}
+                      <td style={{ padding: '6px 8px', textAlign: 'right', color: '#ef4444', fontWeight: 600, borderLeft: `1px solid ${theme.border}` }}>{item.month_sale_first}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', color: '#ef4444' }}>{item.month_sale_second}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', color: '#ef4444' }}>{item.month_sale_third}</td>
                       {/* RFM */}
-                      <td style={{ ...tdStyle, color: '#7c3aed', fontWeight: 600, backgroundColor: darkMode ? 'rgba(124,58,237,0.05)' : '#faf5ff' }}>{item.rfm_ok_tyre}</td>
-                      {/* Closing */}
-                      <td style={{ ...tdStyle, fontWeight: 700, backgroundColor: darkMode ? 'rgba(37,99,235,0.05)' : '#f0f9ff' }}>{item.closing_first}</td>
-                      <td style={{ ...tdStyle, backgroundColor: darkMode ? 'rgba(37,99,235,0.05)' : '#f0f9ff' }}>{item.closing_second}</td>
-                      <td style={{ ...tdStyle, backgroundColor: darkMode ? 'rgba(37,99,235,0.05)' : '#f0f9ff' }}>{item.closing_third}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', color: '#8b5cf6', fontWeight: 700, borderLeft: `1px solid ${theme.border}` }}>{item.rfm_ok_tyre}</td>
+                      {/* Closing Stock */}
+                      <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, borderLeft: `1px solid ${theme.border}` }}>{item.closing_first}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600 }}>{item.closing_second}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600 }}>{item.closing_third}</td>
                       {/* Total */}
-                      <td style={{ ...tdStyle, fontWeight: 800, fontSize: '0.9rem', color: '#2563eb' }}>{item.total_closing}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 900, color: '#1d4ed8', backgroundColor: darkMode ? '#1e3a8a15' : '#eff6ff', fontSize: '0.8rem', borderLeft: `1px solid ${theme.border}` }}>{item.total_closing}</td>
                     </tr>
                   ))}
-                  {!filteredItems.length && (
-                    <tr>
-                      <td colSpan="18" style={{ textAlign: 'center', color: theme.text2, padding: '40px', fontSize: '0.9rem' }}>
-                        {loading ? '⏳ Loading...' : search ? '🔍 No matching tyres found' : 'No tyres found. Add tyres first.'}
-                      </td>
-                    </tr>
-                  )}
+                  {!items.length && <tr><td colSpan="19" style={{ textAlign: 'center', padding: '40px', color: theme.text2 }}>No auto tyre items found.</td></tr>}
                 </tbody>
-                {filteredItems.length > 0 && (
+                {items.length > 0 && (
                   <tfoot>
-                    <tr style={{ backgroundColor: darkMode ? '#0f172a' : '#f1f5f9', fontWeight: 800, fontSize: '0.8rem' }}>
-                      <td style={{ ...tdStyle, textAlign: 'left', position: 'sticky', left: 0, backgroundColor: darkMode ? '#0f172a' : '#f1f5f9', zIndex: 1 }} colSpan={3}>TOTALS</td>
-                      <td style={{ ...tdStyle, color: '#2563eb' }}>{filteredTotals.prev_closing_first}</td>
-                      <td style={tdStyle}>{filteredTotals.prev_closing_second}</td>
-                      <td style={tdStyle}>{filteredTotals.prev_closing_third}</td>
-                      <td style={{ ...tdStyle, color: '#10b981' }}>{filteredTotals.month_prod_total}</td>
-                      <td style={tdStyle}>{filteredTotals.month_prod_first}</td>
-                      <td style={tdStyle}>{filteredTotals.month_prod_second}</td>
-                      <td style={tdStyle}>{filteredTotals.month_prod_third}</td>
-                      <td style={{ ...tdStyle, color: '#ef4444' }}>{filteredTotals.month_sale_first}</td>
-                      <td style={tdStyle}>{filteredTotals.month_sale_second}</td>
-                      <td style={tdStyle}>{filteredTotals.month_sale_third}</td>
-                      <td style={{ ...tdStyle, color: '#7c3aed' }}>{filteredTotals.rfm_ok_tyre}</td>
-                      <td style={{ ...tdStyle, fontWeight: 800 }}>{filteredTotals.closing_first}</td>
-                      <td style={tdStyle}>{filteredTotals.closing_second}</td>
-                      <td style={tdStyle}>{filteredTotals.closing_third}</td>
-                      <td style={{ ...tdStyle, fontSize: '0.95rem', color: '#2563eb' }}>{filteredTotals.total_closing}</td>
+                    <tr style={{ backgroundColor: darkMode ? '#0f172a' : '#f8fafc', borderTop: `2px solid ${theme.border}`, fontWeight: 900, fontSize: '0.7rem' }}>
+                      <td colSpan="4" style={{ padding: '10px 10px', color: theme.text }}>TOTALS</td>
+                      <td style={{ padding: '10px 8px', textAlign: 'right', borderLeft: `1px solid ${theme.border}` }}>{filteredTotals.prev_closing_first}</td>
+                      <td style={{ padding: '10px 8px', textAlign: 'right' }}>{filteredTotals.prev_closing_second}</td>
+                      <td style={{ padding: '10px 8px', textAlign: 'right' }}>{filteredTotals.prev_closing_third}</td>
+                      <td style={{ padding: '10px 8px', textAlign: 'right', color: '#10b981', borderLeft: `1px solid ${theme.border}` }}>{filteredTotals.month_prod_total}</td>
+                      <td style={{ padding: '10px 8px', textAlign: 'right' }}>{filteredTotals.month_prod_first}</td>
+                      <td style={{ padding: '10px 8px', textAlign: 'right' }}>{filteredTotals.month_prod_second}</td>
+                      <td style={{ padding: '10px 8px', textAlign: 'right' }}>{filteredTotals.month_prod_third}</td>
+                      <td style={{ padding: '10px 8px', textAlign: 'right', color: '#ef4444', borderLeft: `1px solid ${theme.border}` }}>{filteredTotals.month_sale_first}</td>
+                      <td style={{ padding: '10px 8px', textAlign: 'right', color: '#ef4444' }}>{filteredTotals.month_sale_second}</td>
+                      <td style={{ padding: '10px 8px', textAlign: 'right', color: '#ef4444' }}>{filteredTotals.month_sale_third}</td>
+                      <td style={{ padding: '10px 8px', textAlign: 'right', color: '#8b5cf6', borderLeft: `1px solid ${theme.border}` }}>{filteredTotals.rfm_ok_tyre}</td>
+                      <td style={{ padding: '10px 8px', textAlign: 'right', borderLeft: `1px solid ${theme.border}` }}>{filteredTotals.closing_first}</td>
+                      <td style={{ padding: '10px 8px', textAlign: 'right' }}>{filteredTotals.closing_second}</td>
+                      <td style={{ padding: '10px 8px', textAlign: 'right' }}>{filteredTotals.closing_third}</td>
+                      <td style={{ padding: '10px 8px', textAlign: 'right', color: '#1d4ed8', backgroundColor: darkMode ? '#1e3a8a33' : '#dbeafe', fontSize: '0.8rem', borderLeft: `1px solid ${theme.border}` }}>{filteredTotals.total_closing}</td>
                     </tr>
                   </tfoot>
                 )}
               </table>
-            )}
-          </div>
-        </div>
-
-        <div style={{ textAlign: 'center', padding: '14px', color: theme.text2, fontSize: '0.7rem' }}>
-          Showing {filteredItems.length} of {items.length} items
-          {customRange && startDate && endDate ? ` • Custom Range: ${startDate} to ${endDate}` : selectedMonth ? ` • ${availableMonths.find(m => m.value === selectedMonth)?.label || selectedMonth}` : ''}
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
-
-
-  
