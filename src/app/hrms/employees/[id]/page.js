@@ -150,7 +150,7 @@ export default function EmployeeDetailPage() {
                 Salary ({monthStr})
               </div>
               <div style={{ fontSize: "1.8rem", fontWeight: 900, color: "#4ade80" }}>
-                {curSal ? `Rs ${Number(curSal.net_payable).toLocaleString("en-IN")}` : "Pending"}
+                {curSal ? `Rs ${Number(curSal.net_salary || 0).toLocaleString("en-IN")}` : "Pending"}
               </div>
               <div style={{ fontSize: "0.8rem", color: "#94a3b8", fontWeight: 600, marginTop: "6px" }}>
                 {curSal ? `Generated: ${curSal.generated_on}` : "Not generated yet"}
