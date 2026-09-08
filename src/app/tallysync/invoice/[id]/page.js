@@ -505,7 +505,7 @@ export default function TallyInvoiceDetail() {
                       No inventory line items recorded on this voucher.
                     </td>
                   </tr>
-                )}y
+                )}
               </tbody>
             </table>
           </div>
