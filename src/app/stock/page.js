@@ -437,10 +437,11 @@ export default function AutoTyreDashboard() {
                       <td style={{ padding: '10px 8px', textAlign: 'right', borderLeft: `1px solid ${theme.border}` }}>{filteredTotals.prev_closing_first}</td>
                       <td style={{ padding: '10px 8px', textAlign: 'right' }}>{filteredTotals.prev_closing_second}</td>
                       <td style={{ padding: '10px 8px', textAlign: 'right' }}>{filteredTotals.prev_closing_third}</td>
-                      <td style={{ padding: '10px 8px', textAlign: 'right', color: '#10b981', borderLeft: `1px solid ${theme.border}` }}>{filteredTotals.month_prod_total}</td>
+                     
                       <td style={{ padding: '10px 8px', textAlign: 'right' }}>{filteredTotals.month_prod_first}</td>
                       <td style={{ padding: '10px 8px', textAlign: 'right' }}>{filteredTotals.month_prod_second}</td>
                       <td style={{ padding: '10px 8px', textAlign: 'right' }}>{filteredTotals.month_prod_third}</td>
+                       <td style={{ padding: '10px 8px', textAlign: 'right', color: '#10b981', borderLeft: `1px solid ${theme.border}` }}>{filteredTotals.month_prod_total}</td>
                       <td style={{ padding: '10px 8px', textAlign: 'right', color: '#ef4444', borderLeft: `1px solid ${theme.border}` }}>{filteredTotals.month_sale_first}</td>
                       <td style={{ padding: '10px 8px', textAlign: 'right', color: '#ef4444' }}>{filteredTotals.month_sale_second}</td>
                       <td style={{ padding: '10px 8px', textAlign: 'right', color: '#ef4444' }}>{filteredTotals.month_sale_third}</td>
