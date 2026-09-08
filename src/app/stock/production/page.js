@@ -118,7 +118,7 @@ export default function AutoTyreProduction() {
     const sec = parseInt(form.second_grade || 0);
     const third = parseInt(form.third_grade || 0);
     const lose = parseInt(form.lose_tyre || 0);
-    return (all + rep + prod) - (sec + third + lose);
+    return (all + prod) - (sec + third + lose + rep);
   };
 
   const handleSubmit = async (e) => {
@@ -162,7 +162,7 @@ export default function AutoTyreProduction() {
     const sec = parseInt(row.second_grade || 0);
     const third = parseInt(row.third_grade || 0);
     const lose = parseInt(row.lose_tyre || 0);
-    return (all + rep + prod) - (sec + third + lose);
+    return (all + prod) - (sec + third + lose + rep);
   };
 
   // Filtered Tyres for Sheet View Table
@@ -630,7 +630,7 @@ export default function AutoTyreProduction() {
                       <th style={{ padding: '12px 14px', minWidth: '220px' }}>Auto Tyre Item & Pattern</th>
                       <th style={{ padding: '12px 14px', width: '120px', backgroundColor: '#1e3a8a' }}>All Curing *</th>
                       <th style={{ padding: '12px 14px', width: '90px' }}>Prod (+)</th>
-                      <th style={{ padding: '12px 14px', width: '90px' }}>Repair (+)</th>
+                      <th style={{ padding: '12px 14px', width: '90px' }}>Repair (-)</th>
                       <th style={{ padding: '12px 14px', width: '90px' }}>2nd (-)</th>
                       <th style={{ padding: '12px 14px', width: '90px' }}>3rd (-)</th>
                       <th style={{ padding: '12px 14px', width: '90px' }}>Lose (-)</th>
@@ -716,7 +716,7 @@ export default function AutoTyreProduction() {
                             />
                           </td>
 
-                          {/* Repair (+) */}
+                          {/* Repair (-) */}
                           <td style={{ padding: '6px 8px' }}>
                             <input
                               type="number"
@@ -1194,7 +1194,7 @@ export default function AutoTyreProduction() {
                     <input type="number" name="production_tyre" value={form.production_tyre} onChange={handleChange} style={{ width: '100%', padding: '8px 10px', border: `1px solid ${theme.border}`, borderRadius: '8px', backgroundColor: theme.bg, color: theme.text }} />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: theme.text }}>Repair (+)</label>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: theme.text }}>Repair (-)</label>
                     <input type="number" name="repair" value={form.repair} onChange={handleChange} style={{ width: '100%', padding: '8px 10px', border: `1px solid ${theme.border}`, borderRadius: '8px', backgroundColor: theme.bg, color: theme.text }} />
                   </div>
                   <div>
