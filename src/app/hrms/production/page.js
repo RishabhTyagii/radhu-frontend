@@ -49,19 +49,13 @@ export default function HRMSProduction() {
       apiGet('/hrms/employees/?status=Active'),
       apiGet('/hrms/departments/'),
       apiGet('/hrms/production/'),
-      apiGet('/stock/tyres/'),
+      apiGet('/hrms/production/items/'),
     ]);
     if (empRes) setEmployees(empRes);
     if (deptRes) setDepartments(deptRes);
     if (prodRes) setProductions(prodRes);
     if (tyreRes) {
-      const seen = new Set();
-      const list = [];
-      (Array.isArray(tyreRes) ? tyreRes : tyreRes.results || []).forEach((t) => {
-        const name = (t.tyre + ' ' + t.pattern + ' ' + t.type).trim();
-        if (!seen.has(name)) { seen.add(name); list.push(name); }
-      });
-      setTyreItems(list);
+      setTyreItems(Array.isArray(tyreRes) ? tyreRes : []);
     }
     setLoading(false);
   }
