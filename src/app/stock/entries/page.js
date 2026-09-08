@@ -120,7 +120,7 @@ export default function Entries() {
               <select className="filter-select" name="tyre_id" value={filters.tyre_id} onChange={handleFilterChange}>
                 <option value="">All Tyres</option>
                 {tyreItems.map(t => (
-                  <option key={t.id} value={t.id}>{t.tyre} {t.pattern}</option>
+                  <option key={t.id} value={t.id}>{t.tyre} {t.pattern} {t.type} </option>
                 ))}
               </select>
             </div>
@@ -165,7 +165,7 @@ export default function Entries() {
                 {entries.map((item) => (
                   <tr key={item.id}>
                     <td style={{ whiteSpace: 'nowrap', fontWeight: '500' }}>{item.date}</td>
-                    <td style={{ fontWeight: '600' }}>{item.tyre_item ? `${item.tyre_item.tyre} ${item.tyre_item.pattern}` : '-'}</td>
+                    <td style={{ fontWeight: '600' }}>{item.tyre_item ? `${item.tyre_item.tyre} ${item.tyre_item.pattern} ${item.tyre_item.type}` : '-'}</td>
                     <td>{getTypeBadge(item.entry_type)}</td>
                     <td><span style={{color:'#64748b', fontSize:'0.8rem', textTransform:'capitalize'}}>{item.bucket_display || item.bucket || '-'}</span></td>
                     <td style={{ fontWeight: 'bold', color: '#0f172a' }}>{item.quantity}</td>

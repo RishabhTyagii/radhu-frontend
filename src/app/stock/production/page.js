@@ -1250,6 +1250,7 @@ export default function AutoTyreProduction() {
                     <tr style={{ borderBottom: `2px solid ${theme.border}`, textAlign: 'left', color: theme.text2 }}>
                       <th style={{ padding: '8px 12px' }}>Date</th>
                       <th style={{ padding: '8px 12px' }}>Tyre</th>
+                      <th style={{ padding: '8px 12px' }}>Type</th>
                       <th style={{ padding: '8px 12px' }}>Curing</th>
                       <th style={{ padding: '8px 12px' }}>Packing</th>
                     </tr>
@@ -1258,7 +1259,7 @@ export default function AutoTyreProduction() {
                     {recent.map((item) => (
                       <tr key={item.id} style={{ borderBottom: `1px solid ${theme.border}` }}>
                         <td style={{ padding: '8px 12px', color: theme.text }}>{item.date}</td>
-                        <td style={{ padding: '8px 12px', fontWeight: 600, color: theme.text }}>{item.tyre_item ? `${item.tyre_item.tyre} ${item.tyre_item.pattern}` : '-'}</td>
+                        <td style={{ padding: '8px 12px', fontWeight: 600, color: theme.text }}>{item.tyre_item ? `${item.tyre_item.tyre} ${item.tyre_item.pattern} ${item.tyre_item.type}` : '-'}</td>
                         <td style={{ padding: '8px 12px', color: theme.text }}>{item.all_curing}</td>
                         <td style={{ padding: '8px 12px', fontWeight: 800, color: '#10b981' }}>+{item.quantity}</td>
                       </tr>
