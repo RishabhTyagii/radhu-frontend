@@ -94,26 +94,32 @@ export default function AutoTyreDashboard() {
   const filteredTotals = useMemo(() => {
     if (!debouncedSearch) return data?.totals || {};
     return items.reduce((acc, item) => {
-      acc.prev_closing_first = (acc.prev_closing_first || 0) + (item.prev_closing_first || 0);
-      acc.prev_closing_second = (acc.prev_closing_second || 0) + (item.prev_closing_second || 0);
-      acc.prev_closing_third = (acc.prev_closing_third || 0) + (item.prev_closing_third || 0);
-      acc.month_prod_total = (acc.month_prod_total || 0) + (item.month_prod_total || 0);
-      acc.month_prod_first = (acc.month_prod_first || 0) + (item.month_prod_first || 0);
-      acc.month_prod_second = (acc.month_prod_second || 0) + (item.month_prod_second || 0);
-      acc.month_prod_third = (acc.month_prod_third || 0) + (item.month_prod_third || 0);
-      acc.month_sale_first = (acc.month_sale_first || 0) + (item.month_sale_first || 0);
-      acc.month_sale_second = (acc.month_sale_second || 0) + (item.month_sale_second || 0);
-      acc.month_sale_third = (acc.month_sale_third || 0) + (item.month_sale_third || 0);
-      acc.rfm_ok_tyre = (acc.rfm_ok_tyre || 0) + (item.rfm_ok_tyre || 0);
-      acc.closing_first = (acc.closing_first || 0) + (item.closing_first || 0);
-      acc.closing_second = (acc.closing_second || 0) + (item.closing_second || 0);
-      acc.closing_third = (acc.closing_third || 0) + (item.closing_third || 0);
-      acc.total_closing = (acc.total_closing || 0) + (item.total_closing || 0);
+      if (item.is_export_row) {
+        acc.export_sale = (acc.export_sale || 0) + (item.month_sale_first || 0);
+        acc.export_closing = (acc.export_closing || 0) + (item.closing_first || 0);
+      } else {
+        acc.prev_closing_first = (acc.prev_closing_first || 0) + (item.prev_closing_first || 0);
+        acc.prev_closing_second = (acc.prev_closing_second || 0) + (item.prev_closing_second || 0);
+        acc.prev_closing_third = (acc.prev_closing_third || 0) + (item.prev_closing_third || 0);
+        acc.month_prod_total = (acc.month_prod_total || 0) + (item.month_prod_total || 0);
+        acc.month_prod_first = (acc.month_prod_first || 0) + (item.month_prod_first || 0);
+        acc.month_prod_second = (acc.month_prod_second || 0) + (item.month_prod_second || 0);
+        acc.month_prod_third = (acc.month_prod_third || 0) + (item.month_prod_third || 0);
+        acc.month_sale_first = (acc.month_sale_first || 0) + (item.month_sale_first || 0);
+        acc.month_sale_second = (acc.month_sale_second || 0) + (item.month_sale_second || 0);
+        acc.month_sale_third = (acc.month_sale_third || 0) + (item.month_sale_third || 0);
+        acc.rfm_ok_tyre = (acc.rfm_ok_tyre || 0) + (item.rfm_ok_tyre || 0);
+        acc.closing_first = (acc.closing_first || 0) + (item.closing_first || 0);
+        acc.closing_second = (acc.closing_second || 0) + (item.closing_second || 0);
+        acc.closing_third = (acc.closing_third || 0) + (item.closing_third || 0);
+        acc.total_closing = (acc.total_closing || 0) + (item.total_closing || 0);
+      }
       return acc;
     }, {
       prev_closing_first: 0, prev_closing_second: 0, prev_closing_third: 0,
       month_prod_total: 0, month_prod_first: 0, month_prod_second: 0, month_prod_third: 0,
       month_sale_first: 0, month_sale_second: 0, month_sale_third: 0,
+      export_sale: 0, export_closing: 0,
       rfm_ok_tyre: 0,
       closing_first: 0, closing_second: 0, closing_third: 0, total_closing: 0,
     });
@@ -351,6 +357,7 @@ export default function AutoTyreDashboard() {
               <span>Month Prod: <strong style={{ color: '#2563eb' }}>+{(stats.month_prod_total || 0).toLocaleString()}</strong></span>
               <span>Month Sale: <strong style={{ color: '#ef4444' }}>-{(filteredTotals.month_sale_first + filteredTotals.month_sale_second + filteredTotals.month_sale_third || 0).toLocaleString()}</strong></span>
               <span>RFM: <strong style={{ color: '#ec4899' }}>{(filteredTotals.rfm_ok_tyre || 0).toLocaleString()}</strong></span>
+              <span>📦 Export On Hold: <strong style={{ color: '#059669' }}>{(filteredTotals.export_closing || 0).toLocaleString()}</strong></span>
               <span>Total Closing: <strong style={{ color: '#10b981' }}>{(stats.total_closing || 0).toLocaleString()}</strong></span>
             </div>
           </div>
@@ -394,40 +401,41 @@ export default function AutoTyreDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((item, idx) => (
-                    <tr key={item.id} style={{ borderBottom: `1px solid ${theme.border}`, transition: 'background-color 0.15s ease' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.hoverBg} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                      <td style={{ padding: '6px 10px', color: theme.text2, fontWeight: 600 }}>{idx + 1}</td>
-                      <td style={{ padding: '6px 10px', fontWeight: 800, color: theme.text }}>{item.tyre}</td>
-                      <td style={{ padding: '6px 10px', color: theme.text2, fontWeight: 600 }}>{item.pattern}</td>
-                      <td style={{ padding: '6px 10px' }}><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 700, backgroundColor: item.type === 'TL' ? (darkMode ? '#1e3a8a55' : '#dbeafe') : (darkMode ? '#7c2d1255' : '#ffedd5'), color: item.type === 'TL' ? '#2563eb' : '#ea580c' }}>{item.type}</span></td>
+                  {items.map((item, idx) => {
+                    const isExp = item.is_export_row;
+                    const rowBg = isExp ? (darkMode ? '#1a2e1a' : '#f0fdf4') : 'transparent';
+                    return (
+                    <tr key={item.id} style={{ borderBottom: `1px solid ${theme.border}`, transition: 'background-color 0.15s ease', backgroundColor: rowBg }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isExp ? (darkMode ? '#1e3d1e' : '#dcfce7') : theme.hoverBg} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = rowBg}>
+                      <td style={{ padding: '6px 10px', color: theme.text2, fontWeight: 600 }}>{isExp ? '↳' : idx + 1}</td>
+                      <td style={{ padding: '6px 10px', fontWeight: 800, color: isExp ? '#059669' : theme.text }}>{item.tyre}</td>
+                      <td style={{ padding: '6px 10px', color: isExp ? '#059669' : theme.text2, fontWeight: 600 }}>{item.pattern}</td>
+                      <td style={{ padding: '6px 10px' }}><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 700, backgroundColor: isExp ? (darkMode ? '#14532d55' : '#bbf7d0') : (item.type === 'TL' ? (darkMode ? '#1e3a8a55' : '#dbeafe') : (darkMode ? '#7c2d1255' : '#ffedd5')), color: isExp ? '#059669' : (item.type === 'TL' ? '#2563eb' : '#ea580c') }}>{item.type}</span></td>
                       {/* Last Closing */}
-                      <td style={{ padding: '6px 8px', textAlign: 'right', borderLeft: `1px solid ${theme.border}` }}>{item.prev_closing_first}</td>
-                      <td style={{ padding: '6px 8px', textAlign: 'right' }}>{item.prev_closing_second}</td>
-                      <td style={{ padding: '6px 8px', textAlign: 'right' }}>{item.prev_closing_third}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', borderLeft: `1px solid ${theme.border}` }}>{isExp ? '-' : item.prev_closing_first}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right' }}>{isExp ? '-' : item.prev_closing_second}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right' }}>{isExp ? '-' : item.prev_closing_third}</td>
 
-                      <td style={{ padding: '6px 8px', textAlign: 'right', color: theme.text2 }}>{item.month_prod_first}</td>
-                      <td style={{ padding: '6px 8px', textAlign: 'right', color: theme.text2 }}>{item.month_prod_second}</td>
-                      <td style={{ padding: '6px 8px', textAlign: 'right', color: theme.text2 }}>{item.month_prod_third}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', color: theme.text2 }}>{isExp ? '-' : item.month_prod_first}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', color: theme.text2 }}>{isExp ? '-' : item.month_prod_second}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', color: theme.text2 }}>{isExp ? '-' : item.month_prod_third}</td>
 
-
-
-                      {/* Production */}
-                      <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, color: '#10b981', borderLeft: `1px solid ${theme.border}` }}>{item.month_prod_total}</td>
+                      {/* Production Total */}
+                      <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, color: '#10b981', borderLeft: `1px solid ${theme.border}` }}>{isExp ? '-' : item.month_prod_total}</td>
 
                       {/* Sale */}
-                      <td style={{ padding: '6px 8px', textAlign: 'right', color: '#ef4444', fontWeight: 600, borderLeft: `1px solid ${theme.border}` }}>{item.month_sale_first}</td>
-                      <td style={{ padding: '6px 8px', textAlign: 'right', color: '#ef4444' }}>{item.month_sale_second}</td>
-                      <td style={{ padding: '6px 8px', textAlign: 'right', color: '#ef4444' }}>{item.month_sale_third}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', color: '#ef4444', fontWeight: 600, borderLeft: `1px solid ${theme.border}` }}>{isExp ? item.month_sale_first : item.month_sale_first}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', color: '#ef4444' }}>{isExp ? '-' : item.month_sale_second}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', color: '#ef4444' }}>{isExp ? '-' : item.month_sale_third}</td>
                       {/* RFM */}
-                      <td style={{ padding: '6px 8px', textAlign: 'right', color: '#8b5cf6', fontWeight: 700, borderLeft: `1px solid ${theme.border}` }}>{item.rfm_ok_tyre}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', color: '#8b5cf6', fontWeight: 700, borderLeft: `1px solid ${theme.border}` }}>{isExp ? '-' : item.rfm_ok_tyre}</td>
                       {/* Closing Stock */}
-                      <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, borderLeft: `1px solid ${theme.border}` }}>{item.closing_first}</td>
-                      <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600 }}>{item.closing_second}</td>
-                      <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600 }}>{item.closing_third}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, color: isExp ? '#059669' : 'inherit', borderLeft: `1px solid ${theme.border}` }}>{item.closing_first}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600 }}>{isExp ? '-' : item.closing_second}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600 }}>{isExp ? '-' : item.closing_third}</td>
                       {/* Total */}
-                      <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 900, color: '#1d4ed8', backgroundColor: darkMode ? '#1e3a8a15' : '#eff6ff', fontSize: '0.8rem', borderLeft: `1px solid ${theme.border}` }}>{item.total_closing}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 900, color: isExp ? '#059669' : '#1d4ed8', backgroundColor: isExp ? (darkMode ? '#14532d20' : '#dcfce7') : (darkMode ? '#1e3a8a15' : '#eff6ff'), fontSize: '0.8rem', borderLeft: `1px solid ${theme.border}` }}>{item.total_closing}</td>
                     </tr>
-                  ))}
+                  )})}
                   {!items.length && <tr><td colSpan="19" style={{ textAlign: 'center', padding: '40px', color: theme.text2 }}>No auto tyre items found.</td></tr>}
                 </tbody>
                 {items.length > 0 && (
@@ -451,6 +459,20 @@ export default function AutoTyreDashboard() {
                       <td style={{ padding: '10px 8px', textAlign: 'right' }}>{filteredTotals.closing_third}</td>
                       <td style={{ padding: '10px 8px', textAlign: 'right', color: '#1d4ed8', backgroundColor: darkMode ? '#1e3a8a33' : '#dbeafe', fontSize: '0.8rem', borderLeft: `1px solid ${theme.border}` }}>{filteredTotals.total_closing}</td>
                     </tr>
+                    {(filteredTotals.export_closing > 0 || filteredTotals.export_sale > 0) && (
+                    <tr style={{ backgroundColor: darkMode ? '#0d2b0d' : '#f0fdf4', borderTop: `1px solid #16a34a55`, fontWeight: 900, fontSize: '0.7rem' }}>
+                      <td colSpan="4" style={{ padding: '10px 10px', color: '#059669' }}>📦 EXPORT ON HOLD</td>
+                      <td colSpan="3" style={{ padding: '10px 8px', textAlign: 'center', borderLeft: `1px solid ${theme.border}`, color: theme.text2 }}>-</td>
+                      <td colSpan="3" style={{ padding: '10px 8px', textAlign: 'center', color: theme.text2 }}>-</td>
+                      <td style={{ padding: '10px 8px', textAlign: 'right', color: '#10b981', borderLeft: `1px solid ${theme.border}` }}>-</td>
+                      <td style={{ padding: '10px 8px', textAlign: 'right', color: '#ef4444', borderLeft: `1px solid ${theme.border}` }}>{filteredTotals.export_sale || 0}</td>
+                      <td colSpan="2" style={{ padding: '10px 8px', textAlign: 'center', color: theme.text2 }}>-</td>
+                      <td style={{ padding: '10px 8px', textAlign: 'right', color: '#8b5cf6', borderLeft: `1px solid ${theme.border}` }}>-</td>
+                      <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 900, color: '#059669', borderLeft: `1px solid ${theme.border}` }}>{filteredTotals.export_closing || 0}</td>
+                      <td colSpan="2" style={{ padding: '10px 8px', textAlign: 'center', color: theme.text2 }}>-</td>
+                      <td style={{ padding: '10px 8px', textAlign: 'right', color: '#059669', backgroundColor: darkMode ? '#14532d33' : '#bbf7d0', fontSize: '0.8rem', borderLeft: `1px solid ${theme.border}` }}>{filteredTotals.export_closing || 0}</td>
+                    </tr>
+                    )}
                   </tfoot>
                 )}
               </table>
