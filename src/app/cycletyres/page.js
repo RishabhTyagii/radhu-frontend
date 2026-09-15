@@ -719,7 +719,9 @@ export default function CycleTyresDashboard() {
                       <tr style={{
                         borderBottom: `2px solid ${theme.border}`,
                       }}>
-                        <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 800 }}>ITEM / SIZE / BRAND</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 800 }}>SIZE</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 800 }}>PLY / TYPE</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 800 }}>PATTERN</th>
                         <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 800, color: '#2563eb' }}>LAST CL (1ST)</th>
                         <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 800, color: '#d97706' }}>LAST CL (2ND)</th>
                         <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 800, color: '#10b981' }}>PROD (TOTAL)</th>
@@ -750,13 +752,17 @@ export default function CycleTyresDashboard() {
                               e.currentTarget.style.backgroundColor = theme.bg2;
                             }}
                           >
+                            <td style={{ padding: '8px 12px', fontWeight: 900, color: theme.text, fontSize: '0.85rem' }}>
+                              {item.size || '-'}
+                            </td>
                             <td style={{ padding: '8px 12px' }}>
-                              <div style={{ fontWeight: 800, color: theme.text }}>{item.size || '-'}</div>
-                              <div style={{ display: 'flex', gap: '4px', marginTop: '2px', fontSize: '0.65rem' }}>
-                                {item.box_type && <span style={{ color: '#059669', fontWeight: 700 }}>{item.box_type}</span>}
-                                {item.material && <span style={{ color: theme.text2 }}>• {item.material}</span>}
-                                {item.brand && <span style={{ color: '#7c3aed', fontWeight: 600 }}>• {item.brand}</span>}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                {item.material && <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#059669' }}>{item.material}</span>}
+                                {item.box_type && item.box_type !== item.material && <span style={{ fontSize: '0.65rem', color: theme.text2, fontWeight: 600 }}>{item.box_type}</span>}
                               </div>
+                            </td>
+                            <td style={{ padding: '8px 12px', fontWeight: 800, color: '#7c3aed', fontSize: '0.8rem' }}>
+                              {item.brand || '-'}
                             </td>
                             <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 700, color: '#2563eb' }}>
                               {item.prev_closing_first ?? 0}
@@ -812,7 +818,7 @@ export default function CycleTyresDashboard() {
                       })}
                       {!items.length && (
                         <tr>
-                          <td colSpan="11" style={{
+                          <td colSpan="13" style={{
                             textAlign: 'center',
                             padding: '40px',
                             color: theme.text2,
@@ -836,7 +842,7 @@ export default function CycleTyresDashboard() {
                           borderBottom: `2px solid #3b82f6`,
                           fontWeight: 900,
                         }}>
-                          <td style={{ padding: '10px 12px', color: '#1e40af' }}>
+                          <td colSpan="3" style={{ padding: '10px 12px', color: '#1e40af' }}>
                             📊 TOTALS
                           </td>
                           <td style={{ padding: '10px 8px', textAlign: 'right', color: '#2563eb' }}>
