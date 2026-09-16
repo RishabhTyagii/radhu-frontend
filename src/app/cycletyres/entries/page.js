@@ -132,7 +132,7 @@ export default function CycleTyresEntries() {
                   {entries.map((item) => (
                     <tr key={item.id}>
                       <td style={{ whiteSpace: 'nowrap' }}>{item.date}</td>
-                      <td>{item.tyre_item_detail ? `${item.tyre_item_detail.size} ${item.tyre_item_detail.box_type} ${item.tyre_item_detail.material}` : '-'}</td>
+                      <td>{item.tyre_item_detail ? `${item.tyre_item_detail.size} ${item.tyre_item_detail.box_type} ${item.tyre_item_detail.material} ${item.tyre_item_detail.brand} ` : '-'}</td>
                       <td>{getTypeBadge(item.entry_type)}</td>
                       <td>{item.bucket_display || item.bucket || '-'}</td>
                       <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{item.quantity}</td>
