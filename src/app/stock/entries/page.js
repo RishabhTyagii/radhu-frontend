@@ -147,7 +147,7 @@ export default function Entries() {
               >
                 {selectedTyreObject ? (
                   <div style={{ color: '#1e293b', fontSize: '0.875rem' }}>
-                    {selectedTyreObject.tyre} <span style={{ color: '#2563eb' }}>{selectedTyreObject.pattern}</span>
+                    {selectedTyreObject.tyre} <span style={{ color: '#2563eb' }}>{selectedTyreObject.pattern}</span> <span style={{ color: '#ef4444', fontWeight: 'bold' }}>({selectedTyreObject.type})</span>
                   </div>
                 ) : (
                   <span style={{ color: '#94a3b8' }}>All Tyres</span>
@@ -224,7 +224,7 @@ export default function Entries() {
                         }}
                       >
                         <div style={{ fontSize: '0.85rem', color: '#1e293b' }}>
-                          {t.tyre} <span style={{ color: '#2563eb' }}>{t.pattern}</span>
+                          {t.tyre} <span style={{ color: '#2563eb' }}>{t.pattern}</span> <span style={{ color: '#ef4444', fontWeight: 'bold' }}>({t.type})</span>
                         </div>
                       </div>
                     ))}
