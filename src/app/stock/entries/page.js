@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Navbar from '@/components/Navbar';
 import { apiGet } from '@/lib/api';
 
@@ -24,6 +24,23 @@ export default function Entries() {
   useEffect(() => {
     fetchEntries();
   }, [filters]);
+
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [tyreSearchQuery, setTyreSearchQuery] = useState('');
+
+  const filteredTyresForDropdown = useMemo(() => {
+    if (!tyreSearchQuery.trim()) return tyreItems;
+    const q = tyreSearchQuery.toLowerCase();
+    return tyreItems.filter((t) => {
+      const name = `${t.tyre || ''} ${t.pattern || ''} ${t.type || ''}`.toLowerCase();
+      return name.includes(q);
+    });
+  }, [tyreItems, tyreSearchQuery]);
+
+  const selectedTyreObject = useMemo(() => {
+    if (!filters.tyre_id) return null;
+    return tyreItems.find((t) => String(t.id) === String(filters.tyre_id));
+  }, [filters.tyre_id, tyreItems]);
 
   async function fetchTyres() {
     const data = await apiGet('/stock/tyres/');
@@ -115,14 +132,110 @@ export default function Entries() {
               <span className="filter-label">Search (Party / Bill No / Tyre)</span>
               <input type="text" className="filter-input" name="search" placeholder="Type to search..." value={filters.search} onChange={handleFilterChange} />
             </div>
-            <div className="filter-group">
+            <div className="filter-group" style={{ position: 'relative' }}>
               <span className="filter-label">Tyre Item</span>
-              <select className="filter-select" name="tyre_id" value={filters.tyre_id} onChange={handleFilterChange}>
-                <option value="">All Tyres</option>
-                {tyreItems.map(t => (
-                  <option key={t.id} value={t.id}>{t.tyre} {t.pattern} {t.type} </option>
-                ))}
-              </select>
+              <div
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="filter-select"
+                style={{
+                  cursor: 'pointer',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  minHeight: '35px'
+                }}
+              >
+                {selectedTyreObject ? (
+                  <div style={{ color: '#1e293b', fontSize: '0.875rem' }}>
+                    {selectedTyreObject.tyre} <span style={{ color: '#2563eb' }}>{selectedTyreObject.pattern}</span>
+                  </div>
+                ) : (
+                  <span style={{ color: '#94a3b8' }}>All Tyres</span>
+                )}
+                <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>{isDropdownOpen ? '▲' : '▼'}</span>
+              </div>
+
+              {isDropdownOpen && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  width: '280px',
+                  zIndex: 50,
+                  marginTop: '4px',
+                  backgroundColor: '#fff',
+                  border: `1px solid #cbd5e1`,
+                  borderRadius: '8px',
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+                  overflow: 'hidden',
+                }}>
+                  <div style={{ padding: '8px', borderBottom: `1px solid #e2e8f0`, backgroundColor: '#f8fafc' }}>
+                    <input
+                      type="text"
+                      placeholder="Type to search tyre..."
+                      value={tyreSearchQuery}
+                      onChange={(e) => setTyreSearchQuery(e.target.value)}
+                      autoFocus
+                      style={{
+                        width: '100%',
+                        padding: '6px 10px',
+                        borderRadius: '6px',
+                        border: `1px solid #cbd5e1`,
+                        fontSize: '0.85rem',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                  <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                    <div
+                      onClick={() => {
+                        setFilters({ ...filters, tyre_id: '' });
+                        setIsDropdownOpen(false);
+                        setTyreSearchQuery('');
+                      }}
+                      style={{
+                        padding: '8px 12px',
+                        borderBottom: `1px solid #f1f5f9`,
+                        cursor: 'pointer',
+                        backgroundColor: filters.tyre_id === '' ? '#eff6ff' : 'transparent',
+                        fontSize: '0.85rem',
+                        color: '#64748b'
+                      }}
+                    >
+                      All Tyres
+                    </div>
+                    {filteredTyresForDropdown.map((t) => (
+                      <div
+                        key={t.id}
+                        onClick={() => {
+                          setFilters({ ...filters, tyre_id: t.id });
+                          setIsDropdownOpen(false);
+                          setTyreSearchQuery('');
+                        }}
+                        style={{
+                          padding: '8px 12px',
+                          borderBottom: `1px solid #f1f5f9`,
+                          cursor: 'pointer',
+                          backgroundColor: String(filters.tyre_id) === String(t.id) ? '#eff6ff' : 'transparent',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <div style={{ fontSize: '0.85rem', color: '#1e293b' }}>
+                          {t.tyre} <span style={{ color: '#2563eb' }}>{t.pattern}</span>
+                        </div>
+                      </div>
+                    ))}
+                    {!filteredTyresForDropdown.length && (
+                      <div style={{ padding: '12px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>
+                        No tyres found
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="filter-group">
               <span className="filter-label">Entry Type</span>
