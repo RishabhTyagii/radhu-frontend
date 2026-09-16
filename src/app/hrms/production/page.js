@@ -258,7 +258,7 @@ export default function HRMSProduction() {
                   </div>
                   <div>
                     <label style={lbl}>Rate per Pc (Rs) *</label>
-                    <input type="number" step="0.01" min="0" style={{ ...inp, fontWeight: 800, color: '#2563eb' }} placeholder="5.50"
+                    <input type="number" step="any" min="0" style={{ ...inp, fontWeight: 800, color: '#2563eb' }} placeholder="5.50"
                       value={form.rate} onChange={(e) => setForm((p) => ({ ...p, rate: e.target.value }))} required />
                   </div>
                 </div>
