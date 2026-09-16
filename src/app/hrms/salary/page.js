@@ -4,6 +4,188 @@ import { useState, useEffect, useMemo } from 'react';
 import Navbar from '@/components/Navbar';
 import { apiGet, apiPost } from '@/lib/api';
 
+const SlipRenderer = ({ selectedSlip, printWages, onClose, onPrint, isBulk = false }) => {
+  if (!selectedSlip) return null;
+
+  const daysArray = Array.from({ length: selectedSlip.attendance_summary.days_in_month }, (_, i) => i + 1);
+
+  // Group production
+  const prodGroups = {};
+  (selectedSlip.production_detail || []).forEach(p => {
+    if (!prodGroups[p.product_name]) prodGroups[p.product_name] = {};
+    prodGroups[p.product_name][parseInt(p.day, 10)] = p;
+  });
+
+  // Map attendance
+  const attMap = {};
+  (selectedSlip.attendance_detail || []).forEach(a => {
+    attMap[parseInt(a.day, 10)] = a;
+  });
+
+  return (
+    <div className={`card ${isBulk ? '' : 'print-area'}`} style={{ 
+      marginBottom: isBulk ? '0' : '30px', 
+      padding: isBulk ? '0' : '32px', 
+      background: 'white', 
+      border: isBulk ? 'none' : '1px solid #e2e8f0', 
+      boxShadow: isBulk ? 'none' : '0 10px 25px rgba(0,0,0,0.1)',
+      pageBreakAfter: isBulk ? 'always' : 'auto',
+      minHeight: isBulk ? '270mm' : 'auto' // ensure full A4 page space for bulk
+    }}>
+      
+      {!isBulk && (
+        <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <button onClick={onClose} className="btn" style={{ background: '#f1f5f9' }}>← Back</button>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600 }}>
+              <input type="checkbox" checked={printWages.value} onChange={(e) => printWages.setter(e.target.checked)} style={{ width: '18px', height: '18px' }} />
+              Include Wages Record
+            </label>
+          </div>
+          <button onClick={onPrint} className="btn btn-primary" style={{ background: '#dc2626' }}>
+            <i className="fas fa-print mr-2"></i> Print Formal Payslip
+          </button>
+        </div>
+      )}
+
+      <div className="print-header">
+        <h2>RADHU INDUSTRIES</h2>
+        <p>SALARY SLIP FOR THE MONTH OF <strong>{selectedSlip.salary.month}/{selectedSlip.salary.year}</strong></p>
+      </div>
+
+      <div className="emp-details">
+        <div>
+          <p><strong>Employee Code:</strong> {selectedSlip.employee.employee_code}</p>
+          <p><strong>Employee Name:</strong> {selectedSlip.employee.name}</p>
+          <p><strong>Designation:</strong> {selectedSlip.employee.designation}</p>
+          <p><strong>Department:</strong> {selectedSlip.employee.department_name || '-'}</p>
+        </div>
+        <div>
+          <p><strong>Total Month Days:</strong> {selectedSlip.attendance_summary.days_in_month}</p>
+          <p><strong>Worked Days:</strong> {selectedSlip.attendance_summary.total_worked_days}</p>
+          <p><strong>Absent Days:</strong> {selectedSlip.attendance_summary.absent_days}</p>
+          <p><strong>Total OT Hours:</strong> {selectedSlip.attendance_summary.total_overtime_hours}</p>
+        </div>
+      </div>
+
+      <table className="salary-table">
+        <thead>
+          <tr>
+            <th>EARNINGS</th>
+            <th style={{ textAlign: 'right' }}>AMOUNT (Rs)</th>
+            <th>DEDUCTIONS</th>
+            <th style={{ textAlign: 'right' }}>AMOUNT (Rs)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Earned Basic Salary</td>
+            <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.basic_salary).toFixed(2)}</td>
+            <td>PF Contribution</td>
+            <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.pf_amount).toFixed(2)}</td>
+          </tr>
+          <tr>
+            <td>Overtime Earnings</td>
+            <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.overtime_amount).toFixed(2)}</td>
+            <td>ESI Contribution</td>
+            <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.esi_amount).toFixed(2)}</td>
+          </tr>
+          <tr>
+            <td>Piece-Rate Production</td>
+            <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.production_amount).toFixed(2)}</td>
+            <td>Salary Advance</td>
+            <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.advance).toFixed(2)}</td>
+          </tr>
+          <tr>
+            <td>Bonus</td>
+            <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.bonus).toFixed(2)}</td>
+            <td>Other Deductions</td>
+            <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.deduction).toFixed(2)}</td>
+          </tr>
+          <tr style={{ fontWeight: 'bold', backgroundColor: '#f9fafb' }}>
+            <td>TOTAL EARNINGS</td>
+            <td style={{ textAlign: 'right' }}>
+              {(Number(selectedSlip.salary.basic_salary) + Number(selectedSlip.salary.overtime_amount) + Number(selectedSlip.salary.production_amount) + Number(selectedSlip.salary.bonus)).toFixed(2)}
+            </td>
+            <td>TOTAL DEDUCTIONS</td>
+            <td style={{ textAlign: 'right' }}>
+              {(Number(selectedSlip.salary.pf_amount) + Number(selectedSlip.salary.esi_amount) + Number(selectedSlip.salary.advance) + Number(selectedSlip.salary.deduction)).toFixed(2)}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div className="net-pay">
+        NET PAYABLE SALARY: Rs {Number(selectedSlip.salary.net_salary).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+      </div>
+      
+      <div className="signatures">
+        <div>Employer Signature</div>
+        <div>Employee Signature</div>
+      </div>
+      
+      {/* Wages Record Section - HORIZONTAL LAYOUT */}
+      {(isBulk ? true : printWages.value) && (selectedSlip.attendance_detail?.length > 0 || selectedSlip.production_detail?.length > 0) && (
+        <div className="wages-section" style={{ marginTop: '30px' }}>
+          <hr style={{ border: 'none', borderTop: '2px dashed #000', margin: '15px 0' }} />
+          <h3 style={{ textAlign: 'center', marginBottom: '10px', fontSize: '13px' }}>WAGES RECORD (ATTENDANCE & PRODUCTION)</h3>
+          
+          <table className="wages-horizontal-table">
+            <thead>
+              <tr>
+                <th style={{ width: '130px', textAlign: 'left', paddingLeft: '5px' }}>Date ➔</th>
+                {daysArray.map(d => <th key={d}>{d}</th>)}
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {/* Attendance Row */}
+              <tr>
+                <td style={{ fontWeight: 'bold', textAlign: 'left', paddingLeft: '5px' }}>Attendance</td>
+                {daysArray.map(d => {
+                  const a = attMap[d];
+                  let statusStr = '';
+                  if (a) {
+                    if (a.status === 'Present') statusStr = 'P';
+                    else if (a.status === 'Absent') statusStr = 'A';
+                    else if (a.status === 'Half Day') statusStr = 'H';
+                  }
+                  return <td key={d} style={{ color: statusStr === 'A' ? '#ef4444' : (statusStr === 'P' ? '#16a34a' : '#000') }}>{statusStr}</td>;
+                })}
+                <td style={{ fontWeight: 'bold' }}>{selectedSlip.attendance_summary.total_worked_days}</td>
+              </tr>
+              
+              {/* Overtime Row */}
+              <tr>
+                <td style={{ fontWeight: 'bold', textAlign: 'left', paddingLeft: '5px' }}>OT Hours</td>
+                {daysArray.map(d => {
+                  const a = attMap[d];
+                  return <td key={d}>{a && a.overtime_hours > 0 ? a.overtime_hours : ''}</td>;
+                })}
+                <td style={{ fontWeight: 'bold' }}>{selectedSlip.attendance_summary.total_overtime_hours}</td>
+              </tr>
+
+              {/* Production Rows */}
+              {Object.keys(prodGroups).map(prodName => (
+                <tr key={prodName}>
+                  <td style={{ fontSize: '9px', textAlign: 'left', paddingLeft: '5px' }}>{prodName}</td>
+                  {daysArray.map(d => {
+                    const p = prodGroups[prodName][d];
+                    return <td key={d}>{p ? p.quantity : ''}</td>;
+                  })}
+                  <td style={{ fontWeight: 'bold' }}>
+                    {Object.values(prodGroups[prodName]).reduce((sum, p) => sum + p.quantity, 0)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function HRMSSalary() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -18,6 +200,10 @@ export default function HRMSSalary() {
   
   // Print options
   const [printWages, setPrintWages] = useState(true);
+  
+  // Bulk Print
+  const [bulkSlips, setBulkSlips] = useState([]);
+  const [isBulkLoading, setIsBulkLoading] = useState(false);
 
   useEffect(() => {
     fetchSalaries();
@@ -53,7 +239,10 @@ export default function HRMSSalary() {
 
   const fetchSlip = async (id) => {
     const res = await apiGet(`/hrms/salary/${id}/slip/`);
-    if (res) setSelectedSlip(res);
+    if (res) {
+      setSelectedSlip(res);
+      setBulkSlips([]); // Clear bulk
+    }
   };
 
   const handlePrintSlip = () => {
@@ -73,6 +262,31 @@ export default function HRMSSalary() {
     });
   }, [salaries, searchQuery, selectedDepartment]);
 
+  const handleBulkPrint = async () => {
+    if (filteredSalaries.length === 0) {
+      alert("No employees found in the current filter.");
+      return;
+    }
+    if (!confirm(`Are you sure you want to fetch and print ${filteredSalaries.length} salary slips?`)) return;
+
+    setIsBulkLoading(true);
+    setSelectedSlip(null); // Close single slip if open
+
+    const slips = [];
+    for (const sal of filteredSalaries) {
+      const res = await apiGet(`/hrms/salary/${sal.id}/slip/`);
+      if (res) slips.push(res);
+    }
+    
+    setBulkSlips(slips);
+    setIsBulkLoading(false);
+    
+    // Give DOM time to render the big list
+    setTimeout(() => {
+      window.print();
+    }, 1000);
+  };
+
   return (
     <>
       <style>{`
@@ -91,36 +305,44 @@ export default function HRMSSalary() {
             left: 0;
             top: 0;
             width: 100%;
-            padding: 20px;
+            padding: 10px;
             box-sizing: border-box;
           }
+          .bulk-container, .bulk-container * {
+            visibility: visible;
+          }
+          .bulk-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+          }
+          
           /* A4 styling */
           @page {
             size: A4;
-            margin: 15mm;
+            margin: 10mm;
           }
           
-          .print-header { border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px; text-align: center; }
-          .print-header h2 { margin: 0; font-size: 24px; font-weight: bold; }
-          .print-header p { margin: 5px 0 0; font-size: 14px; }
+          .print-header { border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 15px; text-align: center; }
+          .print-header h2 { margin: 0; font-size: 20px; font-weight: bold; }
+          .print-header p { margin: 5px 0 0; font-size: 13px; }
           
-          .emp-details { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 14px; }
+          .emp-details { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 12px; }
           .emp-details div { width: 48%; }
-          .emp-details p { margin: 4px 0; }
+          .emp-details p { margin: 3px 0; }
           
-          .salary-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px; }
-          .salary-table th, .salary-table td { border: 1px solid #000; padding: 8px; text-align: left; }
+          .salary-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 12px; }
+          .salary-table th, .salary-table td { border: 1px solid #000; padding: 6px; text-align: left; }
           .salary-table th { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
           
-          .net-pay { display: flex; justify-content: flex-end; font-size: 16px; font-weight: bold; margin-bottom: 30px; }
-          
-          .wages-section { margin-top: 30px; page-break-before: auto; }
-          .wages-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px; }
-          .wages-table th, .wages-table td { border: 1px solid #000; padding: 6px; text-align: center; }
-          .wages-table th { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
-          
-          .signatures { display: flex; justify-content: space-between; margin-top: 50px; font-weight: bold; font-size: 14px; }
+          .net-pay { display: flex; justify-content: flex-end; font-size: 14px; font-weight: bold; margin-bottom: 20px; }
+          .signatures { display: flex; justify-content: space-between; margin-top: 30px; font-weight: bold; font-size: 12px; }
         }
+        
+        .wages-horizontal-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+        .wages-horizontal-table th, .wages-horizontal-table td { border: 1px solid #000; padding: 4px 2px; text-align: center; }
+        .wages-horizontal-table th { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
         
         .filter-bar { display: flex; gap: 15px; align-items: center; background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .filter-input { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; flex: 1; }
@@ -172,174 +394,43 @@ export default function HRMSSalary() {
               <option key={d.id} value={d.name}>{d.name}</option>
             ))}
           </select>
+          
+          <button 
+            onClick={handleBulkPrint} 
+            className="btn btn-primary" 
+            style={{ background: '#dc2626', minWidth: '150px' }}
+            disabled={isBulkLoading || filteredSalaries.length === 0}
+          >
+            {isBulkLoading ? 'Loading Slips...' : <><i className="fas fa-print mr-2"></i> Bulk Print All</>}
+          </button>
         </div>
 
-        {/* Modal / View for Salary Slip */}
-        {selectedSlip && (
-          <div className="card print-area" style={{ marginBottom: '30px', padding: '32px', background: 'white', border: '1px solid #e2e8f0', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
-            
-            <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid #e2e8f0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                <button onClick={() => setSelectedSlip(null)} className="btn" style={{ background: '#f1f5f9' }}>← Back</button>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600 }}>
-                  <input type="checkbox" checked={printWages} onChange={(e) => setPrintWages(e.target.checked)} style={{ width: '18px', height: '18px' }} />
-                  Include Wages Record (Attendance/Production)
-                </label>
-              </div>
-              <button onClick={handlePrintSlip} className="btn btn-primary" style={{ background: '#dc2626' }}>
-                <i className="fas fa-print mr-2"></i> Print Formal Payslip
-              </button>
-            </div>
-
-            <div className="print-header">
-              <h2>RADHU INDUSTRIES</h2>
-              <p>SALARY SLIP FOR THE MONTH OF <strong>{selectedSlip.salary.month}/{selectedSlip.salary.year}</strong></p>
-            </div>
-
-            <div className="emp-details">
-              <div>
-                <p><strong>Employee Code:</strong> {selectedSlip.employee.employee_code}</p>
-                <p><strong>Employee Name:</strong> {selectedSlip.employee.name}</p>
-                <p><strong>Designation:</strong> {selectedSlip.employee.designation}</p>
-                <p><strong>Department:</strong> {selectedSlip.employee.department_name || '-'}</p>
-              </div>
-              <div>
-                <p><strong>Total Month Days:</strong> {selectedSlip.attendance_summary.days_in_month}</p>
-                <p><strong>Worked Days:</strong> {selectedSlip.attendance_summary.total_worked_days}</p>
-                <p><strong>Absent Days:</strong> {selectedSlip.attendance_summary.absent_days}</p>
-                <p><strong>Total OT Hours:</strong> {selectedSlip.attendance_summary.total_overtime_hours}</p>
-              </div>
-            </div>
-
-            <table className="salary-table">
-              <thead>
-                <tr>
-                  <th>EARNINGS</th>
-                  <th style={{ textAlign: 'right' }}>AMOUNT (Rs)</th>
-                  <th>DEDUCTIONS</th>
-                  <th style={{ textAlign: 'right' }}>AMOUNT (Rs)</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Earned Basic Salary</td>
-                  <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.basic_salary).toFixed(2)}</td>
-                  <td>PF Contribution</td>
-                  <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.pf_amount).toFixed(2)}</td>
-                </tr>
-                <tr>
-                  <td>Overtime Earnings</td>
-                  <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.overtime_amount).toFixed(2)}</td>
-                  <td>ESI Contribution</td>
-                  <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.esi_amount).toFixed(2)}</td>
-                </tr>
-                <tr>
-                  <td>Piece-Rate Production</td>
-                  <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.production_amount).toFixed(2)}</td>
-                  <td>Salary Advance</td>
-                  <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.advance).toFixed(2)}</td>
-                </tr>
-                <tr>
-                  <td>Bonus</td>
-                  <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.bonus).toFixed(2)}</td>
-                  <td>Other Deductions</td>
-                  <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.deduction).toFixed(2)}</td>
-                </tr>
-                <tr style={{ fontWeight: 'bold', backgroundColor: '#f9fafb' }}>
-                  <td>TOTAL EARNINGS</td>
-                  <td style={{ textAlign: 'right' }}>
-                    {(Number(selectedSlip.salary.basic_salary) + Number(selectedSlip.salary.overtime_amount) + Number(selectedSlip.salary.production_amount) + Number(selectedSlip.salary.bonus)).toFixed(2)}
-                  </td>
-                  <td>TOTAL DEDUCTIONS</td>
-                  <td style={{ textAlign: 'right' }}>
-                    {(Number(selectedSlip.salary.pf_amount) + Number(selectedSlip.salary.esi_amount) + Number(selectedSlip.salary.advance) + Number(selectedSlip.salary.deduction)).toFixed(2)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-
-            <div className="net-pay">
-              NET PAYABLE SALARY: Rs {Number(selectedSlip.salary.net_salary).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            </div>
-            
-            <div className="signatures">
-              <div>Employer Signature</div>
-              <div>Employee Signature</div>
-            </div>
-            
-            {/* Wages Record Section */}
-            {printWages && (selectedSlip.attendance_detail?.length > 0 || selectedSlip.production_detail?.length > 0) && (
-              <div className="wages-section">
-                <hr style={{ border: 'none', borderTop: '2px dashed #000', margin: '40px 0' }} />
-                
-                <h3 style={{ textAlign: 'center', marginBottom: '15px' }}>DETAILED WAGES RECORD (ATTENDANCE & PRODUCTION)</h3>
-                
-                {selectedSlip.attendance_detail?.length > 0 && (
-                  <>
-                    <h4 style={{ marginBottom: '8px' }}>Daily Attendance</h4>
-                    <table className="wages-table">
-                      <thead>
-                        <tr>
-                          <th>Date</th>
-                          <th>Day</th>
-                          <th>Status</th>
-                          <th>Working Hrs</th>
-                          <th>OT Hrs</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedSlip.attendance_detail.map((att, idx) => (
-                          <tr key={idx}>
-                            <td>{att.date}</td>
-                            <td>{att.weekday}</td>
-                            <td>{att.status}</td>
-                            <td>{att.working_hours}</td>
-                            <td>{att.overtime_hours}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </>
-                )}
-
-                {selectedSlip.production_detail?.length > 0 && (
-                  <>
-                    <h4 style={{ marginBottom: '8px', marginTop: '20px' }}>Piece-Rate Production Record</h4>
-                    <table className="wages-table">
-                      <thead>
-                        <tr>
-                          <th>Date</th>
-                          <th>Item</th>
-                          <th>Quantity</th>
-                          <th>Rate</th>
-                          <th>Total Amount (Rs)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedSlip.production_detail.map((prod, idx) => (
-                          <tr key={idx}>
-                            <td>{prod.date}</td>
-                            <td>{prod.product_name}</td>
-                            <td>{prod.quantity}</td>
-                            <td>{prod.rate}</td>
-                            <td>{prod.total_amount}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </>
-                )}
-                
-                 <div className="signatures">
-                  <div>Verified By</div>
-                </div>
-              </div>
-            )}
+        {/* SINGLE Slip View */}
+        {!isBulkLoading && selectedSlip && (
+          <SlipRenderer 
+            selectedSlip={selectedSlip} 
+            printWages={{ value: printWages, setter: setPrintWages }} 
+            onClose={() => setSelectedSlip(null)} 
+            onPrint={handlePrintSlip} 
+          />
+        )}
+        
+        {/* BULK Slip Hidden View */}
+        {bulkSlips.length > 0 && (
+          <div className="bulk-container" style={{ display: 'none' }}>
+            {bulkSlips.map((slip, idx) => (
+              <SlipRenderer 
+                key={idx}
+                selectedSlip={slip}
+                printWages={{ value: true }}
+                isBulk={true}
+              />
+            ))}
           </div>
         )}
 
         {/* Stats Grid */}
-        <div className="grid-4 no-print" style={{ marginBottom: '24px', display: selectedSlip ? 'none' : 'grid' }}>
+        <div className="grid-4 no-print" style={{ marginBottom: '24px', display: (selectedSlip || isBulkLoading) ? 'none' : 'grid' }}>
           <div className="stat-card">
             <span className="stat-label">Total Salary Payout</span>
             <span className="stat-number" style={{ color: '#2563eb' }}>₹{Number(totals.total_payout || 0).toLocaleString('en-IN')}</span>
@@ -359,7 +450,7 @@ export default function HRMSSalary() {
         </div>
 
         {/* Salaries Table */}
-        <div className="card no-print" style={{ display: selectedSlip ? 'none' : 'block' }}>
+        <div className="card no-print" style={{ display: (selectedSlip || isBulkLoading) ? 'none' : 'block' }}>
           <div className="table-container">
             {loading ? (
               <div style={{ textAlign: 'center', padding: '40px' }}>Loading salary records...</div>
