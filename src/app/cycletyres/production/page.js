@@ -14,6 +14,8 @@ export default function CycleTyresProduction() {
     rejected_grade: '0',
     date: new Date().toISOString().split('T')[0],
     remark: '',
+    employee_id: '',
+    rate: '',
   });
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -28,6 +30,12 @@ export default function CycleTyresProduction() {
   const [uploading, setUploading] = useState(false);
   const [importResult, setImportResult] = useState(null);
 
+  // HRMS linking states
+  const [cpEmployees, setCpEmployees] = useState([]);
+  const [savedRates, setSavedRates] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('ct_prod_rates') || '{}'); } catch { return {}; }
+  });
+
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
@@ -36,7 +44,17 @@ export default function CycleTyresProduction() {
 
   useEffect(() => {
     fetchInitialData();
+    fetchCpEmployees();
   }, []);
+
+  async function fetchCpEmployees() {
+    const res = await apiGet('/hrms/employees/?status=Active');
+    if (res) {
+      // Filter to Cycle Press workers only
+      const cp = res.filter(e => (e.department_name || '').toLowerCase().includes('cycle press'));
+      setCpEmployees(cp);
+    }
+  }
 
   async function fetchInitialData() {
     const data = await apiGet('/cycletyres/production/');
@@ -59,11 +77,19 @@ export default function CycleTyresProduction() {
     setLoading(true);
     setMessage(null);
 
+    // Save rate to memory if employee selected
+    if (formData.employee_id && formData.rate) {
+      const itemKey = `${formData.employee_id}_${formData.tyre_item}`;
+      const newRates = { ...savedRates, [itemKey]: formData.rate };
+      setSavedRates(newRates);
+      localStorage.setItem('ct_prod_rates', JSON.stringify(newRates));
+    }
+
     const res = await apiPost('/cycletyres/production/', formData);
     setLoading(false);
 
     if (res && res.ok) {
-      setMessage({ type: 'success', text: `✅ Production saved! 1st Grade: +${res.data.first_grade}, 2nd Grade: +${res.data.second_grade}` });
+      setMessage({ type: 'success', text: `✅ Production saved! 1st Grade: +${res.data.first_grade}, 2nd Grade: +${res.data.second_grade}${formData.employee_id ? ' • Wages record updated ✅' : ''}` });
       setFormData((prev) => ({ ...prev, all_curing: '', second_grade: '0', rejected_grade: '0', remark: '' }));
       fetchInitialData();
     } else {
@@ -799,6 +825,70 @@ export default function CycleTyresProduction() {
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
+              </div>
+
+              {/* HRMS Employee Link Section */}
+              <div style={{
+                backgroundColor: darkMode ? 'rgba(139,92,246,0.1)' : '#faf5ff',
+                border: `2px solid ${darkMode ? '#7c3aed' : '#d8b4fe'}`,
+                borderRadius: '12px',
+                padding: '14px',
+                marginBottom: '16px',
+              }}>
+                <div style={{ fontWeight: 700, color: darkMode ? '#c4b5fd' : '#7c3aed', fontSize: '0.85rem', marginBottom: '10px' }}>
+                  👷 Link Worker (Optional) — HRMS Wages Entry
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: theme.text, marginBottom: '4px' }}>
+                      Worker (Cycle Press)
+                    </label>
+                    <select
+                      value={formData.employee_id}
+                      onChange={(e) => {
+                        const empId = e.target.value;
+                        const itemKey = `${empId}_${formData.tyre_item}`;
+                        const savedRate = savedRates[itemKey] || '';
+                        setFormData((p) => ({ ...p, employee_id: empId, rate: savedRate }));
+                      }}
+                      style={{
+                        width: '100%', padding: '8px 10px',
+                        border: `2px solid ${darkMode ? '#7c3aed' : '#d8b4fe'}`,
+                        borderRadius: '8px', backgroundColor: theme.bg2,
+                        color: theme.text, fontSize: '0.8rem', cursor: 'pointer', outline: 'none',
+                      }}
+                    >
+                      <option value="">-- No Worker --</option>
+                      {cpEmployees.map((emp) => (
+                        <option key={emp.id} value={emp.id}>{emp.employee_code} - {emp.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: theme.text, marginBottom: '4px' }}>
+                      Rate/Pc (Rs) {savedRates[`${formData.employee_id}_${formData.tyre_item}`] ? <span style={{ color: '#10b981' }}>💾 Saved</span> : ''}
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      value={formData.rate}
+                      onChange={(e) => setFormData((p) => ({ ...p, rate: e.target.value }))}
+                      placeholder="e.g. 1.7876"
+                      style={{
+                        width: '100%', padding: '8px 10px',
+                        border: `2px solid ${darkMode ? '#7c3aed' : '#d8b4fe'}`,
+                        borderRadius: '8px', backgroundColor: theme.bg2,
+                        color: '#7c3aed', fontWeight: 700, fontSize: '0.85rem', outline: 'none',
+                      }}
+                    />
+                  </div>
+                </div>
+                {formData.employee_id && formData.rate && formData.all_curing && (
+                  <div style={{ marginTop: '10px', fontSize: '0.8rem', color: darkMode ? '#c4b5fd' : '#7c3aed', fontWeight: 600 }}>
+                    Total wages = {formData.all_curing} pcs x Rs {formData.rate} = <strong>Rs {(Number(formData.all_curing) * Number(formData.rate)).toFixed(2)}</strong> for {cpEmployees.find(e => String(e.id) === String(formData.employee_id))?.name}
+                  </div>
+                )}
               </div>
 
               <button
