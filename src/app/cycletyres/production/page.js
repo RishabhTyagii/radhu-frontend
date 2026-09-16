@@ -98,6 +98,23 @@ export default function CycleTyresProduction() {
     }
   };
 
+  const updateEmployee = async (entryId, empId) => {
+    const res = await fetch(`/api/cycletyres/production/${entryId}/employee/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('radhu_token')}`
+      },
+      body: JSON.stringify({ employee_id: empId, rate: savedRates[`${empId}_${recent.find(e => e.id === entryId)?.tyre_item}`] || '' })
+    });
+    if (res.ok) {
+      alert("Employee updated successfully");
+      fetchInitialData();
+    } else {
+      alert("Failed to update employee");
+    }
+  };
+
   const handleExcelImport = async (e) => {
     e.preventDefault();
     if (!excelFile) {
@@ -991,6 +1008,7 @@ export default function CycleTyresProduction() {
                     borderBottom: `2px solid ${theme.border}`,
                   }}>
                     <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700, color: theme.text }}>Date</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700, color: theme.text }}>Worker</th>
                     <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700, color: theme.text }}>Tyre</th>
                     <th style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, color: theme.text }}>Curing</th>
                     <th style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, color: '#10b981' }}>1st</th>
@@ -1006,16 +1024,28 @@ export default function CycleTyresProduction() {
                         borderBottom: `1px solid ${theme.border}`,
                         transition: 'all 0.3s ease',
                       }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = theme.cardHover;
-                        e.currentTarget.style.transform = 'scale(1.002)';
+                      onMouseEnter={(evt) => {
+                        evt.currentTarget.style.backgroundColor = theme.cardHover;
+                        evt.currentTarget.style.transform = 'scale(1.002)';
                       }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                        e.currentTarget.style.transform = 'scale(1)';
+                      onMouseLeave={(evt) => {
+                        evt.currentTarget.style.backgroundColor = 'transparent';
+                        evt.currentTarget.style.transform = 'scale(1)';
                       }}
                     >
                       <td style={{ padding: '8px 10px', color: theme.text, fontWeight: 600 }}>{e.date}</td>
+                      <td style={{ padding: '8px 10px' }}>
+                        <select
+                          value={e.linked_employee_id || ''}
+                          onChange={(evt) => updateEmployee(e.id, evt.target.value)}
+                          style={{ padding: '4px', borderRadius: '4px', border: `1px solid ${theme.border2}`, backgroundColor: theme.bg2, color: theme.text, fontSize: '0.75rem', maxWidth: '120px' }}
+                        >
+                          <option value="">-- No Worker --</option>
+                          {cpEmployees.map(emp => (
+                            <option key={emp.id} value={emp.id}>{emp.name}</option>
+                          ))}
+                        </select>
+                      </td>
                       <td style={{ padding: '8px 10px', color: theme.text2, fontSize: '0.75rem' }}>
                         {e.tyre_item_detail ? `${e.tyre_item_detail.size} ${e.tyre_item_detail.box_type}` : '-'}
                       </td>

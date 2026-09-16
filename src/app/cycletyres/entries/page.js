@@ -7,6 +7,7 @@ import { apiGet } from '@/lib/api';
 export default function CycleTyresEntries() {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [employees, setEmployees] = useState([]);
   const [filters, setFilters] = useState({
     date: '',
     month: '',
@@ -15,7 +16,15 @@ export default function CycleTyresEntries() {
 
   useEffect(() => {
     fetchEntries();
+    fetchEmployees();
   }, [filters]);
+
+  async function fetchEmployees() {
+    const res = await apiGet('/hrms/employees/?status=Active');
+    if (res) {
+      setEmployees(res.filter(e => (e.department_name || '').toLowerCase().includes('cycle press')));
+    }
+  }
 
   async function fetchEntries() {
     setLoading(true);
@@ -27,6 +36,23 @@ export default function CycleTyresEntries() {
     const data = await apiGet(`/cycletyres/entries/${query}`);
     if (data) setEntries(data);
     setLoading(false);
+  }
+
+  async function updateEmployee(entryId, empId) {
+    const res = await fetch(`/api/cycletyres/production/${entryId}/employee/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('radhu_token')}`
+      },
+      body: JSON.stringify({ employee_id: empId, rate: localStorage.getItem('ct_prod_rates') ? JSON.parse(localStorage.getItem('ct_prod_rates'))[`${empId}_${entries.find(e => e.id === entryId)?.tyre_item}`] : '' })
+    });
+    if (res.ok) {
+      alert("Employee updated successfully");
+      fetchEntries();
+    } else {
+      alert("Failed to update employee");
+    }
   }
 
   const handleFilterChange = (e) => {
@@ -96,6 +122,7 @@ export default function CycleTyresEntries() {
                     <th>Type</th>
                     <th>Bucket</th>
                     <th style={{ textAlign: 'right' }}>Qty</th>
+                    <th>Worker/Employee</th>
                     <th>Bill No</th>
                     <th>Remark</th>
                     <th>User</th>
@@ -109,6 +136,20 @@ export default function CycleTyresEntries() {
                       <td>{getTypeBadge(item.entry_type)}</td>
                       <td>{item.bucket_display || item.bucket || '-'}</td>
                       <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{item.quantity}</td>
+                      <td>
+                        {item.entry_type === 'production' ? (
+                          <select
+                            value={item.linked_employee_id || ''}
+                            onChange={(e) => updateEmployee(item.id, e.target.value)}
+                            style={{ padding: '4px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem', maxWidth: '150px' }}
+                          >
+                            <option value="">-- No Worker --</option>
+                            {employees.map(emp => (
+                              <option key={emp.id} value={emp.id}>{emp.name}</option>
+                            ))}
+                          </select>
+                        ) : '-'}
+                      </td>
                       <td>{item.bill_number || '-'}</td>
                       <td>{item.remark || '-'}</td>
                       <td>{item.user_username || '-'}</td>
