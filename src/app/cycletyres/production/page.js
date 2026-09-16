@@ -99,19 +99,13 @@ export default function CycleTyresProduction() {
   };
 
   const updateEmployee = async (entryId, empId) => {
-    const res = await fetch(`/api/cycletyres/production/${entryId}/employee/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('radhu_token')}`
-      },
-      body: JSON.stringify({ employee_id: empId, rate: savedRates[`${empId}_${recent.find(e => e.id === entryId)?.tyre_item}`] || '' })
-    });
-    if (res.ok) {
+    const rate = savedRates[`${empId}_${recent.find(e => e.id === entryId)?.tyre_item}`] || '';
+    const res = await apiPost(`/cycletyres/production/${entryId}/employee/`, { employee_id: empId, rate });
+    if (res && res.ok) {
       alert("Employee updated successfully");
       fetchInitialData();
     } else {
-      alert("Failed to update employee");
+      alert("Failed to update employee: " + (res?.data?.error || "Unknown error"));
     }
   };
 

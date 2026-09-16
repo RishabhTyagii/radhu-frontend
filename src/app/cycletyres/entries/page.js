@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
-import { apiGet } from '@/lib/api';
+import { apiGet, apiPost } from '@/lib/api';
 
 export default function CycleTyresEntries() {
   const [entries, setEntries] = useState([]);
@@ -39,19 +39,13 @@ export default function CycleTyresEntries() {
   }
 
   async function updateEmployee(entryId, empId) {
-    const res = await fetch(`/api/cycletyres/production/${entryId}/employee/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('radhu_token')}`
-      },
-      body: JSON.stringify({ employee_id: empId, rate: localStorage.getItem('ct_prod_rates') ? JSON.parse(localStorage.getItem('ct_prod_rates'))[`${empId}_${entries.find(e => e.id === entryId)?.tyre_item}`] : '' })
-    });
-    if (res.ok) {
+    const rate = localStorage.getItem('ct_prod_rates') ? JSON.parse(localStorage.getItem('ct_prod_rates'))[`${empId}_${entries.find(e => e.id === entryId)?.tyre_item}`] : '';
+    const res = await apiPost(`/cycletyres/production/${entryId}/employee/`, { employee_id: empId, rate });
+    if (res && res.ok) {
       alert("Employee updated successfully");
       fetchEntries();
     } else {
-      alert("Failed to update employee");
+      alert("Failed to update employee: " + (res?.data?.error || "Unknown error"));
     }
   }
 
