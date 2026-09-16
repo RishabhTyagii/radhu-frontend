@@ -43,6 +43,15 @@ export default function HRMSProduction() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  // Refresh items list when employee changes (dept-specific items from DB)
+  useEffect(() => {
+    if (!form.employee) return;
+    apiGet('/hrms/production/items/?employee_id=' + form.employee).then((res) => {
+      if (res) setTyreItems(Array.isArray(res) ? res : []);
+    });
+  }, [form.employee]);
+
+
   async function fetchAll() {
     setLoading(true);
     const [empRes, deptRes, prodRes, tyreRes] = await Promise.all([
