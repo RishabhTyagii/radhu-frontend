@@ -102,13 +102,13 @@ const SlipRenderer = ({ selectedSlip, printWages, onClose, onPrint, isBulk = fal
             <td>Other Deductions</td>
             <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.deduction).toFixed(2)}</td>
           </tr>
-          <tr style={{ fontWeight: 'bold', backgroundColor: '#f9fafb' }}>
-            <td>TOTAL EARNINGS</td>
-            <td style={{ textAlign: 'right' }}>
+          <tr style={{ fontWeight: '900', backgroundColor: '#f1f5f9', fontSize: '14px', borderTop: '2px solid #94a3b8' }}>
+            <td style={{ color: '#0f172a', padding: '15px' }}>TOTAL EARNINGS</td>
+            <td style={{ textAlign: 'right', color: '#16a34a', fontSize: '15px', padding: '15px' }}>
               {(Number(selectedSlip.salary.basic_salary) + Number(selectedSlip.salary.overtime_amount) + Number(selectedSlip.salary.production_amount) + Number(selectedSlip.salary.bonus)).toFixed(2)}
             </td>
-            <td>TOTAL DEDUCTIONS</td>
-            <td style={{ textAlign: 'right' }}>
+            <td style={{ color: '#0f172a', padding: '15px' }}>TOTAL DEDUCTIONS</td>
+            <td style={{ textAlign: 'right', color: '#dc2626', fontSize: '15px', padding: '15px' }}>
               {(Number(selectedSlip.salary.pf_amount) + Number(selectedSlip.salary.esi_amount) + Number(selectedSlip.salary.advance) + Number(selectedSlip.salary.deduction)).toFixed(2)}
             </td>
           </tr>
@@ -116,7 +116,8 @@ const SlipRenderer = ({ selectedSlip, printWages, onClose, onPrint, isBulk = fal
       </table>
 
       <div className="net-pay">
-        NET PAYABLE SALARY: Rs {Number(selectedSlip.salary.net_salary).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+        <span style={{ fontSize: '14px', color: '#166534', textTransform: 'uppercase', letterSpacing: '1px' }}>Net Payable Salary</span>
+        <span style={{ fontSize: '24px' }}>Rs {Number(selectedSlip.salary.net_salary).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
       </div>
       
       <div className="signatures">
@@ -272,11 +273,9 @@ export default function HRMSSalary() {
     setIsBulkLoading(true);
     setSelectedSlip(null); // Close single slip if open
 
-    const slips = [];
-    for (const sal of filteredSalaries) {
-      const res = await apiGet(`/hrms/salary/${sal.id}/slip/`);
-      if (res) slips.push(res);
-    }
+    const slips = await Promise.all(
+      filteredSalaries.map(sal => apiGet(`/hrms/salary/${sal.id}/slip/`))
+    );
     
     setBulkSlips(slips);
     setIsBulkLoading(false);
@@ -308,36 +307,45 @@ export default function HRMSSalary() {
             padding: 10px;
             box-sizing: border-box;
           }
-          .bulk-container, .bulk-container * {
+          .bulk-container-wrapper, .bulk-container-wrapper * {
             visibility: visible;
           }
-          .bulk-container {
-            position: absolute;
-            left: 0;
-            top: 0;
+          .bulk-container-wrapper {
+            display: block !important;
             width: 100%;
           }
           
           /* A4 styling */
           @page {
             size: A4;
-            margin: 10mm;
+            margin: 15mm;
           }
           
-          .print-header { border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 15px; text-align: center; }
-          .print-header h2 { margin: 0; font-size: 20px; font-weight: bold; }
-          .print-header p { margin: 5px 0 0; font-size: 13px; }
+          .print-header { border-bottom: 3px solid #1e293b; padding-bottom: 15px; margin-bottom: 20px; text-align: center; }
+          .print-header h2 { margin: 0; font-size: 24px; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing: 1px; }
+          .print-header p { margin: 8px 0 0; font-size: 14px; font-weight: 600; color: #475569; }
           
-          .emp-details { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 12px; }
+          .emp-details { display: flex; justify-content: space-between; margin-bottom: 25px; font-size: 13px; background: #f8fafc !important; -webkit-print-color-adjust: exact; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; }
           .emp-details div { width: 48%; }
-          .emp-details p { margin: 3px 0; }
+          .emp-details p { margin: 6px 0; color: #334155; font-weight: 500; }
+          .emp-details strong { color: #0f172a; font-weight: 800; width: 130px; display: inline-block; }
           
-          .salary-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 12px; }
-          .salary-table th, .salary-table td { border: 1px solid #000; padding: 6px; text-align: left; }
-          .salary-table th { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
+          .salary-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-bottom: 25px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; }
+          .salary-table th, .salary-table td { border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; padding: 12px 15px; text-align: left; }
+          .salary-table th:last-child, .salary-table td:last-child { border-right: none; }
+          .salary-table tbody tr:last-child td { border-bottom: none; }
+          .salary-table th { background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact; font-weight: 800; color: #475569; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
+          .salary-table td { color: #1e293b; font-weight: 500; }
           
-          .net-pay { display: flex; justify-content: flex-end; font-size: 14px; font-weight: bold; margin-bottom: 20px; }
-          .signatures { display: flex; justify-content: space-between; margin-top: 30px; font-weight: bold; font-size: 12px; }
+          .net-pay { display: flex; justify-content: space-between; align-items: center; font-size: 18px; font-weight: 900; margin-bottom: 30px; padding: 15px 20px; background: #f0fdf4 !important; border: 2px solid #22c55e; border-radius: 8px; color: #166534; -webkit-print-color-adjust: exact; }
+          .signatures { display: flex; justify-content: space-between; margin-top: 50px; font-weight: 700; font-size: 13px; color: #475569; }
+          .signatures div { border-top: 1px solid #cbd5e1; padding-top: 10px; width: 200px; text-align: center; }
+        }
+        
+        @media screen {
+          .bulk-container-wrapper {
+            display: none !important;
+          }
         }
         
         .wages-horizontal-table { width: 100%; border-collapse: collapse; font-size: 10px; }
@@ -417,7 +425,7 @@ export default function HRMSSalary() {
         
         {/* BULK Slip Hidden View */}
         {bulkSlips.length > 0 && (
-          <div className="bulk-container" style={{ display: 'none' }}>
+          <div className="bulk-container-wrapper">
             {bulkSlips.map((slip, idx) => (
               <SlipRenderer 
                 key={idx}
