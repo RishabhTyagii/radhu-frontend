@@ -103,12 +103,12 @@ const SlipRenderer = ({ selectedSlip, printWages, onClose, onPrint, isBulk = fal
             <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.deduction).toFixed(2)}</td>
           </tr>
           <tr style={{ fontWeight: '900', backgroundColor: '#f1f5f9', fontSize: '14px', borderTop: '2px solid #94a3b8' }}>
-            <td style={{ color: '#0f172a', padding: '15px' }}>TOTAL EARNINGS</td>
-            <td style={{ textAlign: 'right', color: '#16a34a', fontSize: '15px', padding: '15px' }}>
+            <td style={{ color: '#000', padding: '15px' }}>TOTAL EARNINGS</td>
+            <td style={{ textAlign: 'right', color: '#000', fontSize: '18px', padding: '15px' }}>
               {(Number(selectedSlip.salary.basic_salary) + Number(selectedSlip.salary.overtime_amount) + Number(selectedSlip.salary.production_amount) + Number(selectedSlip.salary.bonus)).toFixed(2)}
             </td>
-            <td style={{ color: '#0f172a', padding: '15px' }}>TOTAL DEDUCTIONS</td>
-            <td style={{ textAlign: 'right', color: '#dc2626', fontSize: '15px', padding: '15px' }}>
+            <td style={{ color: '#000', padding: '15px' }}>TOTAL DEDUCTIONS</td>
+            <td style={{ textAlign: 'right', color: '#000', fontSize: '18px', padding: '15px' }}>
               {(Number(selectedSlip.salary.pf_amount) + Number(selectedSlip.salary.esi_amount) + Number(selectedSlip.salary.advance) + Number(selectedSlip.salary.deduction)).toFixed(2)}
             </td>
           </tr>
@@ -129,7 +129,7 @@ const SlipRenderer = ({ selectedSlip, printWages, onClose, onPrint, isBulk = fal
       {(isBulk ? true : printWages.value) && (selectedSlip.attendance_detail?.length > 0 || selectedSlip.production_detail?.length > 0) && (
         <div className="wages-section" style={{ marginTop: '30px' }}>
           <hr style={{ border: 'none', borderTop: '2px dashed #000', margin: '15px 0' }} />
-          <h3 style={{ textAlign: 'center', marginBottom: '10px', fontSize: '13px' }}>WAGES RECORD (ATTENDANCE & PRODUCTION)</h3>
+          <h3>WAGES RECORD (ATTENDANCE & PRODUCTION)</h3>
           
           <table className="wages-horizontal-table">
             <thead>
@@ -327,15 +327,15 @@ export default function HRMSSalary() {
           
           .emp-details { display: flex; justify-content: space-between; margin-bottom: 25px; font-size: 13px; background: #f8fafc !important; -webkit-print-color-adjust: exact; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; }
           .emp-details div { width: 48%; }
-          .emp-details p { margin: 6px 0; color: #334155; font-weight: 500; }
-          .emp-details strong { color: #0f172a; font-weight: 800; width: 130px; display: inline-block; }
+          .emp-details p { margin: 6px 0; color: #000000; font-weight: 700; }
+          .emp-details strong { color: #000000; font-weight: 900; width: 130px; display: inline-block; }
           
           .salary-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-bottom: 25px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; }
           .salary-table th, .salary-table td { border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; padding: 12px 15px; text-align: left; }
           .salary-table th:last-child, .salary-table td:last-child { border-right: none; }
           .salary-table tbody tr:last-child td { border-bottom: none; }
-          .salary-table th { background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact; font-weight: 800; color: #475569; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
-          .salary-table td { color: #1e293b; font-weight: 500; }
+          .salary-table th { background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact; font-weight: 800; color: #000000; text-transform: uppercase; font-size: 13px; font-weight: 900; letter-spacing: 0.5px; }
+          .salary-table td { color: #000000; font-weight: 700; font-size: 14px; }
           
           .net-pay { display: flex; justify-content: space-between; align-items: center; font-size: 18px; font-weight: 900; margin-bottom: 30px; padding: 15px 20px; background: #f0fdf4 !important; border: 2px solid #22c55e; border-radius: 8px; color: #166534; -webkit-print-color-adjust: exact; }
           .signatures { display: flex; justify-content: space-between; margin-top: 50px; font-weight: 700; font-size: 13px; color: #475569; }
@@ -348,9 +348,10 @@ export default function HRMSSalary() {
           }
         }
         
-        .wages-horizontal-table { width: 100%; border-collapse: collapse; font-size: 10px; }
-        .wages-horizontal-table th, .wages-horizontal-table td { border: 1px solid #000; padding: 4px 2px; text-align: center; }
-        .wages-horizontal-table th { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
+        .wages-horizontal-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; border: 2px solid #000; }
+        .wages-horizontal-table th, .wages-horizontal-table td { border: 1px solid #000; padding: 6px 3px; text-align: center; color: #000; font-weight: 700; }
+        .wages-horizontal-table th { background-color: #e2e8f0 !important; -webkit-print-color-adjust: exact; font-weight: 900; }
+        .wages-section h3 { text-align: center; margin-bottom: 15px; font-size: 16px; font-weight: 900; color: #000; text-decoration: underline; text-underline-offset: 4px; }
         
         .filter-bar { display: flex; gap: 15px; align-items: center; background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .filter-input { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; flex: 1; }
