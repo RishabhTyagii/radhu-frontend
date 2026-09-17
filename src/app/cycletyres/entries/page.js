@@ -280,7 +280,7 @@ export default function CycleTyresEntries() {
                         {item.entry_type === 'production' ? (
                           <select 
                             className="emp-select"
-                            value={item.employee || ''} 
+                            value={item.linked_employee_id || ''} 
                             onChange={(e) => updateEmployee(item.id, e.target.value)}
                           >
                             <option value="">-- Assign --</option>
