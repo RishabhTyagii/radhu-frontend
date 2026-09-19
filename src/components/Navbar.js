@@ -111,7 +111,8 @@ export default function Navbar() {
   const hrmsNavItems = [
     { name: 'HR Dashboard', path: '/hrms', icon: 'fas fa-user-shield', color: '#2563eb', key: 'hr_dashboard' },
     { name: 'Employees', path: '/hrms/employees', icon: 'fas fa-users', color: '#10b981', key: 'employee_list' },
-    { name: 'Attendance', path: '/hrms/attendance', icon: 'fas fa-calendar-check', color: '#f59e0b', key: 'attendance_list' },
+    { name: 'Daily Attendance', path: '/hrms/attendance', icon: 'fas fa-calendar-day', color: '#f59e0b', key: 'attendance_list' },
+    { name: 'Monthly Register', path: '/hrms/monthly-register', icon: 'fas fa-calendar-alt', color: '#f97316', key: 'attendance_list' },
     { name: 'Piece Production', path: '/hrms/production', icon: 'fas fa-cogs', color: '#8b5cf6', key: 'production_list' },
     { name: 'Salary Engine', path: '/hrms/salary', icon: 'fas fa-calculator', color: '#ef4444', key: 'salary_list' },
     { name: 'Departments', path: '/hrms/departments', icon: 'fas fa-building', color: '#64748b', key: 'hr_dashboard' },
