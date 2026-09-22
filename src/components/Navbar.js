@@ -86,6 +86,7 @@ export default function Navbar() {
     { name: 'Entries', path: '/cycletube/entries', icon: 'fas fa-history', key: 'tube_entries_log' },
     { name: 'Report', path: '/cycletube/report', icon: 'fas fa-chart-bar', key: 'tube_monthly_report' },
     { name: 'Summary', path: '/cycletube/summary', icon: 'fas fa-list-alt', color: '#14b8a6', key: 'tube_production_summary' },
+    { name: 'Sheet', path: '/cycletube/production-sheet', icon: 'fas fa-file-alt', key: 'tube_production_sheet' },
     { name: 'Add Tube', path: '/cycletube/add-item', icon: 'fas fa-plus-circle', key: 'tube_add_item' },
   ];
 
