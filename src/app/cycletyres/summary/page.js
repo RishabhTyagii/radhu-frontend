@@ -9,96 +9,107 @@ const today = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
-const fmt = (v) => {
-  const n = parseFloat(v);
-  if (isNaN(n) || n === 0) return <span style={{ color: '#cbd5e1' }}>—</span>;
-  return n.toFixed(2);
-};
-
-const fmtPcs = (v) => {
-  const n = parseInt(v);
-  if (isNaN(n) || n === 0) return <span style={{ color: '#cbd5e1' }}>—</span>;
-  return n;
-};
-
 const fmtDate = (ds) => {
   if (!ds) return '-';
   const d = new Date(ds + 'T00:00:00');
   return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
 };
 
-// Editable cell - inline input that saves on blur/enter
-function EditCell({ value, onSave, color, bold, align = 'right', readOnly = false }) {
+const diffColor = (v) => {
+  const n = parseFloat(v);
+  if (n < -0.01) return '#ef4444';
+  if (n > 0.01) return '#22c55e';
+  return '#94a3b8';
+};
+
+// ─── Inline editable cell ─────────────────────────────────────────────────────
+function Cell({ value, onSave, color, bold, isInt = false, readOnly = false, highlight = false }) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(value ?? '');
   const inputRef = useRef();
 
   useEffect(() => setVal(value ?? ''), [value]);
 
-  if (readOnly) {
-    return (
-      <td style={{ textAlign: align, padding: '6px 10px', fontWeight: bold ? 700 : 400, color: color || 'inherit', fontSize: '0.85rem' }}>
-        {parseFloat(value) !== 0 ? value : <span style={{ color: '#cbd5e1' }}>—</span>}
-      </td>
-    );
-  }
-
-  const handleSave = () => {
+  const commit = () => {
     setEditing(false);
-    if (val !== String(value ?? '')) onSave(val);
+    const changed = val !== String(value ?? '');
+    if (changed) onSave(val);
   };
 
-  if (editing) {
-    return (
-      <td style={{ padding: '2px', textAlign: align }}>
-        <input
-          ref={inputRef}
-          type="number"
-          step="0.01"
-          value={val}
-          onChange={(e) => setVal(e.target.value)}
-          onBlur={handleSave}
-          onKeyDown={(e) => { if (e.key === 'Enter') { handleSave(); } if (e.key === 'Escape') { setEditing(false); setVal(value ?? ''); } }}
-          autoFocus
-          style={{
-            width: '80px', height: '28px', border: '2px solid #3b82f6', borderRadius: '4px',
-            textAlign: 'right', padding: '0 4px', fontSize: '0.82rem', background: '#eff6ff', outline: 'none'
-          }}
-        />
-      </td>
-    );
-  }
+  const numDisplay = () => {
+    const n = isInt ? parseInt(val) : parseFloat(val);
+    if (isNaN(n) || n === 0) return <span style={{ color: '#64748b', fontStyle: 'italic', fontSize: '0.75rem' }}>—</span>;
+    return isInt ? n : n.toFixed(2);
+  };
 
-  const n = parseFloat(val);
+  const tdStyle = {
+    textAlign: 'right',
+    padding: '7px 10px',
+    fontWeight: bold ? 700 : 500,
+    color: color || '#1e293b',
+    fontSize: '0.85rem',
+    background: highlight ? '#fefce8' : 'transparent',
+  };
+
+  if (readOnly) return (
+    <td style={tdStyle}>{numDisplay()}</td>
+  );
+
+  if (editing) return (
+    <td style={{ padding: '2px 4px', background: '#eff6ff' }}>
+      <input
+        ref={inputRef}
+        type="number"
+        step={isInt ? '1' : '0.01'}
+        value={val}
+        onChange={e => setVal(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); commit(); }
+          if (e.key === 'Escape') { setEditing(false); setVal(value ?? ''); }
+        }}
+        autoFocus
+        style={{
+          width: '76px', height: '30px', border: '2px solid #3b82f6',
+          borderRadius: '5px', textAlign: 'right', padding: '0 6px',
+          fontSize: '0.83rem', background: 'white', outline: 'none',
+          boxShadow: '0 0 0 3px rgba(59,130,246,0.15)',
+        }}
+      />
+    </td>
+  );
+
   return (
     <td
-      onClick={() => { setEditing(true); }}
+      onClick={() => setEditing(true)}
       title="Click to edit"
       style={{
-        textAlign: align, padding: '6px 10px', cursor: 'pointer',
-        fontWeight: bold ? 700 : 400, color: color || '#1e293b', fontSize: '0.85rem',
-        borderBottom: '1px dashed #e2e8f0',
-        transition: 'background 0.1s',
+        ...tdStyle,
+        cursor: 'pointer',
+        borderBottom: '1.5px dashed #93c5fd',
+        transition: 'background 0.12s',
       }}
-      onMouseEnter={e => e.currentTarget.style.background = '#f0f9ff'}
-      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+      onMouseEnter={e => e.currentTarget.style.background = '#dbeafe'}
+      onMouseLeave={e => e.currentTarget.style.background = highlight ? '#fefce8' : 'transparent'}
     >
-      {isNaN(n) || n === 0 ? <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>tap</span> : n % 1 === 0 ? n : n.toFixed(2)}
+      {numDisplay()}
     </td>
   );
 }
 
+// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function CycleTyresSummary() {
   const [rows, setRows] = useState([]);
   const [totals, setTotals] = useState({});
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(null); // date string of row being saved
-  const [fromDate, setFromDate] = useState(() => {
-    const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
-  });
-  const [toDate, setToDate] = useState(today());
-  const [editMap, setEditMap] = useState({}); // { date: { parchi_kg, mixing_actual_compound, ... } }
+  const [saving, setSaving] = useState(null);
+  const [editMap, setEditMap] = useState({});
   const [toast, setToast] = useState(null);
+  const [fromDate, setFromDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+  });
+  const [toDate, setToDate] = useState(today);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -111,10 +122,10 @@ export default function CycleTyresSummary() {
     if (res) {
       setRows(res.summary || []);
       setTotals(res.totals || {});
-      // Initialize editMap from existing data
       const em = {};
       (res.summary || []).forEach(r => {
         em[r.date] = {
+          packing_pcs: String(r.packing_pcs || 0),
           parchi_kg: r.parchi_kg || '0',
           mixing_actual_compound: r.mixing_actual_compound || '0',
           chakka: r.chakka || '0',
@@ -130,252 +141,271 @@ export default function CycleTyresSummary() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleFieldChange = async (date, field, value) => {
-    // Optimistic update
-    setEditMap(prev => ({
-      ...prev,
-      [date]: { ...prev[date], [field]: value }
-    }));
-
+  const saveField = async (date, field, value) => {
+    // Optimistic
+    setEditMap(prev => ({ ...prev, [date]: { ...prev[date], [field]: value } }));
     setSaving(date);
-    const currentRow = editMap[date] || {};
+
+    const cur = editMap[date] || {};
     const payload = {
       date,
-      parchi_kg: currentRow.parchi_kg || '0',
-      mixing_actual_compound: currentRow.mixing_actual_compound || '0',
-      chakka: currentRow.chakka || '0',
-      calander_bias_cutt: currentRow.calander_bias_cutt || '0',
-      packing_wastage: currentRow.packing_wastage || '0',
-      tar: currentRow.tar || '0',
+      packing_pcs: cur.packing_pcs || '0',
+      parchi_kg: cur.parchi_kg || '0',
+      mixing_actual_compound: cur.mixing_actual_compound || '0',
+      chakka: cur.chakka || '0',
+      calander_bias_cutt: cur.calander_bias_cutt || '0',
+      packing_wastage: cur.packing_wastage || '0',
+      tar: cur.tar || '0',
       [field]: value,
     };
 
     const res = await apiPost('/cycletyres/daily-summary/', payload);
     setSaving(null);
     if (res) {
-      showToast(`✅ Saved ${date}`);
-      fetchData(); // refresh totals
+      showToast(`✅ ${date} saved`);
+      fetchData();
     } else {
       showToast('❌ Save failed', 'error');
     }
   };
 
-  const getField = (date, field) => editMap[date]?.[field] ?? '0';
+  const g = (date, field) => editMap[date]?.[field] ?? '0';
 
-  const diffColor = (v) => {
-    const n = parseFloat(v);
-    if (n < 0) return '#ef4444';
-    if (n > 0) return '#10b981';
-    return '#94a3b8';
-  };
-
-  const COLS = [
-    { key: 'date', label: 'DATE', width: 80, sticky: true },
-    { key: 'production_pcs', label: 'CURING PCS', width: 90, readOnly: true, color: '#7c3aed', bold: true },
-    { key: 'packing_pcs', label: 'PACKING PCS', width: 95, readOnly: true, color: '#0284c7', bold: true },
-    { key: 'theoretical_kg', label: 'THEO KG', width: 85, readOnly: true },
-    { key: 'parchi_kg', label: 'PARCHI KG', width: 90, editable: true },
-    { key: 'difference', label: 'DIFF (KG)', width: 85, readOnly: true, diffColor: true },
-    { key: 'theoretical_total_compound', label: 'THEO COMP', width: 90, readOnly: true },
-    { key: 'mixing_actual_compound', label: 'MIXING ACT', width: 95, editable: true },
-    { key: 'variance', label: 'VARIANCE', width: 85, readOnly: true, diffColor: true },
-    { key: 'chakka', label: 'CHAKKA', width: 80, editable: true },
-    { key: 'calander_bias_cutt', label: 'CALANDER', width: 85, editable: true },
-    { key: 'packing_wastage', label: 'PACK WASTE', width: 90, editable: true },
-    { key: 'tar', label: 'TAR', width: 75, editable: true },
+  // ── Stats cards ──
+  const stats = [
+    { label: 'Curing PCS', value: totals.production_pcs || 0, icon: '🔥', color: '#7c3aed', bg: '#7c3aed22' },
+    { label: 'Packing PCS', value: totals.packing_pcs || 0, icon: '📦', color: '#0284c7', bg: '#0284c722' },
+    { label: 'Theo KG', value: parseFloat(totals.theoretical_kg || 0).toFixed(1), icon: '⚖️', color: '#0f766e', bg: '#0f766e22' },
+    { label: 'Parchi KG', value: parseFloat(totals.parchi_kg || 0).toFixed(1), icon: '📋', color: '#d97706', bg: '#d9770622' },
+    { label: 'KG Diff', value: parseFloat(totals.difference || 0).toFixed(1), icon: '📐', color: '#dc2626', bg: '#dc262622' },
+    { label: 'Variance', value: parseFloat(totals.variance || 0).toFixed(1), icon: '📉', color: '#db2777', bg: '#db277722' },
+    { label: 'Chakka', value: parseFloat(totals.chakka || 0).toFixed(1), icon: '🔩', color: '#475569', bg: '#47556922' },
+    { label: 'Tar', value: parseFloat(totals.tar || 0).toFixed(1), icon: '🛢️', color: '#57534e', bg: '#57534e22' },
   ];
 
   return (
     <>
       <Navbar />
+
       {/* Toast */}
       {toast && (
         <div style={{
-          position: 'fixed', bottom: '24px', right: '24px', zIndex: 9999,
-          background: toast.type === 'error' ? '#fef2f2' : '#f0fdf4',
-          color: toast.type === 'error' ? '#dc2626' : '#16a34a',
-          border: `1px solid ${toast.type === 'error' ? '#fecaca' : '#bbf7d0'}`,
-          padding: '12px 20px', borderRadius: '10px', fontWeight: 600,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.15)', fontSize: '0.9rem',
-          animation: 'fadeIn 0.2s ease',
+          position: 'fixed', bottom: 28, right: 28, zIndex: 9999,
+          background: toast.type === 'error' ? '#450a0a' : '#052e16',
+          color: toast.type === 'error' ? '#fca5a5' : '#86efac',
+          border: `1px solid ${toast.type === 'error' ? '#7f1d1d' : '#14532d'}`,
+          padding: '12px 22px', borderRadius: '10px', fontWeight: 700,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)', fontSize: '0.88rem',
         }}>
           {toast.msg}
         </div>
       )}
 
-      {/* Full-width layout — no container */}
-      <div style={{ padding: '0 0 40px 0', background: '#f1f5f9', minHeight: '100vh' }}>
+      <div style={{ background: '#0f172a', minHeight: '100vh', paddingBottom: 48 }}>
 
-        {/* Header bar */}
+        {/* ── Header ── */}
         <div style={{
-          background: 'white', borderBottom: '1px solid #e2e8f0',
-          padding: '16px 28px', display: 'flex', justifyContent: 'space-between',
-          alignItems: 'center', flexWrap: 'wrap', gap: '12px', position: 'sticky', top: 0, zIndex: 100,
-          boxShadow: '0 1px 4px rgba(0,0,0,0.06)'
+          background: '#1e293b',
+          borderBottom: '1px solid #334155',
+          padding: '14px 24px',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          flexWrap: 'wrap', gap: 12,
+          position: 'sticky', top: 0, zIndex: 100,
+          boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
         }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: '#0f172a' }}>
+            <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#f1f5f9' }}>
               📊 Cycle Tyre Daily Summary
             </h1>
-            <p style={{ margin: 0, color: '#64748b', fontSize: '0.8rem', marginTop: '2px' }}>
-              Click any <span style={{ color: '#3b82f6', fontWeight: 600 }}>blue-dashed</span> cell to edit inline • Auto-saves on change
+            <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.78rem', marginTop: 2 }}>
+              ✏️ dashed cells ko click karo — inline edit hoga, blur pe auto-save
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>FROM</span>
-              <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}
-                style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px 10px', fontSize: '0.85rem', cursor: 'pointer' }} />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>TO</span>
-              <input type="date" value={toDate} onChange={e => setToDate(e.target.value)}
-                style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px 10px', fontSize: '0.85rem', cursor: 'pointer' }} />
-            </div>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            {[['FROM', fromDate, setFromDate], ['TO', toDate, setToDate]].map(([label, val, setter]) => (
+              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 700 }}>{label}</span>
+                <input type="date" value={val} onChange={e => setter(e.target.value)}
+                  style={{
+                    background: '#0f172a', border: '1px solid #475569', borderRadius: 8,
+                    padding: '6px 10px', fontSize: '0.83rem', color: '#e2e8f0', cursor: 'pointer',
+                    outline: 'none',
+                  }} />
+              </div>
+            ))}
             <button onClick={fetchData} style={{
-              background: '#0f172a', color: 'white', border: 'none', borderRadius: '8px',
-              padding: '8px 18px', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer'
+              background: '#3b82f6', color: 'white', border: 'none', borderRadius: 8,
+              padding: '8px 18px', fontWeight: 700, fontSize: '0.83rem', cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(59,130,246,0.4)',
             }}>🔄 Refresh</button>
           </div>
         </div>
 
-        {/* Stats row */}
-        <div style={{ display: 'flex', gap: '12px', padding: '16px 24px', overflowX: 'auto' }}>
-          {[
-            { label: 'Curing PCS', value: totals.production_pcs || 0, icon: '🔥', color: '#7c3aed', bg: '#f5f3ff' },
-            { label: 'Packing PCS', value: totals.packing_pcs || 0, icon: '📦', color: '#0284c7', bg: '#eff6ff' },
-            { label: 'Theo KG', value: parseFloat(totals.theoretical_kg || 0).toFixed(1), icon: '⚖️', color: '#0f766e', bg: '#f0fdfa' },
-            { label: 'Parchi KG', value: parseFloat(totals.parchi_kg || 0).toFixed(1), icon: '📋', color: '#c2410c', bg: '#fff7ed' },
-            { label: 'KG Diff', value: parseFloat(totals.difference || 0).toFixed(1), icon: '📐', color: '#64748b', bg: '#f8fafc' },
-            { label: 'Variance', value: parseFloat(totals.variance || 0).toFixed(1), icon: '📉', color: '#be123c', bg: '#fff1f2' },
-          ].map(s => (
+        {/* ── Stats Cards ── */}
+        <div style={{ display: 'flex', gap: 10, padding: '16px 20px', overflowX: 'auto', flexWrap: 'nowrap' }}>
+          {stats.map(s => (
             <div key={s.label} style={{
-              background: s.bg, border: `1px solid ${s.color}22`, borderRadius: '12px',
-              padding: '12px 20px', minWidth: '120px', flexShrink: 0, textAlign: 'center'
+              background: s.bg, border: `1px solid ${s.color}55`,
+              borderRadius: 12, padding: '12px 18px', minWidth: 110,
+              flexShrink: 0, textAlign: 'center', backdropFilter: 'blur(4px)',
             }}>
-              <div style={{ fontSize: '1.4rem' }}>{s.icon}</div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value}</div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, marginTop: '2px', textTransform: 'uppercase' }}>{s.label}</div>
+              <div style={{ fontSize: '1.3rem' }}>{s.icon}</div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: s.color, lineHeight: 1.1 }}>{s.value}</div>
+              <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700, marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{s.label}</div>
             </div>
           ))}
         </div>
 
-        {/* Main Table - edge to edge */}
-        <div style={{ margin: '0 16px', background: 'white', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.07)', border: '1px solid #e2e8f0' }}>
+        {/* ── Table ── */}
+        <div style={{ margin: '0 16px', borderRadius: 14, overflow: 'hidden', border: '1px solid #334155', boxShadow: '0 4px 24px rgba(0,0,0,0.3)' }}>
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '60px', color: '#94a3b8' }}>
-              <div style={{ fontSize: '2rem', marginBottom: '12px' }}>⏳</div>
-              Loading summary...
+            <div style={{ textAlign: 'center', padding: 60, color: '#64748b', background: '#1e293b' }}>
+              <div style={{ fontSize: '2rem', marginBottom: 10 }}>⏳</div>
+              Loading…
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
+
+                {/* THEAD */}
                 <thead>
-                  <tr style={{ background: '#0f172a', position: 'sticky', top: '61px', zIndex: 50 }}>
-                    <th style={{ padding: '10px 14px', textAlign: 'left', color: 'white', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', minWidth: '90px', position: 'sticky', left: 0, background: '#0f172a', zIndex: 51 }}>DATE</th>
-                    <th style={{ padding: '10px 10px', textAlign: 'right', color: '#c4b5fd', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.05em', minWidth: '85px' }}>CURING PCS</th>
-                    <th style={{ padding: '10px 10px', textAlign: 'right', color: '#7dd3fc', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.05em', minWidth: '90px' }}>PACKING PCS</th>
-                    <th style={{ padding: '10px 10px', textAlign: 'right', color: '#6ee7b7', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.05em', minWidth: '80px' }}>THEO KG</th>
-                    <th style={{ padding: '10px 10px', textAlign: 'right', color: '#fde68a', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.05em', minWidth: '90px' }}>PARCHI KG ✏️</th>
-                    <th style={{ padding: '10px 10px', textAlign: 'right', color: '#fca5a5', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.05em', minWidth: '75px' }}>DIFF KG</th>
-                    <th style={{ padding: '10px 10px', textAlign: 'right', color: '#a5f3fc', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.05em', minWidth: '85px' }}>THEO COMP</th>
-                    <th style={{ padding: '10px 10px', textAlign: 'right', color: '#fde68a', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.05em', minWidth: '90px' }}>MIXING ACT ✏️</th>
-                    <th style={{ padding: '10px 10px', textAlign: 'right', color: '#fca5a5', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.05em', minWidth: '80px' }}>VARIANCE</th>
-                    <th style={{ padding: '10px 10px', textAlign: 'right', color: '#fde68a', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.05em', minWidth: '75px' }}>CHAKKA ✏️</th>
-                    <th style={{ padding: '10px 10px', textAlign: 'right', color: '#fde68a', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.05em', minWidth: '85px' }}>CALANDER ✏️</th>
-                    <th style={{ padding: '10px 10px', textAlign: 'right', color: '#fde68a', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.05em', minWidth: '85px' }}>PACK WASTE ✏️</th>
-                    <th style={{ padding: '10px 10px', textAlign: 'right', color: '#fde68a', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.05em', minWidth: '70px' }}>TAR ✏️</th>
-                    <th style={{ padding: '10px 10px', textAlign: 'center', color: '#94a3b8', fontSize: '0.72rem', fontWeight: 700, minWidth: '60px' }}>STATUS</th>
+                  <tr style={{ background: '#1e293b', position: 'sticky', top: 61, zIndex: 50 }}>
+                    {[
+                      ['DATE', '#e2e8f0', true],
+                      ['CURING PCS', '#c4b5fd', false],
+                      ['PACKING PCS ✏️', '#7dd3fc', false],
+                      ['THEO KG', '#6ee7b7', false],
+                      ['PARCHI KG ✏️', '#fde68a', false],
+                      ['DIFF KG', '#fca5a5', false],
+                      ['THEO COMP', '#a5f3fc', false],
+                      ['MIXING ACT ✏️', '#fde68a', false],
+                      ['VARIANCE', '#fca5a5', false],
+                      ['CHAKKA ✏️', '#fde68a', false],
+                      ['CALANDER ✏️', '#fde68a', false],
+                      ['PACK WASTE ✏️', '#fde68a', false],
+                      ['TAR ✏️', '#fde68a', false],
+                      ['', '#475569', false],
+                    ].map(([label, color, left], i) => (
+                      <th key={i} style={{
+                        padding: '10px 10px',
+                        textAlign: left ? 'left' : 'right',
+                        color, fontSize: '0.7rem', fontWeight: 800,
+                        letterSpacing: '0.05em', whiteSpace: 'nowrap',
+                        borderBottom: '1px solid #334155',
+                        ...(left ? { position: 'sticky', left: 0, background: '#1e293b', zIndex: 51, paddingLeft: 16 } : {}),
+                      }}>
+                        {label}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
+
+                {/* TBODY */}
                 <tbody>
                   {rows.length === 0 && (
-                    <tr><td colSpan={14} style={{ textAlign: 'center', padding: '50px', color: '#94a3b8', fontSize: '0.9rem' }}>
-                      No data for this range. Add production entries first.
-                    </td></tr>
+                    <tr>
+                      <td colSpan={14} style={{ textAlign: 'center', padding: 50, color: '#475569', background: '#0f172a' }}>
+                        Koi data nahi mila is range mein.
+                      </td>
+                    </tr>
                   )}
                   {rows.map((r, i) => {
+                    const bg = i % 2 === 0 ? '#0f172a' : '#1a2540';
                     const isSaving = saving === r.date;
-                    const em = editMap[r.date] || {};
                     const diff = parseFloat(r.difference || 0);
                     const variance = parseFloat(r.variance || 0);
+
                     return (
-                      <tr key={r.date} style={{ background: i % 2 === 0 ? 'white' : '#f8fafc', borderBottom: '1px solid #f1f5f9', transition: 'background 0.1s' }}
-                        onMouseEnter={e => e.currentTarget.style.background = '#f0f9ff'}
-                        onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? 'white' : '#f8fafc'}
+                      <tr key={r.date}
+                        style={{ background: bg, borderBottom: '1px solid #1e293b', transition: 'background 0.1s' }}
+                        onMouseEnter={e => e.currentTarget.style.background = '#1e3a5f'}
+                        onMouseLeave={e => e.currentTarget.style.background = bg}
                       >
-                        {/* Date - sticky */}
-                        <td style={{ padding: '8px 14px', fontWeight: 700, color: '#0f172a', fontSize: '0.85rem', position: 'sticky', left: 0, background: i % 2 === 0 ? 'white' : '#f8fafc', zIndex: 5, borderRight: '2px solid #e2e8f0' }}>
-                          {fmtDate(r.date)}<br />
-                          <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 400 }}>{r.date?.slice(0, 7)}</span>
+                        {/* DATE sticky */}
+                        <td style={{
+                          padding: '9px 16px', fontWeight: 700, color: '#e2e8f0',
+                          fontSize: '0.85rem', position: 'sticky', left: 0, background: bg,
+                          zIndex: 5, borderRight: '1px solid #334155', whiteSpace: 'nowrap',
+                        }}>
+                          {fmtDate(r.date)}
+                          <span style={{ display: 'block', fontSize: '0.68rem', color: '#64748b', fontWeight: 400 }}>{r.date}</span>
                         </td>
-                        {/* Curing PCS — read only from production */}
-                        <td style={{ textAlign: 'right', padding: '8px 10px', fontWeight: 800, color: '#7c3aed', fontSize: '0.9rem' }}>
-                          {r.production_pcs > 0 ? r.production_pcs : <span style={{ color: '#cbd5e1' }}>—</span>}
+
+                        {/* CURING PCS — read only */}
+                        <td style={{ textAlign: 'right', padding: '9px 10px', fontWeight: 800, color: '#a78bfa', fontSize: '0.9rem' }}>
+                          {r.production_pcs > 0 ? r.production_pcs : <span style={{ color: '#334155' }}>—</span>}
                         </td>
-                        {/* Packing PCS — read only from production */}
-                        <td style={{ textAlign: 'right', padding: '8px 10px', fontWeight: 800, color: '#0284c7', fontSize: '0.9rem' }}>
-                          {r.packing_pcs > 0 ? r.packing_pcs : <span style={{ color: '#cbd5e1' }}>—</span>}
-                        </td>
-                        {/* Theo KG — computed */}
-                        <td style={{ textAlign: 'right', padding: '8px 10px', color: '#0f766e' }}>{parseFloat(r.theoretical_kg) !== 0 ? parseFloat(r.theoretical_kg).toFixed(2) : <span style={{ color: '#cbd5e1' }}>—</span>}</td>
-                        {/* PARCHI KG — editable */}
-                        <EditCell
-                          value={em.parchi_kg}
-                          onSave={(v) => handleFieldChange(r.date, 'parchi_kg', v)}
-                          bold color="#c2410c"
+
+                        {/* PACKING PCS — NOW EDITABLE */}
+                        <Cell
+                          value={g(r.date, 'packing_pcs')}
+                          onSave={v => saveField(r.date, 'packing_pcs', v)}
+                          color="#38bdf8" bold isInt
                         />
+
+                        {/* THEO KG */}
+                        <td style={{ textAlign: 'right', padding: '9px 10px', color: '#34d399', fontWeight: 500 }}>
+                          {parseFloat(r.theoretical_kg) !== 0 ? parseFloat(r.theoretical_kg).toFixed(2) : <span style={{ color: '#334155' }}>—</span>}
+                        </td>
+
+                        {/* PARCHI KG editable */}
+                        <Cell value={g(r.date, 'parchi_kg')} onSave={v => saveField(r.date, 'parchi_kg', v)} color="#fbbf24" bold />
+
                         {/* DIFF */}
-                        <td style={{ textAlign: 'right', padding: '8px 10px', fontWeight: 700, color: diffColor(diff), fontSize: '0.85rem' }}>
-                          {diff !== 0 ? (diff > 0 ? '+' : '') + diff.toFixed(2) : <span style={{ color: '#cbd5e1' }}>—</span>}
+                        <td style={{ textAlign: 'right', padding: '9px 10px', fontWeight: 700, color: diffColor(diff), fontSize: '0.85rem' }}>
+                          {diff !== 0 ? (diff > 0 ? '+' : '') + diff.toFixed(2) : <span style={{ color: '#334155' }}>—</span>}
                         </td>
+
                         {/* THEO COMP */}
-                        <td style={{ textAlign: 'right', padding: '8px 10px', color: '#0f766e' }}>{parseFloat(r.theoretical_total_compound) !== 0 ? parseFloat(r.theoretical_total_compound).toFixed(2) : <span style={{ color: '#cbd5e1' }}>—</span>}</td>
-                        {/* MIXING ACTUAL — editable */}
-                        <EditCell
-                          value={em.mixing_actual_compound}
-                          onSave={(v) => handleFieldChange(r.date, 'mixing_actual_compound', v)}
-                          bold color="#7c3aed"
-                        />
-                        {/* VARIANCE */}
-                        <td style={{ textAlign: 'right', padding: '8px 10px', fontWeight: 700, color: diffColor(variance), fontSize: '0.85rem' }}>
-                          {variance !== 0 ? (variance > 0 ? '+' : '') + variance.toFixed(2) : <span style={{ color: '#cbd5e1' }}>—</span>}
+                        <td style={{ textAlign: 'right', padding: '9px 10px', color: '#67e8f9', fontWeight: 500 }}>
+                          {parseFloat(r.theoretical_total_compound) !== 0 ? parseFloat(r.theoretical_total_compound).toFixed(2) : <span style={{ color: '#334155' }}>—</span>}
                         </td>
-                        {/* CHAKKA */}
-                        <EditCell value={em.chakka} onSave={(v) => handleFieldChange(r.date, 'chakka', v)} />
-                        {/* CALANDER */}
-                        <EditCell value={em.calander_bias_cutt} onSave={(v) => handleFieldChange(r.date, 'calander_bias_cutt', v)} />
-                        {/* PACK WASTAGE */}
-                        <EditCell value={em.packing_wastage} onSave={(v) => handleFieldChange(r.date, 'packing_wastage', v)} />
-                        {/* TAR */}
-                        <EditCell value={em.tar} onSave={(v) => handleFieldChange(r.date, 'tar', v)} />
-                        {/* Saving indicator */}
-                        <td style={{ textAlign: 'center', padding: '8px' }}>
+
+                        {/* MIXING ACTUAL editable */}
+                        <Cell value={g(r.date, 'mixing_actual_compound')} onSave={v => saveField(r.date, 'mixing_actual_compound', v)} color="#c084fc" bold />
+
+                        {/* VARIANCE */}
+                        <td style={{ textAlign: 'right', padding: '9px 10px', fontWeight: 700, color: diffColor(variance), fontSize: '0.85rem' }}>
+                          {variance !== 0 ? (variance > 0 ? '+' : '') + variance.toFixed(2) : <span style={{ color: '#334155' }}>—</span>}
+                        </td>
+
+                        {/* CHAKKA editable */}
+                        <Cell value={g(r.date, 'chakka')} onSave={v => saveField(r.date, 'chakka', v)} color="#cbd5e1" />
+                        {/* CALANDER editable */}
+                        <Cell value={g(r.date, 'calander_bias_cutt')} onSave={v => saveField(r.date, 'calander_bias_cutt', v)} color="#cbd5e1" />
+                        {/* PACK WASTAGE editable */}
+                        <Cell value={g(r.date, 'packing_wastage')} onSave={v => saveField(r.date, 'packing_wastage', v)} color="#cbd5e1" />
+                        {/* TAR editable */}
+                        <Cell value={g(r.date, 'tar')} onSave={v => saveField(r.date, 'tar', v)} color="#cbd5e1" />
+
+                        {/* Status */}
+                        <td style={{ textAlign: 'center', padding: '9px 8px' }}>
                           {isSaving
-                            ? <span style={{ fontSize: '0.7rem', color: '#f59e0b', fontWeight: 700 }}>💾…</span>
-                            : <span style={{ fontSize: '0.7rem', color: '#22c55e' }}>✓</span>
-                          }
+                            ? <span style={{ fontSize: '0.75rem', color: '#f59e0b' }}>💾</span>
+                            : <span style={{ fontSize: '0.75rem', color: '#22c55e' }}>✓</span>}
                         </td>
                       </tr>
                     );
                   })}
                 </tbody>
+
+                {/* TOTALS footer */}
                 {rows.length > 0 && (
                   <tfoot>
-                    <tr style={{ background: '#fef3c7', borderTop: '2px solid #f59e0b' }}>
-                      <td style={{ padding: '10px 14px', fontWeight: 800, fontSize: '0.85rem', position: 'sticky', left: 0, background: '#fef3c7', borderRight: '2px solid #e2e8f0' }}>TOTALS</td>
-                      <td style={{ textAlign: 'right', padding: '10px', fontWeight: 800, color: '#7c3aed' }}>{totals.production_pcs || 0}</td>
-                      <td style={{ textAlign: 'right', padding: '10px', fontWeight: 800, color: '#0284c7' }}>{totals.packing_pcs || 0}</td>
-                      <td style={{ textAlign: 'right', padding: '10px', fontWeight: 700 }}>{parseFloat(totals.theoretical_kg || 0).toFixed(2)}</td>
-                      <td style={{ textAlign: 'right', padding: '10px', fontWeight: 700, color: '#c2410c' }}>{parseFloat(totals.parchi_kg || 0).toFixed(2)}</td>
+                    <tr style={{ background: '#1e3a5f', borderTop: '2px solid #3b82f6' }}>
+                      <td style={{ padding: '10px 16px', fontWeight: 800, color: '#f1f5f9', fontSize: '0.85rem', position: 'sticky', left: 0, background: '#1e3a5f', borderRight: '1px solid #334155' }}>TOTALS</td>
+                      <td style={{ textAlign: 'right', padding: '10px', fontWeight: 800, color: '#a78bfa' }}>{totals.production_pcs || 0}</td>
+                      <td style={{ textAlign: 'right', padding: '10px', fontWeight: 800, color: '#38bdf8' }}>{totals.packing_pcs || 0}</td>
+                      <td style={{ textAlign: 'right', padding: '10px', fontWeight: 700, color: '#34d399' }}>{parseFloat(totals.theoretical_kg || 0).toFixed(2)}</td>
+                      <td style={{ textAlign: 'right', padding: '10px', fontWeight: 700, color: '#fbbf24' }}>{parseFloat(totals.parchi_kg || 0).toFixed(2)}</td>
                       <td style={{ textAlign: 'right', padding: '10px', fontWeight: 700, color: diffColor(totals.difference) }}>{parseFloat(totals.difference || 0).toFixed(2)}</td>
-                      <td style={{ textAlign: 'right', padding: '10px', fontWeight: 700 }}>{parseFloat(totals.theoretical_total_compound || 0).toFixed(2)}</td>
-                      <td style={{ textAlign: 'right', padding: '10px', fontWeight: 700 }}>{parseFloat(totals.mixing_actual_compound || 0).toFixed(2)}</td>
+                      <td style={{ textAlign: 'right', padding: '10px', fontWeight: 700, color: '#67e8f9' }}>{parseFloat(totals.theoretical_total_compound || 0).toFixed(2)}</td>
+                      <td style={{ textAlign: 'right', padding: '10px', fontWeight: 700, color: '#c084fc' }}>{parseFloat(totals.mixing_actual_compound || 0).toFixed(2)}</td>
                       <td style={{ textAlign: 'right', padding: '10px', fontWeight: 700, color: diffColor(totals.variance) }}>{parseFloat(totals.variance || 0).toFixed(2)}</td>
-                      <td style={{ textAlign: 'right', padding: '10px', fontWeight: 700 }}>{parseFloat(totals.chakka || 0).toFixed(2)}</td>
-                      <td style={{ textAlign: 'right', padding: '10px', fontWeight: 700 }}>{parseFloat(totals.calander_bias_cutt || 0).toFixed(2)}</td>
-                      <td style={{ textAlign: 'right', padding: '10px', fontWeight: 700 }}>{parseFloat(totals.packing_wastage || 0).toFixed(2)}</td>
-                      <td style={{ textAlign: 'right', padding: '10px', fontWeight: 700 }}>{parseFloat(totals.tar || 0).toFixed(2)}</td>
+                      <td style={{ textAlign: 'right', padding: '10px', color: '#cbd5e1', fontWeight: 700 }}>{parseFloat(totals.chakka || 0).toFixed(2)}</td>
+                      <td style={{ textAlign: 'right', padding: '10px', color: '#cbd5e1', fontWeight: 700 }}>{parseFloat(totals.calander_bias_cutt || 0).toFixed(2)}</td>
+                      <td style={{ textAlign: 'right', padding: '10px', color: '#cbd5e1', fontWeight: 700 }}>{parseFloat(totals.packing_wastage || 0).toFixed(2)}</td>
+                      <td style={{ textAlign: 'right', padding: '10px', color: '#cbd5e1', fontWeight: 700 }}>{parseFloat(totals.tar || 0).toFixed(2)}</td>
                       <td></td>
                     </tr>
                   </tfoot>
@@ -385,18 +415,23 @@ export default function CycleTyresSummary() {
           )}
         </div>
 
-        {/* Formula legend */}
-        <div style={{ margin: '12px 16px 0', padding: '10px 16px', background: 'white', borderRadius: '10px', fontSize: '0.75rem', color: '#64748b', border: '1px solid #e2e8f0', display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-          <span>📐 <strong>Theo KG</strong> = Curing Pcs × Item Weight</span>
-          <span>|</span>
-          <span>📊 <strong>Theo Compound</strong> = Theo KG × 0.825</span>
-          <span>|</span>
-          <span>📏 <strong>Diff</strong> = Parchi KG − Theo KG</span>
-          <span>|</span>
-          <span>📉 <strong>Variance</strong> = Mixing Actual − Theo Compound</span>
-          <span>|</span>
-          <span>✏️ = Click to edit inline</span>
+        {/* Formula bar */}
+        <div style={{
+          margin: '12px 16px 0', padding: '10px 16px',
+          background: '#1e293b', borderRadius: 10, border: '1px solid #334155',
+          fontSize: '0.73rem', color: '#94a3b8', display: 'flex', flexWrap: 'wrap', gap: 10,
+        }}>
+          <span>⚖️ <strong style={{ color: '#e2e8f0' }}>Theo KG</strong> = Curing × Weight</span>
+          <span style={{ color: '#475569' }}>|</span>
+          <span>🧪 <strong style={{ color: '#e2e8f0' }}>Theo Comp</strong> = Theo KG × 0.825</span>
+          <span style={{ color: '#475569' }}>|</span>
+          <span>📏 <strong style={{ color: '#e2e8f0' }}>Diff</strong> = Parchi − Theo KG</span>
+          <span style={{ color: '#475569' }}>|</span>
+          <span>📉 <strong style={{ color: '#e2e8f0' }}>Variance</strong> = Mixing − Theo Comp</span>
+          <span style={{ color: '#475569' }}>|</span>
+          <span>✏️ <strong style={{ color: '#93c5fd' }}>Dashed cells</strong> = click to edit</span>
         </div>
+
       </div>
     </>
   );
