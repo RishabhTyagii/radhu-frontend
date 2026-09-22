@@ -105,10 +105,7 @@ export default function CycleTyresSummary() {
   const [saving, setSaving] = useState(null);
   const [editMap, setEditMap] = useState({});
   const [toast, setToast] = useState(null);
-  const [fromDate, setFromDate] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
-  });
+  const [fromDate, setFromDate] = useState('2026-04-01');
   const [toDate, setToDate] = useState(today);
 
   const showToast = (msg, type = 'success') => {
@@ -292,7 +289,8 @@ export default function CycleTyresSummary() {
                         color, fontSize: '0.7rem', fontWeight: 800,
                         letterSpacing: '0.05em', whiteSpace: 'nowrap',
                         borderBottom: '1px solid #334155',
-                        ...(left ? { position: 'sticky', left: 0, background: '#1e293b', zIndex: 51, paddingLeft: 16 } : {}),
+                        background: '#1e293b',
+                        ...(left ? { position: 'sticky', left: 0, zIndex: 51, paddingLeft: 16 } : {}),
                       }}>
                         {label}
                       </th>
