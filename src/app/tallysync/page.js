@@ -18,7 +18,7 @@ export default function TallySalesSummary() {
     month: '',
     from_date: '',
     to_date: '',
-    ledger: '',
+    ledger: [],
   });
 
   // Pagination state
@@ -26,6 +26,7 @@ export default function TallySalesSummary() {
 
   // Theme state: 'dark' or 'light'
   const [theme, setTheme] = useState('dark');
+  const [isLedgerDropdownOpen, setIsLedgerDropdownOpen] = useState(false);
 
   // Load saved theme preference on mount
   useEffect(() => {
@@ -59,7 +60,7 @@ export default function TallySalesSummary() {
     setLoading(true);
     let query = '?all_months=true&';
     if (filters.party) query += `party=${encodeURIComponent(filters.party)}&`;
-    if (filters.ledger) query += `ledger=${encodeURIComponent(filters.ledger)}&`;
+    if (filters.ledger && filters.ledger.length > 0) query += `ledger=${encodeURIComponent(filters.ledger.join(','))}&`;
     if (filters.from_date || filters.to_date) {
       if (filters.from_date) query += `from_date=${filters.from_date}&`;
       if (filters.to_date) query += `to_date=${filters.to_date}&`;
@@ -78,7 +79,7 @@ export default function TallySalesSummary() {
   }
 
   const handleReset = () => {
-    setFilters({ party: '', month: '', from_date: '', to_date: '', ledger: '' });
+    setFilters({ party: '', month: '', from_date: '', to_date: '', ledger: [] });
     setSearchTerm('');
     setCurrentPage(1);
   };
@@ -141,11 +142,9 @@ export default function TallySalesSummary() {
         const cat = getInvoiceCategory(inv);
         if (cat !== activeTab) return false;
       }
-      if (filters.ledger) {
-        const lq = filters.ledger.toLowerCase();
-        const sledger = (inv.sales_ledger || '').toLowerCase();
-        const isummary = (inv.items_summary || '').toLowerCase();
-        if (!sledger.includes(lq) && !isummary.includes(lq)) {
+      if (filters.ledger && filters.ledger.length > 0) {
+        const sledger = (inv.sales_ledger || '');
+        if (!filters.ledger.includes(sledger)) {
           return false;
         }
       }
@@ -696,13 +695,12 @@ export default function TallySalesSummary() {
             </div>
 
             {/* Sales Ledger Filter Dropdown */}
-            <div>
+            <div style={{ position: 'relative' }}>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: colors.textMuted, textTransform: 'uppercase', marginBottom: '6px' }}>
                 <i className="fas fa-book mr-1"></i> Sales / GST Ledger
               </label>
-              <select
-                value={filters.ledger || ''}
-                onChange={(e) => setFilters({ ...filters, ledger: e.target.value })}
+              <div
+                onClick={() => setIsLedgerDropdownOpen(!isLedgerDropdownOpen)}
                 style={{
                   width: '100%',
                   background: colors.inputBg,
@@ -711,17 +709,66 @@ export default function TallySalesSummary() {
                   color: colors.textMain,
                   padding: '10px 14px',
                   fontSize: '0.875rem',
-                  outline: 'none',
                   cursor: 'pointer',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
                 }}
               >
-                <option value="">All Sales Ledgers</option>
-                {data?.available_ledgers?.map((ledger, idx) => (
-                  <option key={idx} value={ledger}>
-                    {ledger}
-                  </option>
-                ))}
-              </select>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {filters.ledger && filters.ledger.length > 0 ? `${filters.ledger.length} Selected` : 'All Sales Ledgers'}
+                </span>
+                <i className={`fas fa-chevron-${isLedgerDropdownOpen ? 'up' : 'down'}`} style={{ fontSize: '0.75rem' }}></i>
+              </div>
+              
+              {isLedgerDropdownOpen && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  marginTop: '4px',
+                  background: colors.cardBg,
+                  border: `1px solid ${colors.inputBorder}`,
+                  borderRadius: '10px',
+                  boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+                  zIndex: 50,
+                  maxHeight: '200px',
+                  overflowY: 'auto',
+                  padding: '8px'
+                }}>
+                  <div 
+                    onClick={() => setFilters({ ...filters, ledger: [] })}
+                    style={{ padding: '6px 8px', cursor: 'pointer', fontSize: '0.85rem', color: filters.ledger.length === 0 ? '#3b82f6' : colors.textMain, display: 'flex', alignItems: 'center' }}
+                  >
+                    <div style={{ width: '16px', height: '16px', border: `1px solid ${colors.inputBorder}`, borderRadius: '4px', marginRight: '8px', background: filters.ledger.length === 0 ? '#3b82f6' : 'transparent', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                      {filters.ledger.length === 0 && <i className="fas fa-check" style={{ color: '#fff', fontSize: '10px' }}></i>}
+                    </div>
+                    All Sales Ledgers
+                  </div>
+                  
+                  {data?.available_ledgers?.map((ledger, idx) => {
+                    const isSelected = filters.ledger.includes(ledger);
+                    return (
+                      <div 
+                        key={idx}
+                        onClick={() => {
+                          const newLedgers = isSelected 
+                            ? filters.ledger.filter(l => l !== ledger)
+                            : [...filters.ledger, ledger];
+                          setFilters({ ...filters, ledger: newLedgers });
+                        }}
+                        style={{ padding: '6px 8px', cursor: 'pointer', fontSize: '0.85rem', color: colors.textMain, display: 'flex', alignItems: 'center' }}
+                      >
+                        <div style={{ width: '16px', height: '16px', border: `1px solid ${colors.inputBorder}`, borderRadius: '4px', marginRight: '8px', background: isSelected ? '#3b82f6' : 'transparent', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                          {isSelected && <i className="fas fa-check" style={{ color: '#fff', fontSize: '10px' }}></i>}
+                        </div>
+                        {ledger}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div>
