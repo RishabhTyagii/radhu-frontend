@@ -66,9 +66,10 @@ export default function MonthlyRegister() {
 
       if (res.attendance) {
         res.attendance.forEach(a => {
-          const dStr = a.date.split('-')[2];
-          if (map[a.employee_id] && map[a.employee_id][dStr]) {
-            map[a.employee_id][dStr] = {
+          const empId = a.employee_id ?? a.employee; // serializer returns 'employee' field
+          const dStr = String(a.date.split('-')[2]).padStart(2, '0');
+          if (map[empId] && map[empId][dStr] !== undefined) {
+            map[empId][dStr] = {
               status: a.status === 'Present' ? 'P' : a.status === 'Absent' ? 'A' : a.status === 'Half Day' ? 'HD' : a.status === 'Holiday' ? 'H' : a.status === 'Week Off' ? 'W' : '',
               ot: a.overtime_hours > 0 ? String(parseFloat(a.overtime_hours)) : ''
             };
@@ -125,9 +126,9 @@ export default function MonthlyRegister() {
     const res = await apiPost('/hrms/attendance/bulk-any/', { entries });
     setSaving(false);
     if (res && res.ok) {
-      setMessage({ type: 'success', text: `Saved ${res.count} records successfully!` });
+      setMessage({ type: 'success', text: `Saved ${res.data?.count ?? entries.length} records successfully!` });
     } else {
-      setMessage({ type: 'error', text: 'Failed to save attendance.' });
+      setMessage({ type: 'error', text: res?.data?.error || 'Failed to save attendance.' });
     }
   };
 
