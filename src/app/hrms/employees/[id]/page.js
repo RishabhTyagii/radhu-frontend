@@ -199,6 +199,9 @@ export default function EmployeeDetailPage() {
             <StatCard label="Present Days" value={aStats.present_days || 0} sub={`Half: ${aStats.half_days || 0} | Absent: ${aStats.absent_days || 0}`} accent="#3b82f6" />
             <StatCard label="Working Hrs" value={`${aStats.total_work_hrs || 0}h`} sub={`+ ${aStats.total_ot_hrs || 0}h Overtime`} accent="#8b5cf6" />
             <StatCard label="Production Earnings" value={`Rs ${pStats.total_amount || 0}`} sub={`${pStats.total_qty || 0} pieces built`} accent="#10b981" />
+            {(curSal && Number(curSal.incentive_amount) > 0) && (
+              <StatCard label="Cycle Press Incentive" value={`Rs ${Number(curSal.incentive_amount).toFixed(2)}`} sub="15.62% of Production" accent="#f59e0b" />
+            )}
             <div style={{ background: "linear-gradient(135deg,#1e293b,#0f172a)", padding: "20px 24px", borderRadius: "16px", boxShadow: "0 4px 20px rgba(0,0,0,0.12)" }}>
               <div style={{ fontSize: "0.75rem", fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", marginBottom: "8px" }}>Salary ({monthStr})</div>
               <div style={{ fontSize: "1.8rem", fontWeight: 900, color: "#4ade80" }}>{curSal ? `Rs ${Number(curSal.net_salary || 0).toLocaleString("en-IN")}` : "Pending"}</div>
