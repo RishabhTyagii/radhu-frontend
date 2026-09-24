@@ -63,7 +63,8 @@ const SlipRenderer = ({ selectedSlip, printWages, onClose, onPrint, isBulk = fal
         <div>
           <p><strong>Total Month Days:</strong> {selectedSlip.attendance_summary.days_in_month}</p>
           <p><strong>Worked Days:</strong> {selectedSlip.attendance_summary.total_worked_days}</p>
-          <p><strong>Absent Days:</strong> {selectedSlip.attendance_summary.absent_days}</p>
+          <p><strong>Present:</strong> {selectedSlip.attendance_summary.present_days} | Holiday: {selectedSlip.attendance_summary.holiday_days || 0} | Half: {selectedSlip.attendance_summary.half_days}</p>
+          <p><strong>Absent Days:</strong> {selectedSlip.attendance_summary.absent_days} | Week Off: {selectedSlip.attendance_summary.week_off_days || 0}</p>
           <p><strong>Total OT Hours:</strong> {selectedSlip.attendance_summary.total_overtime_hours}</p>
         </div>
       </div>
@@ -102,10 +103,16 @@ const SlipRenderer = ({ selectedSlip, printWages, onClose, onPrint, isBulk = fal
             <td>Other Deductions</td>
             <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.deduction).toFixed(2)}</td>
           </tr>
+          <tr>
+            <td>Incentive / Cycle Press</td>
+            <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.incentive_amount || 0).toFixed(2)}</td>
+            <td></td>
+            <td></td>
+          </tr>
           <tr style={{ fontWeight: '900', backgroundColor: '#f1f5f9', fontSize: '14px', borderTop: '2px solid #94a3b8' }}>
             <td style={{ color: '#000', padding: '15px' }}>TOTAL EARNINGS</td>
             <td style={{ textAlign: 'right', color: '#000', fontSize: '18px', padding: '15px' }}>
-              {(Number(selectedSlip.salary.basic_salary) + Number(selectedSlip.salary.overtime_amount) + Number(selectedSlip.salary.production_amount) + Number(selectedSlip.salary.bonus)).toFixed(2)}
+              {(Number(selectedSlip.salary.basic_salary) + Number(selectedSlip.salary.overtime_amount) + Number(selectedSlip.salary.production_amount) + Number(selectedSlip.salary.bonus) + Number(selectedSlip.salary.incentive_amount || 0)).toFixed(2)}
             </td>
             <td style={{ color: '#000', padding: '15px' }}>TOTAL DEDUCTIONS</td>
             <td style={{ textAlign: 'right', color: '#000', fontSize: '18px', padding: '15px' }}>
@@ -473,6 +480,7 @@ export default function HRMSSalary() {
                     <th style={{ textAlign: 'right' }}>BASIC</th>
                     <th style={{ textAlign: 'right' }}>OVERTIME</th>
                     <th style={{ textAlign: 'right' }}>PRODUCTION</th>
+                      <th style={{ textAlign: 'right' }}>INCENTIVE</th>
                     <th style={{ textAlign: 'right' }}>DEDUCTION</th>
                     <th style={{ textAlign: 'right' }}>NET SALARY</th>
                     <th style={{ textAlign: 'center' }}>PAYSLIP</th>
@@ -487,6 +495,7 @@ export default function HRMSSalary() {
                       <td style={{ textAlign: 'right' }}>₹{Number(sal.basic_salary).toFixed(2)}</td>
                       <td style={{ textAlign: 'right' }}>₹{Number(sal.overtime_amount).toFixed(2)}</td>
                       <td style={{ textAlign: 'right', color: '#16a34a' }}>₹{Number(sal.production_amount).toFixed(2)}</td>
+                        <td style={{ textAlign: 'right', color: '#8b5cf6' }}>₹{Number(sal.incentive_amount || 0).toFixed(2)}</td>
                       <td style={{ textAlign: 'right', color: '#ef4444' }}>₹{(Number(sal.advance) + Number(sal.deduction) + Number(sal.pf_amount) + Number(sal.esi_amount)).toFixed(2)}</td>
                       <td style={{ textAlign: 'right', fontWeight: 800, color: '#2563eb', fontSize: '1.05rem' }}>₹{Number(sal.net_salary).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                       <td style={{ textAlign: 'center' }}>

@@ -66,7 +66,8 @@ export default function HRMSAttendance() {
       if (val === 'Present') autoWorkHours = '8';
       else if (val === 'Half Day') autoWorkHours = '4';
       else if (val === 'Absent') autoWorkHours = '0';
-      else if (val === 'Holiday' || val === 'Week Off') autoWorkHours = '0';
+      else if (val === 'Holiday') autoWorkHours = '8';
+      else if (val === 'Week Off') autoWorkHours = '0';
     }
 
     setAttendanceMap((prev) => ({
