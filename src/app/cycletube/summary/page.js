@@ -193,6 +193,9 @@ export default function CycleTubeProductionSummary() {
                     <th style={{ textAlign: 'right' }}>ACTUAL COMP NET</th>
                     <th style={{ textAlign: 'right' }}>VARIANCE COMP</th>
                     <th style={{ textAlign: 'right' }}>ACTUAL MIXING</th>
+                    <th style={{ textAlign: 'right' }}>JALI (KG)</th>
+                    <th style={{ textAlign: 'right' }}>DIE WASTAGE</th>
+                    <th style={{ textAlign: 'right' }}>TUBE CUTTING</th>
                     <th style={{ textAlign: 'right' }}>TOTAL WASTE</th>
                   </tr>
                 </thead>
@@ -212,6 +215,9 @@ export default function CycleTubeProductionSummary() {
                       <td style={{ textAlign: 'right' }}>{r.actual_comp_net}</td>
                       <td style={{ textAlign: 'right', color: r.variance_comp < 0 ? '#ef4444' : '#10b981' }}>{r.variance_comp}</td>
                       <td style={{ textAlign: 'right' }}>{r.actual_mixing_compound}</td>
+                      <td style={{ textAlign: 'right' }}>{r.jali}</td>
+                      <td style={{ textAlign: 'right' }}>{r.die_wastage}</td>
+                      <td style={{ textAlign: 'right' }}>{r.tube_cutting}</td>
                       <td style={{ textAlign: 'right', color: '#b45309', fontWeight: 600 }}>{r.total_tube_waste}</td>
                     </tr>
                   ))}
@@ -237,6 +243,9 @@ export default function CycleTubeProductionSummary() {
                       <td style={{ textAlign: 'right' }}>{totals.actual_comp_net || '0.00'}</td>
                       <td style={{ textAlign: 'right' }}>{totals.variance_comp || '0.00'}</td>
                       <td style={{ textAlign: 'right' }}>{totals.actual_mixing_compound || '0.00'}</td>
+                      <td style={{ textAlign: 'right' }}>{totals.jali || '0.00'}</td>
+                      <td style={{ textAlign: 'right' }}>{totals.die_wastage || '0.00'}</td>
+                      <td style={{ textAlign: 'right' }}>{totals.tube_cutting || '0.00'}</td>
                       <td style={{ textAlign: 'right', color: '#b45309' }}>{totals.total_tube_waste || '0.00'}</td>
                     </tr>
                   </tfoot>
