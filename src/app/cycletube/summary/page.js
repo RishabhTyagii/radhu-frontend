@@ -25,6 +25,35 @@ export default function CycleTubeProductionSummary() {
     fetchSummary();
   }, [startDate, endDate]);
 
+  useEffect(() => {
+    if (data && data.summary) {
+      const existing = data.summary.find((r) => r.date === manualForm.date);
+      if (existing) {
+        setManualForm((prev) => ({
+          ...prev,
+          valve_body_issued: existing.valve_body_issued || '0.00',
+          actual_wt_gross: existing.actual_wt_gross || '0.00',
+          actual_mixing_compound: existing.actual_mixing_compound || '0.00',
+          jali: existing.jali || '0.00',
+          die_wastage: existing.die_wastage || '0.00',
+          tube_cutting: existing.tube_cutting || '0.00',
+          total_tube_waste: existing.total_tube_waste || '0.00',
+        }));
+      } else {
+        setManualForm((prev) => ({
+          ...prev,
+          valve_body_issued: '0.00',
+          actual_wt_gross: '0.00',
+          actual_mixing_compound: '0.00',
+          jali: '0.00',
+          die_wastage: '0.00',
+          tube_cutting: '0.00',
+          total_tube_waste: '0.00',
+        }));
+      }
+    }
+  }, [manualForm.date, data]);
+
   async function fetchSummary() {
     setLoading(true);
     let query = '?';
