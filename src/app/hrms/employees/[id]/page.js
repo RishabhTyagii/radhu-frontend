@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
-import { apiGet } from "@/lib/api";
+import { apiGet, apiPatch } from "@/lib/api";
 
 const th = { padding: "10px 14px", fontSize: "0.75rem", fontWeight: 800, color: "#475569", textTransform: "uppercase", textAlign: "left", whiteSpace: "nowrap" };
 const td = { padding: "9px 14px", fontSize: "0.85rem", color: "#475569", borderBottom: "1px solid #f1f5f9" };
@@ -65,14 +65,9 @@ export default function EmployeeDetailPage() {
 
   async function saveRate(id) {
     setRateSaving(true);
-    const token = localStorage.getItem("radhu_token");
-    const res = await fetch(`/api/hrms/item-rates/${id}/`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ rate: editingRateVal }),
-    });
+    const res = await apiPatch(`/hrms/item-rates/${id}/`, { rate: editingRateVal });
     setRateSaving(false);
-    if (res.ok) {
+    if (res && !res.error && !res.detail) {
       setRateMsg({ type: "success", text: "Rate updated!" });
       setEditingRateId(null);
       apiGet(`/hrms/item-rates/?employee_id=${params.id}`).then(r => { if (Array.isArray(r)) setItemRates(r); });
