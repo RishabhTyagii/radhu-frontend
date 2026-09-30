@@ -134,7 +134,7 @@ export default function EmployeeDetailPage() {
                   })}
                 </tbody>
                 <tfoot><tr style={{ background: "#0c4a6e" }}>
-                  <td colSpan="3" style={{ padding: "12px 18px", color: "#7dd3fc", fontWeight: 800 }}>TOTAL: Present {aStats.present_days || 0} | Absent {aStats.absent_days || 0} | Half {aStats.half_days || 0}</td>
+                  <td colSpan="3" style={{ padding: "12px 18px", color: "#7dd3fc", fontWeight: 800 }}>TOTAL: P {aStats.present_days || 0} | Hol {aStats.holiday_days || 0} | Abs {aStats.absent_days || 0} | Half {aStats.half_days || 0}</td>
                   <td style={{ padding: "12px 18px", color: "#7dd3fc", fontWeight: 800, textAlign: "right" }}>{aStats.total_work_hrs || 0}h</td>
                   <td style={{ padding: "12px 18px", color: "#c4b5fd", fontWeight: 800, textAlign: "right" }}>{aStats.total_ot_hrs || 0}h</td>
                   <td style={{ padding: "12px 18px", color: "#4ade80", fontWeight: 800, textAlign: "right" }}>Rs{((aStats.total_ot_hrs || 0) * Number(emp.overtime_rate || 0)).toFixed(2)}</td>

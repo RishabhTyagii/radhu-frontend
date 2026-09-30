@@ -122,6 +122,14 @@ export default function HRMSAttendance() {
     setAttendanceMap(nextMap);
   };
 
+  const markAllHoliday = () => {
+    const nextMap = { ...attendanceMap };
+    filteredEmployees.forEach((e) => {
+      nextMap[e.id] = { ...(nextMap[e.id] || {}), status: 'Holiday', working_hours: '0', overtime_hours: '0' };
+    });
+    setAttendanceMap(nextMap);
+  };
+
   const filteredEmployees = employees.filter((emp) => {
     if (deptFilter && String(emp.department) !== String(deptFilter)) return false;
     if (search) {
@@ -159,6 +167,9 @@ export default function HRMSAttendance() {
             </button>
             <button onClick={markAllAbsent} className="btn" style={{ background: '#fee2e2', color: '#b91c1c', fontWeight: 600 }}>
               Mark Filtered Absent
+            </button>
+            <button onClick={markAllHoliday} className="btn" style={{ background: '#fef3c7', color: '#d97706', fontWeight: 600 }}>
+              Mark Filtered Holiday
             </button>
             <button onClick={handleSaveBulk} className="btn btn-success" disabled={saving}>
               {saving ? 'Saving...' : 'Save Attendance Sheet'}
