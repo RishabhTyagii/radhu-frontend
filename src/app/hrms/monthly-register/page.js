@@ -184,6 +184,8 @@ export default function MonthlyRegister() {
                   {days.map(d => (
                     <th key={d} style={{ width: '50px' }}>{parseInt(d)}<br/><span style={{fontSize:'0.6rem'}}>St|OT</span></th>
                   ))}
+                  <th style={{ minWidth: '60px', background: '#0284c7', right: '60px', position: 'sticky', zIndex: 12 }}>Total<br/><span style={{fontSize:'0.6rem'}}>Days</span></th>
+                  <th style={{ minWidth: '60px', background: '#ea580c', right: 0, position: 'sticky', zIndex: 12 }}>Total<br/><span style={{fontSize:'0.6rem'}}>OT (h)</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -191,7 +193,20 @@ export default function MonthlyRegister() {
                   <tr key={emp.id}>
                     <td style={{ background: '#f8fafc', fontWeight: 'bold', fontSize: '0.8rem', left: 0, position: 'sticky', zIndex: 11 }}>{emp.employee_code}</td>
                     <td style={{ background: '#f8fafc', fontWeight: 'bold', fontSize: '0.85rem', textAlign: 'left', paddingLeft: '8px !important', left: '70px', position: 'sticky', zIndex: 11 }}>{emp.name}</td>
-                    {days.map(d => {
+                    {(() => {
+                      let totalDays = 0;
+                      let totalOT = 0;
+                      days.forEach(d => {
+                        const cell = attendanceData[emp.id]?.[d] || { status: '', ot: '' };
+                        if (cell.status === 'P' || cell.status === 'H') totalDays += 1;
+                        else if (cell.status === 'HD') totalDays += 0.5;
+                        if (cell.ot && !isNaN(parseFloat(cell.ot))) {
+                          totalOT += parseFloat(cell.ot);
+                        }
+                      });
+                      return (
+                        <>
+                          {days.map(d => {
                       const cell = attendanceData[emp.id]?.[d] || { status: '', ot: '' };
                       return (
                         <td key={d} style={{ padding: 0 }}>
@@ -216,6 +231,11 @@ export default function MonthlyRegister() {
                         </td>
                       );
                     })}
+                          <td style={{ background: '#e0f2fe', fontWeight: 'bold', fontSize: '0.9rem', color: '#0369a1', right: '60px', position: 'sticky', zIndex: 11 }}>{totalDays}</td>
+                          <td style={{ background: '#ffedd5', fontWeight: 'bold', fontSize: '0.9rem', color: '#c2410c', right: 0, position: 'sticky', zIndex: 11 }}>{totalOT > 0 ? totalOT : 0}</td>
+                        </>
+                      );
+                    })()}
                   </tr>
                 ))}
                 {employees.length === 0 && (
