@@ -143,7 +143,9 @@ const SlipRenderer = ({ selectedSlip, printWages, onClose, onPrint, isBulk = fal
               <tr>
                 <th style={{ width: '130px', textAlign: 'left', paddingLeft: '5px' }}>Date ➔</th>
                 {daysArray.map(d => <th key={d}>{d}</th>)}
-                <th>Total</th>
+                <th style={{ minWidth: '40px' }}>Total</th>
+                <th style={{ minWidth: '40px' }}>Rate</th>
+                <th style={{ minWidth: '50px' }}>Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -161,6 +163,8 @@ const SlipRenderer = ({ selectedSlip, printWages, onClose, onPrint, isBulk = fal
                   return <td key={d} style={{ color: statusStr === 'A' ? '#ef4444' : (statusStr === 'P' ? '#16a34a' : '#000') }}>{statusStr}</td>;
                 })}
                 <td style={{ fontWeight: 'bold' }}>{selectedSlip.attendance_summary.total_worked_days}</td>
+                <td>-</td>
+                <td style={{ fontWeight: 'bold' }}>{Number(selectedSlip.salary.basic_salary).toFixed(0)}</td>
               </tr>
               
               {/* Overtime Row */}
@@ -171,21 +175,29 @@ const SlipRenderer = ({ selectedSlip, printWages, onClose, onPrint, isBulk = fal
                   return <td key={d}>{a && a.overtime_hours > 0 ? a.overtime_hours : ''}</td>;
                 })}
                 <td style={{ fontWeight: 'bold' }}>{selectedSlip.attendance_summary.total_overtime_hours}</td>
+                <td>{selectedSlip.employee.overtime_rate || '-'}</td>
+                <td style={{ fontWeight: 'bold' }}>{Number(selectedSlip.salary.overtime_amount).toFixed(0)}</td>
               </tr>
 
               {/* Production Rows */}
-              {Object.keys(prodGroups).map(prodName => (
-                <tr key={prodName}>
-                  <td style={{ fontSize: '9px', textAlign: 'left', paddingLeft: '5px' }}>{prodName}</td>
-                  {daysArray.map(d => {
-                    const p = prodGroups[prodName][d];
-                    return <td key={d}>{p ? p.quantity : ''}</td>;
-                  })}
-                  <td style={{ fontWeight: 'bold' }}>
-                    {Object.values(prodGroups[prodName]).reduce((sum, p) => sum + p.quantity, 0)}
-                  </td>
-                </tr>
-              ))}
+              {Object.keys(prodGroups).map(prodName => {
+                const prodItems = Object.values(prodGroups[prodName]);
+                const totalQty = prodItems.reduce((sum, p) => sum + p.quantity, 0);
+                const firstRate = prodItems.length > 0 ? prodItems[0].rate : 0;
+                const totalAmt = prodItems.reduce((sum, p) => sum + p.total_amount, 0);
+                return (
+                  <tr key={prodName}>
+                    <td style={{ fontSize: '9px', textAlign: 'left', paddingLeft: '5px' }}>{prodName}</td>
+                    {daysArray.map(d => {
+                      const p = prodGroups[prodName][d];
+                      return <td key={d}>{p ? p.quantity : ''}</td>;
+                    })}
+                    <td style={{ fontWeight: 'bold' }}>{totalQty}</td>
+                    <td>{firstRate}</td>
+                    <td style={{ fontWeight: 'bold' }}>{totalAmt.toFixed(0)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
