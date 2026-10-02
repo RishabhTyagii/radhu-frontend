@@ -61,11 +61,21 @@ const SlipRenderer = ({ selectedSlip, printWages, onClose, onPrint, isBulk = fal
           <p><strong>Department:</strong> {selectedSlip.employee.department_name || '-'}</p>
         </div>
         <div>
-          <p><strong>Total Month Days:</strong> {selectedSlip.attendance_summary.days_in_month}</p>
-          <p><strong>Worked Days:</strong> {selectedSlip.attendance_summary.total_worked_days}</p>
-          <p><strong>Present:</strong> {selectedSlip.attendance_summary.present_days} | Holiday: {selectedSlip.attendance_summary.holiday_days || 0} | Half: {selectedSlip.attendance_summary.half_days}</p>
-          <p><strong>Absent Days:</strong> {selectedSlip.attendance_summary.absent_days} | Week Off: {selectedSlip.attendance_summary.week_off_days || 0}</p>
-          <p><strong>Total OT Hours:</strong> {selectedSlip.attendance_summary.total_overtime_hours}</p>
+          {(() => {
+            const attDates = (selectedSlip.attendance_detail || []).filter(a => ["Present", "Holiday", "Half Day"].includes(a.status)).map(a => a.date);
+            const prodDates = (selectedSlip.production_detail || []).map(p => p.date);
+            const totalActiveDays = selectedSlip.attendance_summary.total_active_days || new Set([...attDates, ...prodDates]).size;
+            return (
+              <>
+                <p><strong>Total Month Days:</strong> {selectedSlip.attendance_summary.days_in_month}</p>
+                <p><strong>Total Active Days:</strong> {totalActiveDays} <span style={{ fontSize: '11px', color: '#64748b' }}>(Present + Production)</span></p>
+                <p><strong>Worked Days:</strong> {selectedSlip.attendance_summary.total_worked_days}</p>
+                <p><strong>Present:</strong> {selectedSlip.attendance_summary.present_days} | Holiday: {selectedSlip.attendance_summary.holiday_days || 0} | Half: {selectedSlip.attendance_summary.half_days}</p>
+                <p><strong>Absent Days:</strong> {selectedSlip.attendance_summary.absent_days} | Week Off: {selectedSlip.attendance_summary.week_off_days || 0}</p>
+                <p><strong>Total OT Hours:</strong> {selectedSlip.attendance_summary.total_overtime_hours}</p>
+              </>
+            );
+          })()}
         </div>
       </div>
 
