@@ -680,7 +680,7 @@ const STYLES = `
   }
 
   /* ===================== SCREEN UI ===================== */
-  .hr-wrap { max-width: 1800px; margin: 0 auto; padding: 24px 20px 60px; font-family: var(--font); color: var(--ink); }
+  .hr-wrap { width: 100%; max-width: 100%; margin: 0; padding: 24px 30px 60px; font-family: var(--font); color: var(--ink); box-sizing: border-box; }
   .hr-wrap * { font-family: inherit; }
 
   .hr-hero { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; padding: 26px 30px; border-radius: 16px; margin-bottom: 22px; color: #fff; background: linear-gradient(120deg, #0f172a 0%, #1e3a8a 60%, #2563eb 100%); box-shadow: 0 12px 30px rgba(30, 58, 138, .25); }
@@ -746,122 +746,133 @@ const STYLES = `
   .hr-check input { width: 18px; height: 18px; accent-color: var(--brand); }
 
   /* ===================== SHEET (A4 LANDSCAPE) ===================== */
-  .sheet-scroll { overflow-x: auto; padding-bottom: 6px; }
+  .sheet-scroll { overflow-x: auto; padding-bottom: 20px; }
 
   .sheet {
-    --pr: 8px;      /* pay-table cell padding (vertical) */
-    --wr: 7px;      /* wages-table cell padding (vertical) */
-    --wf: 13.5px;   /* wages-table font size (Much bigger) */
-    --sg: 30px;     /* gap above signatures */
-    width: 1122px;  /* 297mm */
-    margin: 0 auto 30px;
-    padding: 30px 36px 26px;
-    background: #fff;
-    color: #000;
+    width: 100%;
+    max-width: 1450px; /* Looks huge and nice on screen */
+    margin: 0 auto 40px;
+    padding: 36px 40px;
+    background: #ffffff;
+    color: #0f172a;
     font-family: var(--font);
-    border: 1px solid #cbd5e1;
-    border-radius: 12px;
-    box-shadow: 0 16px 40px rgba(15,23,42,.08);
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    box-shadow: 0 20px 40px -10px rgba(15,23,42,.08);
     box-sizing: border-box;
     font-variant-numeric: tabular-nums;
   }
-  .sheet.d1 { --pr: 7px;   --wr: 5.5px; --wf: 13px;   --sg: 24px; }
-  .sheet.d2 { --pr: 5px;   --wr: 4px;   --wf: 12px;   --sg: 18px; }
-  .sheet.d3 { --pr: 4px;   --wr: 2.5px; --wf: 11px;   --sg: 12px; }
 
-  .sh-head { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 3.5px solid #0f172a; margin-bottom: 14px; }
-  .sh-brand { display: flex; align-items: center; gap: 16px; }
-  .sh-logo { width: 54px; height: 54px; border-radius: 12px; background: #0f172a; color: #fff; display: grid; place-items: center; font-size: 30px; font-weight: 900; }
-  .sh-brand h1 { margin: 0; font-size: 28px; font-weight: 900; letter-spacing: 0.5px; color: #0f172a; line-height: 1.1; }
-  .sh-brand p { margin: 4px 0 0; font-size: 15px; font-weight: 700; color: #475569; }
+  .sh-head { display: flex; justify-content: space-between; align-items: center; padding-bottom: 16px; border-bottom: 2px solid #cbd5e1; margin-bottom: 20px; }
+  .sh-brand { display: flex; align-items: center; gap: 18px; }
+  .sh-logo { width: 56px; height: 56px; border-radius: 14px; background: linear-gradient(135deg, #1e3a8a, #0f172a); color: #fff; display: grid; place-items: center; font-size: 32px; font-weight: 900; box-shadow: 0 4px 10px rgba(15,23,42,.2); }
+  .sh-brand h1 { margin: 0; font-size: 30px; font-weight: 900; letter-spacing: -0.5px; color: #0f172a; line-height: 1.1; }
+  .sh-brand p { margin: 4px 0 0; font-size: 14px; font-weight: 600; color: #64748b; letter-spacing: 0.5px; text-transform: uppercase; }
   .sh-period { text-align: right; }
-  .sh-period span { display: block; font-size: 13px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
-  .sh-period strong { display: block; font-size: 24px; font-weight: 900; color: #0f172a; margin-top: 4px; line-height: 1.1; text-transform: uppercase; }
+  .sh-period span { display: block; font-size: 12.5px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1.5px; }
+  .sh-period strong { display: block; font-size: 26px; font-weight: 900; color: #1e40af; margin-top: 4px; line-height: 1.1; }
 
-  .sh-top { display: grid; grid-template-columns: 1.18fr 1fr; gap: 20px; margin-bottom: 16px; align-items: stretch; }
-  .sh-left { display: flex; flex-direction: column; gap: 10px; }
-  .sh-right { display: flex; flex-direction: column; gap: 10px; }
+  .sh-top { display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px; margin-bottom: 24px; align-items: start; }
+  .sh-left { display: flex; flex-direction: column; gap: 14px; }
+  .sh-right { display: flex; flex-direction: column; gap: 14px; }
 
-  .pay-table { width: 100%; border-collapse: separate; border-spacing: 0; border: 2px solid #0f172a; border-radius: 8px; overflow: hidden; font-size: 14px; }
-  .pay-table th { background: #0f172a; color: #fff; padding: 10px 14px; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; text-align: left; }
-  .pay-table td { white-space: nowrap; padding: var(--pr) 12px; border-bottom: 1px solid #cbd5e1; color: #000; font-weight: 700; font-size: 14px; }
-  .pay-table tbody tr:nth-child(even) td { background: #f8fafc; }
-  .pay-table .amt { text-align: right; width: 18%; white-space: nowrap; color: #0f172a; font-weight: 800; }
-  .pay-table .split { border-left: 2px solid #0f172a; }
-  .pay-table tfoot td { background: #e2e8f0; font-weight: 900; font-size: 15px; border-top: 2.5px solid #0f172a; border-bottom: none; padding: 11px 14px; color: #0f172a; }
+  /* Premium Pay Table */
+  .pay-table { width: 100%; border-collapse: collapse; border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden; font-size: 14.5px; box-shadow: 0 4px 6px rgba(0,0,0,.02); }
+  .pay-table th { background: #f8fafc; color: #334155; padding: 12px 16px; font-size: 12.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; text-align: left; border-bottom: 1px solid #cbd5e1; }
+  .pay-table td { padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-weight: 600; font-size: 14.5px; }
+  .pay-table tbody tr:hover td { background: #f8fafc; }
+  .pay-table .amt { text-align: right; font-weight: 700; width: 18%; }
+  .pay-table .split { border-left: 1px solid #e2e8f0; }
+  .pay-table tfoot td { background: #f1f5f9; font-weight: 800; font-size: 15px; border-top: 1px solid #cbd5e1; padding: 14px 16px; }
 
-  .net-pay { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 10px 16px; border-radius: 8px; background: #f0fdf4; border: 2px solid #22c55e; }
-  .net-label { display: block; font-size: 12.5px; font-weight: 900; color: #166534; text-transform: uppercase; letter-spacing: 1px; }
-  .net-words { display: block; margin-top: 4px; font-size: 13px; font-weight: 700; color: #166534; text-transform: capitalize; }
-  .net-amount { font-size: 28px; font-weight: 900; color: #14532d; white-space: nowrap; }
+  /* Net Pay Highlight */
+  .net-pay { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 20px; border-radius: 10px; background: linear-gradient(to right, #f0fdf4, #dcfce7); border: 1px solid #86efac; box-shadow: 0 4px 12px rgba(34,197,94,.1); }
+  .net-label { display: block; font-size: 13px; font-weight: 800; color: #166534; text-transform: uppercase; letter-spacing: 1px; }
+  .net-words { display: block; margin-top: 4px; font-size: 13.5px; font-weight: 700; color: #15803d; }
+  .net-amount { font-size: 32px; font-weight: 900; color: #14532d; letter-spacing: -0.5px; }
 
-  .emp-card { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; border: 2px solid #cbd5e1; border-radius: 8px; padding: 10px 14px; background: #f8fafc; }
-  .emp-card span { display: block; font-size: 12px; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: .6px; }
-  .emp-card strong { display: block; font-size: 16px; font-weight: 900; color: #0f172a; margin-top: 2px; }
+  /* Employee Details */
+  .emp-card { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px; border: 1px solid #cbd5e1; border-radius: 10px; padding: 14px 18px; background: #fff; box-shadow: 0 4px 6px rgba(0,0,0,.02); }
+  .emp-card span { display: block; font-size: 11.5px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .5px; }
+  .emp-card strong { display: block; font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 4px; }
 
-  .mini-stats { display: grid; grid-template-columns: repeat(4, 1fr); border: 2px solid #cbd5e1; border-radius: 8px; overflow: hidden; }
-  .mini-stats div { text-align: center; padding: 8px 4px; border-right: 2px solid #cbd5e1; background: #fff; }
+  /* Mini Stats */
+  .mini-stats { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden; background: #fff; box-shadow: 0 4px 6px rgba(0,0,0,.02); }
+  .mini-stats div { text-align: center; padding: 12px 6px; border-right: 1px solid #cbd5e1; }
   .mini-stats div:last-child { border-right: none; }
-  .mini-stats b { display: block; font-size: 20px; font-weight: 900; color: #0f172a; line-height: 1.1; }
-  .mini-stats span { display: block; font-size: 11.5px; font-weight: 800; color: #475569; margin-top: 2px; text-transform: uppercase; }
+  .mini-stats b { display: block; font-size: 22px; font-weight: 900; color: #1e3a8a; }
+  .mini-stats span { display: block; font-size: 11px; font-weight: 800; color: #475569; margin-top: 4px; text-transform: uppercase; }
 
-  .chips { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
-  .chip { border-radius: 8px; padding: 8px 4px; text-align: center; border: 2px solid; }
-  .chip b { display: block; font-size: 19px; font-weight: 900; line-height: 1.1; }
-  .chip span { display: block; font-size: 11.5px; font-weight: 800; margin-top: 2px; text-transform: uppercase; }
-  .chip-p { background: #f0fdf4; border-color: #4ade80; color: #166534; }
-  .chip-h { background: #fffbeb; border-color: #fbbf24; color: #92400e; }
-  .chip-hd { background: #eff6ff; border-color: #60a5fa; color: #1e40af; }
-  .chip-a { background: #fef2f2; border-color: #f87171; color: #991b1b; }
-  .chip-wo { background: #f1f5f9; border-color: #94a3b8; color: #334155; }
+  /* Chips */
+  .chips { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  .chip { border-radius: 8px; padding: 10px 4px; text-align: center; border: 1px solid; }
+  .chip b { display: block; font-size: 20px; font-weight: 900; line-height: 1; }
+  .chip span { display: block; font-size: 11px; font-weight: 800; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .chip-p { background: #f0fdf4; border-color: #86efac; color: #166534; }
+  .chip-h { background: #fffbeb; border-color: #fcd34d; color: #92400e; }
+  .chip-hd { background: #eff6ff; border-color: #93c5fd; color: #1e40af; }
+  .chip-a { background: #fef2f2; border-color: #fca5a5; color: #991b1b; }
+  .chip-wo { background: #f1f5f9; border-color: #cbd5e1; color: #334155; }
 
-  /* ---------- Wages register ---------- */
-  .wages-title { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; }
-  .wages-title h2 { margin: 0; font-size: 16px; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing: .5px; }
-  .legend { display: flex; gap: 12px; font-size: 13px; font-weight: 800; color: #1e293b; }
+  /* ---------- WAGES REGISTER (ULTRA PREMIUM) ---------- */
+  .wages { margin-top: 20px; }
+  .wages-title { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 12px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+  .wages-title h2 { margin: 0; font-size: 18px; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; }
+  .legend { display: flex; gap: 14px; font-size: 13px; font-weight: 700; color: #475569; }
   .legend span { display: inline-flex; align-items: center; gap: 6px; }
-  .lg { font-style: normal; min-width: 22px; height: 18px; padding: 0 4px; display: inline-grid; place-items: center; border-radius: 4px; font-size: 11px; font-weight: 900; border: 1.5px solid #0f172a; color: #0f172a; }
-  .lg-p { background: #dcfce7; } .lg-a { background: #fee2e2; } .lg-h { background: #fef3c7; } .lg-hd { background: #dbeafe; } .lg-wo { background: #e2e8f0; }
+  .lg { font-style: normal; min-width: 24px; height: 20px; display: inline-grid; place-items: center; border-radius: 4px; font-size: 11px; font-weight: 900; border: 1px solid #94a3b8; color: #0f172a; }
+  .lg-p { background: #dcfce7; border-color: #4ade80; } 
+  .lg-a { background: #fee2e2; border-color: #f87171; } 
+  .lg-h { background: #fef3c7; border-color: #fbbf24; } 
+  .lg-hd { background: #dbeafe; border-color: #60a5fa; } 
+  .lg-wo { background: #f1f5f9; border-color: #cbd5e1; }
 
-  .wages-table { width: 100%; border-collapse: collapse; table-layout: fixed; border: 2.5px solid #0f172a; color: #000; font-size: var(--wf); }
-  .wages-table th, .wages-table td { border: 1px solid #64748b; padding: var(--wr) 0; text-align: center; font-weight: 800; color: #000; overflow: hidden; white-space: nowrap; }
-  .wages-table thead th { background: #e2e8f0; font-weight: 900; padding: 5px 0; border-bottom: 2.5px solid #0f172a; }
-  .wages-table .dn { display: block; font-size: 14px; font-weight: 900; line-height: 1.1; }
-  .wages-table .wd { display: block; font-size: 10.5px; font-weight: 800; color: #334155; line-height: 1.1; margin-top: 1px; text-transform: uppercase; }
-  .wages-table .sun { background: #f1f5f9; border-left: 1.5px solid #94a3b8; border-right: 1.5px solid #94a3b8; }
-  .wages-table thead th.sun { background: #cbd5e1; }
-  .wages-table .w-name { width: 34mm; text-align: left; padding-left: 8px; padding-right: 4px; font-weight: 900; font-size: 14.5px; }
-  .wages-table .w-name.prod { white-space: normal; line-height: 1.15; font-size: calc(var(--wf) + 0.5px); color: #0f172a; }
-  .wages-table .w-sum { width: 14mm; background: #f8fafc; font-size: calc(var(--wf) + 1px); }
-  .wages-table .w-rate { width: 12mm; background: #f8fafc; font-size: calc(var(--wf) + 1px); color: #334155; }
-  .wages-table .w-amt { width: 21mm; background: #f8fafc; font-size: calc(var(--wf) + 1.5px); color: #0f172a; }
+  .wages-table { width: 100%; border-collapse: collapse; table-layout: fixed; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px rgba(0,0,0,.02); }
+  .wages-table th, .wages-table td { border: 1px solid #cbd5e1; padding: 7px 2px; text-align: center; color: #0f172a; font-weight: 700; font-size: 13px; }
+  .wages-table thead th { background: #f8fafc; padding: 8px 0; border-bottom: 2px solid #94a3b8; }
+  .wages-table .dn { display: block; font-size: 14.5px; font-weight: 900; color: #0f172a; line-height: 1.1; }
+  .wages-table .wd { display: block; font-size: 10px; font-weight: 800; color: #64748b; margin-top: 2px; text-transform: uppercase; }
+  
+  .wages-table .sun { background: #f1f5f9; }
+  .wages-table thead th.sun { background: #e2e8f0; color: #ef4444; }
+  .wages-table thead th.sun .dn { color: #dc2626; }
+  
+  /* Wider Name Column */
+  .wages-table .w-name { width: 220px; text-align: left; padding: 6px 10px; font-weight: 800; font-size: 13px; color: #1e293b; background: #f8fafc; }
+  .wages-table .w-name.prod { white-space: normal; line-height: 1.3; font-size: 12.5px; }
+  
+  .wages-table .w-sum { width: 50px; background: #f8fafc; font-weight: 900; font-size: 14px; }
+  .wages-table .w-rate { width: 50px; background: #f8fafc; font-weight: 700; color: #475569; }
+  .wages-table .w-amt { width: 80px; background: #f8fafc; font-weight: 900; font-size: 14px; color: #1e3a8a; }
+  
   .wages-table .strong { font-weight: 900; }
-  .wages-table .qty-long { font-size: calc(var(--wf) - 1px); letter-spacing: -.2px; }
   
-  .wages-table td.st-p { background: #dcfce7; color: #166534; font-weight: 900; font-size: calc(var(--wf) + 1px); }
-  .wages-table td.st-a { background: #fee2e2; color: #991b1b; font-weight: 900; font-size: calc(var(--wf) + 1px); }
-  .wages-table td.st-h { background: #fef3c7; color: #92400e; font-weight: 900; font-size: calc(var(--wf) + 1px); }
-  .wages-table td.st-hd { background: #dbeafe; color: #1e40af; font-weight: 900; font-size: var(--wf); }
-  .wages-table td.st-wo { background: #e2e8f0; color: #334155; font-weight: 900; font-size: var(--wf); }
+  /* Better Attendance Colors */
+  .wages-table td.st-p { background: #dcfce7; color: #166534; font-weight: 900; font-size: 14px; }
+  .wages-table td.st-a { background: #fee2e2; color: #991b1b; font-weight: 900; font-size: 14px; }
+  .wages-table td.st-h { background: #fef3c7; color: #92400e; font-weight: 900; font-size: 14px; }
+  .wages-table td.st-hd { background: #dbeafe; color: #1e40af; font-weight: 900; font-size: 12px; }
+  .wages-table td.st-wo { background: #f1f5f9; color: #475569; font-weight: 900; font-size: 12px; }
   
-  .wages-table tfoot td { background: #e2e8f0; font-weight: 900; padding: calc(var(--wr) + 3px) 0; border-top: 2.5px solid #0f172a; font-size: 15px; color: #0f172a; }
-  .wages-table tfoot td.w-total-label { text-align: right; padding-right: 14px; text-transform: uppercase; letter-spacing: 1px; }
+  .wages-table tfoot td { background: #f1f5f9; font-weight: 900; padding: 12px 8px; border-top: 2px solid #94a3b8; font-size: 16px; color: #0f172a; }
+  .wages-table tfoot td.w-total-label { text-align: right; padding-right: 16px; text-transform: uppercase; letter-spacing: 1px; color: #334155; }
 
-  .sh-sign { display: flex; justify-content: space-between; align-items: flex-end; margin-top: var(--sg); }
-  .sh-sign div { width: 220px; border-top: 2px solid #0f172a; padding-top: 6px; text-align: center; font-size: 14px; font-weight: 800; color: #0f172a; text-transform: uppercase; }
-  .sh-sign p { margin: 0; font-size: 11.5px; font-weight: 600; color: #64748b; }
+  /* Signatures */
+  .sh-sign { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 40px; padding-top: 20px; }
+  .sh-sign div { width: 240px; border-top: 2px solid #cbd5e1; padding-top: 8px; text-align: center; font-size: 14px; font-weight: 800; color: #334155; text-transform: uppercase; letter-spacing: 0.5px; }
+  .sh-sign p { margin: 0; font-size: 12px; font-weight: 600; color: #94a3b8; }
 
   .bulk-wrapper { display: none; }
 
-  /* ===================== PRINT — ek slip = ek A4 landscape page ===================== */
-  @page { size: A4 landscape; margin: 4mm; }
+  /* ===================== PRINT ===================== */
+  @page { size: A4 landscape; margin: 5mm; }
 
   @media print {
-    html, body { background: #fff !important; height: auto !important; }
+    html, body { background: #fff !important; height: auto !important; margin: 0 !important; padding: 0 !important; }
     * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
     .no-print { display: none !important; }
-    .hr-wrap { max-width: none !important; margin: 0 !important; padding: 0 !important; }
+    .hr-wrap { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; }
     .bulk-wrapper { display: block !important; }
 
     .slip-root { break-after: page; page-break-after: always; }
@@ -869,9 +880,20 @@ const STYLES = `
 
     .sheet-scroll { overflow: visible !important; padding: 0 !important; }
     .sheet {
-      width: auto !important; margin: 0 !important; padding: 0 !important;
+      width: 100% !important; max-width: none !important; margin: 0 !important; padding: 10px 10px 0 10px !important;
       border: none !important; border-radius: 0 !important; box-shadow: none !important;
       break-inside: avoid; page-break-inside: avoid;
     }
+    
+    /* Make print fonts crisp and readable */
+    .wages-table .w-name { width: 160px !important; font-size: 12px !important; padding: 4px 6px !important; }
+    .wages-table .w-name.prod { font-size: 11.5px !important; line-height: 1.2 !important; }
+    .wages-table th, .wages-table td { font-size: 12.5px !important; padding: 4px 1px !important; }
+    .wages-table .dn { font-size: 13.5px !important; }
+    .wages-table .wd { font-size: 9px !important; }
+    .wages-table .w-sum, .wages-table .w-rate { width: 38px !important; font-size: 12px !important; }
+    .wages-table .w-amt { width: 55px !important; font-size: 13px !important; }
+    .wages-title h2 { font-size: 16px !important; }
+    .sh-brand h1 { font-size: 26px !important; }
   }
 ;
