@@ -29,7 +29,8 @@ const threeDigits = (n) => {
   const h = Math.floor(n / 100);
   const r = n % 100;
   return (h ? ONES[h] + ' Hundred' + (r ? ' ' : '') : '') + (r ? twoDigits(r) : '');
-};
+}
+;
 
 function amountInWords(amount) {
   const total = Math.round(Math.abs(N(amount)) * 100);
@@ -63,12 +64,18 @@ function initials(name = '') {
 
 function attendanceCode(status = '') {
   const s = String(status).toLowerCase();
-  if (s === 'present') return { code: 'P', cls: 'p' };
-  if (s === 'absent') return { code: 'A', cls: 'a' };
-  if (s.includes('half')) return { code: 'H', cls: 'h' };
-  if (s.includes('holiday')) return { code: 'HD', cls: 'hd' };
-  if (s.includes('week')) return { code: 'WO', cls: 'wo' };
-  return { code: '', cls: '' };
+  if (s === 'present') return { code: 'P', cls: 'p' }
+;
+  if (s === 'absent') return { code: 'A', cls: 'a' }
+;
+  if (s.includes('half')) return { code: 'H', cls: 'h' }
+;
+  if (s.includes('holiday')) return { code: 'HD', cls: 'hd' }
+;
+  if (s.includes('week')) return { code: 'WO', cls: 'wo' }
+;
+  return { code: '', cls: '' }
+;
 }
 
 /* Zyada products hone par rows automatically thodi compact ho jaati hain,
@@ -98,14 +105,17 @@ const SlipRenderer = ({ selectedSlip, printWages, onClose, onPrint, isBulk = fal
   }));
 
   // Group production by product, keyed by day
-  const prodGroups = {};
+  const prodGroups = {}
+;
   (selectedSlip.production_detail || []).forEach((p) => {
-    if (!prodGroups[p.product_name]) prodGroups[p.product_name] = {};
+    if (!prodGroups[p.product_name]) prodGroups[p.product_name] = {}
+;
     prodGroups[p.product_name][parseInt(p.day, 10)] = p;
   });
 
   // Attendance by day
-  const attMap = {};
+  const attMap = {}
+;
   (selectedSlip.attendance_detail || []).forEach((a) => {
     attMap[parseInt(a.day, 10)] = a;
   });
@@ -134,7 +144,8 @@ const SlipRenderer = ({ selectedSlip, printWages, onClose, onPrint, isBulk = fal
       qty: items.reduce((s, p) => s + N(p.quantity), 0),
       rate: items.length ? N(items[0].rate) : 0,
       amount: items.reduce((s, p) => s + N(p.total_amount), 0),
-    };
+    }
+;
   });
 
   const wagesTotal =
@@ -359,7 +370,8 @@ const SlipRenderer = ({ selectedSlip, printWages, onClose, onPrint, isBulk = fal
       </div>
     </section>
   );
-};
+}
+;
 
 /* ---------------------------------------------------------------------------
    Page
@@ -417,7 +429,8 @@ export default function HRMSSalary() {
     } else {
       alert('Failed to generate salary');
     }
-  };
+  }
+;
 
   const fetchSlip = async (id) => {
     const res = await apiGet(`/hrms/salary/${id}/slip/`);
@@ -425,12 +438,14 @@ export default function HRMSSalary() {
       setSelectedSlip(res);
       setBulkSlips([]);
     }
-  };
+  }
+;
 
   const handlePrintSlip = () => window.print();
 
   const salaries = data?.salaries || [];
-  const totals = data?.totals || {};
+  const totals = data?.totals || {}
+;
 
   const filteredSalaries = useMemo(() => {
     const q = searchQuery.toLowerCase();
@@ -465,7 +480,8 @@ export default function HRMSSalary() {
 
     // DOM ko bada list render karne ka time do
     setTimeout(() => window.print(), 1000);
-  };
+  }
+;
 
   const [selYear, selMonth] = selectedMonth.split('-');
   const monthTitle = `${MONTH_NAMES[N(selMonth) - 1] || ''} ${selYear}`;
@@ -896,4 +912,7 @@ const STYLES = `
     .wages-title h2 { font-size: 16px !important; }
     .sh-brand h1 { font-size: 26px !important; }
   }
-;
+
+
+
+`;
