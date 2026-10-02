@@ -325,8 +325,8 @@ export default function HRMSSalary() {
           .no-print {
             display: none !important;
           }
-          .print-area, .print-area * {
-            visibility: visible;
+          .print-area, .print-area *, .bulk-container-wrapper, .bulk-container-wrapper * {
+            visibility: visible !important;
           }
           .print-area {
             position: absolute;
@@ -336,10 +336,10 @@ export default function HRMSSalary() {
             padding: 10px;
             box-sizing: border-box;
           }
-          .bulk-container-wrapper, .bulk-container-wrapper * {
-            visibility: visible;
-          }
           .bulk-container-wrapper {
+            position: absolute;
+            left: 0;
+            top: 0;
             display: block !important;
             width: 100%;
           }
@@ -524,9 +524,9 @@ export default function HRMSSalary() {
                         <button
                           onClick={() => fetchSlip(sal.id)}
                           className="btn"
-                          style={{ padding: '4px 12px', fontSize: '0.75rem', background: '#f1f5f9', color: '#1e293b' }}
+                          style={{ padding: '6px 14px', fontSize: '0.78rem', background: '#3b82f6', color: '#ffffff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 700 }}
                         >
-                          <i className="fas fa-file-invoice-dollar mr-1"></i> Slip
+                          📄 Slip
                         </button>
                       </td>
                     </tr>
