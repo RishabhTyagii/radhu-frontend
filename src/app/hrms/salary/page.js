@@ -4,234 +4,379 @@ import { useState, useEffect, useMemo } from 'react';
 import Navbar from '@/components/Navbar';
 import { apiGet, apiPost } from '@/lib/api';
 
+/* ---------------------------------------------------------------------------
+   Helpers
+--------------------------------------------------------------------------- */
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+const WEEKDAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+const N = (v) => Number(v || 0);
+const money = (v) =>
+  N(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const moneyShort = (v) => N(v).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+
+const ONES = [
+  '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+  'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen',
+  'Eighteen', 'Nineteen',
+];
+const TENS = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+const twoDigits = (n) => (n < 20 ? ONES[n] : TENS[Math.floor(n / 10)] + (n % 10 ? ' ' + ONES[n % 10] : ''));
+const threeDigits = (n) => {
+  const h = Math.floor(n / 100);
+  const r = n % 100;
+  return (h ? ONES[h] + ' Hundred' + (r ? ' ' : '') : '') + (r ? twoDigits(r) : '');
+};
+
+function amountInWords(amount) {
+  const total = Math.round(Math.abs(N(amount)) * 100);
+  let rupees = Math.floor(total / 100);
+  const paise = total % 100;
+  if (rupees === 0 && paise === 0) return 'Zero Rupees Only';
+
+  const parts = [];
+  const crore = Math.floor(rupees / 10000000); rupees %= 10000000;
+  const lakh = Math.floor(rupees / 100000); rupees %= 100000;
+  const thousand = Math.floor(rupees / 1000); rupees %= 1000;
+
+  if (crore) parts.push(threeDigits(crore) + ' Crore');
+  if (lakh) parts.push(twoDigits(lakh) + ' Lakh');
+  if (thousand) parts.push(twoDigits(thousand) + ' Thousand');
+  if (rupees) parts.push(threeDigits(rupees));
+
+  let words = (parts.join(' ') || 'Zero') + ' Rupees';
+  if (paise) words += ' and ' + twoDigits(paise) + ' Paise';
+  return words + ' Only';
+}
+
+function initials(name = '') {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join('');
+}
+
+function attendanceCode(status = '') {
+  const s = String(status).toLowerCase();
+  if (s === 'present') return { code: 'P', cls: 'p' };
+  if (s === 'absent') return { code: 'A', cls: 'a' };
+  if (s.includes('half')) return { code: 'H', cls: 'h' };
+  if (s.includes('holiday')) return { code: 'HD', cls: 'hd' };
+  if (s.includes('week')) return { code: 'WO', cls: 'wo' };
+  return { code: '', cls: '' };
+}
+
+/* Zyada products hone par rows automatically thodi compact ho jaati hain,
+   taaki poori slip hamesha ek hi A4 page me aaye. */
+function densityFor(productCount) {
+  if (productCount >= 11) return 'd3';
+  if (productCount >= 7) return 'd2';
+  if (productCount >= 4) return 'd1';
+  return 'd0';
+}
+
+/* ---------------------------------------------------------------------------
+   Salary slip + wages register  (ONE A4 landscape page per employee)
+--------------------------------------------------------------------------- */
 const SlipRenderer = ({ selectedSlip, printWages, onClose, onPrint, isBulk = false }) => {
   if (!selectedSlip) return null;
 
-  const daysArray = Array.from({ length: selectedSlip.attendance_summary.days_in_month }, (_, i) => i + 1);
+  const { salary, employee, attendance_summary: att } = selectedSlip;
+  const year = N(salary.year);
+  const month = N(salary.month);
+  const daysInMonth = N(att.days_in_month);
+  const monthLabel = `${MONTH_NAMES[month - 1] || month} ${year}`;
 
-  // Group production
+  const dayInfo = Array.from({ length: daysInMonth }, (_, i) => ({
+    d: i + 1,
+    wd: new Date(year, month - 1, i + 1).getDay(),
+  }));
+
+  // Group production by product, keyed by day
   const prodGroups = {};
-  (selectedSlip.production_detail || []).forEach(p => {
+  (selectedSlip.production_detail || []).forEach((p) => {
     if (!prodGroups[p.product_name]) prodGroups[p.product_name] = {};
     prodGroups[p.product_name][parseInt(p.day, 10)] = p;
   });
 
-  // Map attendance
+  // Attendance by day
   const attMap = {};
-  (selectedSlip.attendance_detail || []).forEach(a => {
+  (selectedSlip.attendance_detail || []).forEach((a) => {
     attMap[parseInt(a.day, 10)] = a;
   });
 
+  const attDates = (selectedSlip.attendance_detail || [])
+    .filter((a) => ['Present', 'Holiday', 'Half Day'].includes(a.status))
+    .map((a) => a.date);
+  const prodDates = (selectedSlip.production_detail || []).map((p) => p.date);
+  const totalActiveDays = att.total_active_days || new Set([...attDates, ...prodDates]).size;
+
+  const totalEarnings =
+    N(salary.basic_salary) + N(salary.overtime_amount) + N(salary.production_amount) +
+    N(salary.bonus) + N(salary.incentive_amount);
+  const totalDeductions =
+    N(salary.pf_amount) + N(salary.esi_amount) + N(salary.advance) + N(salary.deduction);
+
+  const showWages =
+    (isBulk ? true : printWages.value) &&
+    ((selectedSlip.attendance_detail?.length || 0) > 0 || (selectedSlip.production_detail?.length || 0) > 0);
+
+  const prodRows = Object.keys(prodGroups).map((name) => {
+    const items = Object.values(prodGroups[name]);
+    return {
+      name,
+      byDay: prodGroups[name],
+      qty: items.reduce((s, p) => s + N(p.quantity), 0),
+      rate: items.length ? N(items[0].rate) : 0,
+      amount: items.reduce((s, p) => s + N(p.total_amount), 0),
+    };
+  });
+
+  const wagesTotal =
+    N(salary.basic_salary) + N(salary.overtime_amount) + prodRows.reduce((s, r) => s + r.amount, 0);
+
+  const earningRows = [
+    ['Earned Basic Salary', salary.basic_salary],
+    ['Overtime Earnings', salary.overtime_amount],
+    ['Piece-Rate Production', salary.production_amount],
+    ['Bonus', salary.bonus],
+    ['Incentive / Cycle Press', salary.incentive_amount],
+  ];
+  const deductionRows = [
+    ['PF Contribution', salary.pf_amount],
+    ['ESI Contribution', salary.esi_amount],
+    ['Salary Advance', salary.advance],
+    ['Other Deductions', salary.deduction],
+  ];
+
+  const density = densityFor(prodRows.length);
+  const qtyCls = (q) => (String(q).length >= 4 ? 'qty-long' : '');
+
   return (
-    <div className={`card ${isBulk ? '' : 'print-area'}`} style={{ 
-      marginBottom: isBulk ? '0' : '30px', 
-      padding: isBulk ? '0' : '32px', 
-      background: 'white', 
-      border: isBulk ? 'none' : '1px solid #e2e8f0', 
-      boxShadow: isBulk ? 'none' : '0 10px 25px rgba(0,0,0,0.1)',
-      pageBreakAfter: isBulk ? 'always' : 'auto',
-      minHeight: isBulk ? '270mm' : 'auto' // ensure full A4 page space for bulk
-    }}>
-      
+    <section className={`slip-root ${isBulk ? 'is-bulk' : 'is-single'}`}>
       {!isBulk && (
-        <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid #e2e8f0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <button onClick={onClose} className="btn" style={{ background: '#f1f5f9' }}>← Back</button>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600 }}>
-              <input type="checkbox" checked={printWages.value} onChange={(e) => printWages.setter(e.target.checked)} style={{ width: '18px', height: '18px' }} />
-              Include Wages Record
+        <div className="slip-toolbar no-print">
+          <div className="slip-toolbar-left">
+            <button onClick={onClose} className="hr-btn hr-btn-ghost">← Back to list</button>
+            <label className="hr-check">
+              <input
+                type="checkbox"
+                checked={printWages.value}
+                onChange={(e) => printWages.setter(e.target.checked)}
+              />
+              <span>Include wages record on the same page</span>
             </label>
           </div>
-          <button onClick={onPrint} className="btn btn-primary" style={{ background: '#dc2626' }}>
-            <i className="fas fa-print mr-2"></i> Print Formal Payslip
-          </button>
+          <button onClick={onPrint} className="hr-btn hr-btn-danger">🖨 Print payslip (A4 landscape)</button>
         </div>
       )}
 
-      <div className="print-header">
-        <h2>RADHU INDUSTRIES</h2>
-        <p>SALARY SLIP FOR THE MONTH OF <strong>{selectedSlip.salary.month}/{selectedSlip.salary.year}</strong></p>
-      </div>
+      <div className="sheet-scroll">
+        <div className={`sheet ${density}`}>
+          {/* ---------- Header ---------- */}
+          <header className="sh-head">
+            <div className="sh-brand">
+              <div className="sh-logo">R</div>
+              <div>
+                <h1>RADHU INDUSTRIES</h1>
+                <p>Salary Slip &amp; Wages Record</p>
+              </div>
+            </div>
+            <div className="sh-period">
+              <span>Pay period</span>
+              <strong>{monthLabel}</strong>
+            </div>
+          </header>
 
-      <div className="emp-details">
-        <div>
-          <p><strong>Employee Code:</strong> {selectedSlip.employee.employee_code}</p>
-          <p><strong>Employee Name:</strong> {selectedSlip.employee.name}</p>
-          <p><strong>Designation:</strong> {selectedSlip.employee.designation}</p>
-          <p><strong>Department:</strong> {selectedSlip.employee.department_name || '-'}</p>
-        </div>
-        <div>
-          {(() => {
-            const attDates = (selectedSlip.attendance_detail || []).filter(a => ["Present", "Holiday", "Half Day"].includes(a.status)).map(a => a.date);
-            const prodDates = (selectedSlip.production_detail || []).map(p => p.date);
-            const totalActiveDays = selectedSlip.attendance_summary.total_active_days || new Set([...attDates, ...prodDates]).size;
-            return (
-              <>
-                <p><strong>Total Month Days:</strong> {selectedSlip.attendance_summary.days_in_month}</p>
-                <p><strong>Total Active Days:</strong> {totalActiveDays} <span style={{ fontSize: '11px', color: '#64748b' }}>(Present + Production)</span></p>
-                <p><strong>Worked Days:</strong> {selectedSlip.attendance_summary.total_worked_days}</p>
-                <p><strong>Present:</strong> {selectedSlip.attendance_summary.present_days} | Holiday: {selectedSlip.attendance_summary.holiday_days || 0} | Half: {selectedSlip.attendance_summary.half_days}</p>
-                <p><strong>Absent Days:</strong> {selectedSlip.attendance_summary.absent_days} | Week Off: {selectedSlip.attendance_summary.week_off_days || 0}</p>
-                <p><strong>Total OT Hours:</strong> {selectedSlip.attendance_summary.total_overtime_hours}</p>
-              </>
-            );
-          })()}
-        </div>
-      </div>
-
-      <table className="salary-table">
-        <thead>
-          <tr>
-            <th>EARNINGS</th>
-            <th style={{ textAlign: 'right' }}>AMOUNT (Rs)</th>
-            <th>DEDUCTIONS</th>
-            <th style={{ textAlign: 'right' }}>AMOUNT (Rs)</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Earned Basic Salary</td>
-            <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.basic_salary).toFixed(2)}</td>
-            <td>PF Contribution</td>
-            <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.pf_amount).toFixed(2)}</td>
-          </tr>
-          <tr>
-            <td>Overtime Earnings</td>
-            <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.overtime_amount).toFixed(2)}</td>
-            <td>ESI Contribution</td>
-            <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.esi_amount).toFixed(2)}</td>
-          </tr>
-          <tr>
-            <td>Piece-Rate Production</td>
-            <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.production_amount).toFixed(2)}</td>
-            <td>Salary Advance</td>
-            <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.advance).toFixed(2)}</td>
-          </tr>
-          <tr>
-            <td>Bonus</td>
-            <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.bonus).toFixed(2)}</td>
-            <td>Other Deductions</td>
-            <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.deduction).toFixed(2)}</td>
-          </tr>
-          <tr>
-            <td>Incentive / Cycle Press</td>
-            <td style={{ textAlign: 'right' }}>{Number(selectedSlip.salary.incentive_amount || 0).toFixed(2)}</td>
-            <td></td>
-            <td></td>
-          </tr>
-          <tr style={{ fontWeight: '900', backgroundColor: '#f1f5f9', fontSize: '14px', borderTop: '2px solid #94a3b8' }}>
-            <td style={{ color: '#000', padding: '15px' }}>TOTAL EARNINGS</td>
-            <td style={{ textAlign: 'right', color: '#000', fontSize: '18px', padding: '15px' }}>
-              {(Number(selectedSlip.salary.basic_salary) + Number(selectedSlip.salary.overtime_amount) + Number(selectedSlip.salary.production_amount) + Number(selectedSlip.salary.bonus) + Number(selectedSlip.salary.incentive_amount || 0)).toFixed(2)}
-            </td>
-            <td style={{ color: '#000', padding: '15px' }}>TOTAL DEDUCTIONS</td>
-            <td style={{ textAlign: 'right', color: '#000', fontSize: '18px', padding: '15px' }}>
-              {(Number(selectedSlip.salary.pf_amount) + Number(selectedSlip.salary.esi_amount) + Number(selectedSlip.salary.advance) + Number(selectedSlip.salary.deduction)).toFixed(2)}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div className="net-pay">
-        <span style={{ fontSize: '14px', color: '#166534', textTransform: 'uppercase', letterSpacing: '1px' }}>Net Payable Salary</span>
-        <span style={{ fontSize: '24px' }}>Rs {Number(selectedSlip.salary.net_salary).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-      </div>
-      
-      <div className="signatures">
-        <div>Employer Signature</div>
-        <div>Employee Signature</div>
-      </div>
-      
-      {/* Wages Record Section - HORIZONTAL LAYOUT */}
-      {(isBulk ? true : printWages.value) && (selectedSlip.attendance_detail?.length > 0 || selectedSlip.production_detail?.length > 0) && (
-        <div className="wages-section" style={{ marginTop: '30px' }}>
-          <hr style={{ border: 'none', borderTop: '2px dashed #000', margin: '15px 0' }} />
-          <h3>WAGES RECORD (ATTENDANCE & PRODUCTION)</h3>
-          
-          <table className="wages-horizontal-table">
-            <thead>
-              <tr>
-                <th style={{ width: '130px', textAlign: 'left', paddingLeft: '5px' }}>Date ➔</th>
-                {daysArray.map(d => <th key={d}>{d}</th>)}
-                <th style={{ minWidth: '40px' }}>Total</th>
-                <th style={{ minWidth: '40px' }}>Rate</th>
-                <th style={{ minWidth: '50px' }}>Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {/* Attendance Row */}
-              <tr>
-                <td style={{ fontWeight: 'bold', textAlign: 'left', paddingLeft: '5px' }}>Attendance</td>
-                {daysArray.map(d => {
-                  const a = attMap[d];
-                  let statusStr = '';
-                  if (a) {
-                    if (a.status === 'Present') statusStr = 'P';
-                    else if (a.status === 'Absent') statusStr = 'A';
-                    else if (a.status === 'Half Day') statusStr = 'H';
-                  }
-                  return <td key={d} style={{ color: statusStr === 'A' ? '#ef4444' : (statusStr === 'P' ? '#16a34a' : '#000') }}>{statusStr}</td>;
-                })}
-                <td style={{ fontWeight: 'bold' }}>{selectedSlip.attendance_summary.total_worked_days}</td>
-                <td>-</td>
-                <td style={{ fontWeight: 'bold' }}>{Number(selectedSlip.salary.basic_salary).toFixed(0)}</td>
-              </tr>
-              
-              {/* Overtime Row */}
-              <tr>
-                <td style={{ fontWeight: 'bold', textAlign: 'left', paddingLeft: '5px' }}>OT Hours</td>
-                {daysArray.map(d => {
-                  const a = attMap[d];
-                  return <td key={d}>{a && a.overtime_hours > 0 ? a.overtime_hours : ''}</td>;
-                })}
-                <td style={{ fontWeight: 'bold' }}>{selectedSlip.attendance_summary.total_overtime_hours}</td>
-                <td>{selectedSlip.employee.overtime_rate || '-'}</td>
-                <td style={{ fontWeight: 'bold' }}>{Number(selectedSlip.salary.overtime_amount).toFixed(0)}</td>
-              </tr>
-
-              {/* Production Rows */}
-              {Object.keys(prodGroups).map(prodName => {
-                const prodItems = Object.values(prodGroups[prodName]);
-                const totalQty = prodItems.reduce((sum, p) => sum + p.quantity, 0);
-                const firstRate = prodItems.length > 0 ? prodItems[0].rate : 0;
-                const totalAmt = prodItems.reduce((sum, p) => sum + p.total_amount, 0);
-                return (
-                  <tr key={prodName}>
-                    <td style={{ fontSize: '9px', textAlign: 'left', paddingLeft: '5px' }}>{prodName}</td>
-                    {daysArray.map(d => {
-                      const p = prodGroups[prodName][d];
-                      return <td key={d}>{p ? p.quantity : ''}</td>;
-                    })}
-                    <td style={{ fontWeight: 'bold' }}>{totalQty}</td>
-                    <td>{firstRate}</td>
-                    <td style={{ fontWeight: 'bold' }}>{totalAmt.toFixed(0)}</td>
+          {/* ---------- Top: pay table (left) + employee & attendance (right) ---------- */}
+          <div className="sh-top">
+            <div className="sh-left">
+              <table className="pay-table">
+                <thead>
+                  <tr>
+                    <th>Earnings</th>
+                    <th className="amt">Amount (Rs)</th>
+                    <th className="split">Deductions</th>
+                    <th className="amt">Amount (Rs)</th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                </thead>
+                <tbody>
+                  {earningRows.map((e, i) => {
+                    const dd = deductionRows[i];
+                    return (
+                      <tr key={e[0]}>
+                        <td>{e[0]}</td>
+                        <td className="amt">{money(e[1])}</td>
+                        <td className="split">{dd ? dd[0] : ''}</td>
+                        <td className="amt">{dd ? money(dd[1]) : ''}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td>Total Earnings</td>
+                    <td className="amt">{money(totalEarnings)}</td>
+                    <td className="split">Total Deductions</td>
+                    <td className="amt">{money(totalDeductions)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+
+              <div className="net-pay">
+                <div>
+                  <span className="net-label">Net payable salary</span>
+                  <span className="net-words">{amountInWords(salary.net_salary)}</span>
+                </div>
+                <div className="net-amount">Rs {money(salary.net_salary)}</div>
+              </div>
+            </div>
+
+            <div className="sh-right">
+              <div className="emp-card">
+                <div><span>Employee Code</span><strong>{employee.employee_code}</strong></div>
+                <div><span>Employee Name</span><strong>{employee.name}</strong></div>
+                <div><span>Designation</span><strong>{employee.designation || '-'}</strong></div>
+                <div><span>Department</span><strong>{employee.department_name || '-'}</strong></div>
+              </div>
+
+              <div className="mini-stats">
+                <div><b>{daysInMonth}</b><span>Month days</span></div>
+                <div><b>{totalActiveDays}</b><span>Active days</span></div>
+                <div><b>{att.total_worked_days}</b><span>Worked days</span></div>
+                <div><b>{att.total_overtime_hours}</b><span>OT hours</span></div>
+              </div>
+
+              <div className="chips">
+                <div className="chip chip-p"><b>{att.present_days}</b><span>Present</span></div>
+                <div className="chip chip-h"><b>{att.half_days}</b><span>Half day</span></div>
+                <div className="chip chip-hd"><b>{att.holiday_days || 0}</b><span>Holiday</span></div>
+                <div className="chip chip-a"><b>{att.absent_days}</b><span>Absent</span></div>
+                <div className="chip chip-wo"><b>{att.week_off_days || 0}</b><span>Week off</span></div>
+              </div>
+            </div>
+          </div>
+
+          {/* ---------- Wages register (same page) ---------- */}
+          {showWages && (
+            <div className="wages">
+              <div className="wages-title">
+                <h2>Wages Record — Attendance &amp; Production</h2>
+                <div className="legend">
+                  <span><i className="lg lg-p">P</i>Present</span>
+                  <span><i className="lg lg-a">A</i>Absent</span>
+                  <span><i className="lg lg-h">H</i>Half day</span>
+                  <span><i className="lg lg-hd">HD</i>Holiday</span>
+                  <span><i className="lg lg-wo">WO</i>Week off</span>
+                </div>
+              </div>
+
+              <table className="wages-table">
+                <thead>
+                  <tr>
+                    <th className="w-name">Particulars</th>
+                    {dayInfo.map(({ d, wd }) => (
+                      <th key={d} className={wd === 0 ? 'sun' : ''}>
+                        <span className="dn">{d}</span>
+                        <span className="wd">{WEEKDAY_LETTERS[wd]}</span>
+                      </th>
+                    ))}
+                    <th className="w-sum">Total</th>
+                    <th className="w-rate">Rate</th>
+                    <th className="w-amt">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="w-name">Attendance</td>
+                    {dayInfo.map(({ d, wd }) => {
+                      const { code, cls } = attendanceCode(attMap[d]?.status);
+                      return (
+                        <td key={d} className={`${wd === 0 ? 'sun' : ''} st-${cls}`}>{code}</td>
+                      );
+                    })}
+                    <td className="w-sum strong">{att.total_worked_days}</td>
+                    <td className="w-rate">-</td>
+                    <td className="w-amt strong">{moneyShort(salary.basic_salary)}</td>
+                  </tr>
+
+                  <tr>
+                    <td className="w-name">Overtime (hrs)</td>
+                    {dayInfo.map(({ d, wd }) => {
+                      const a = attMap[d];
+                      return (
+                        <td key={d} className={wd === 0 ? 'sun' : ''}>
+                          {a && N(a.overtime_hours) > 0 ? a.overtime_hours : ''}
+                        </td>
+                      );
+                    })}
+                    <td className="w-sum strong">{att.total_overtime_hours}</td>
+                    <td className="w-rate">{employee.overtime_rate || '-'}</td>
+                    <td className="w-amt strong">{moneyShort(salary.overtime_amount)}</td>
+                  </tr>
+
+                  {prodRows.map((r) => (
+                    <tr key={r.name}>
+                      <td className="w-name prod">{r.name}</td>
+                      {dayInfo.map(({ d, wd }) => {
+                        const p = r.byDay[d];
+                        return (
+                          <td key={d} className={`${wd === 0 ? 'sun' : ''} ${p ? qtyCls(p.quantity) : ''}`}>
+                            {p ? p.quantity : ''}
+                          </td>
+                        );
+                      })}
+                      <td className="w-sum strong">{r.qty}</td>
+                      <td className="w-rate">{r.rate}</td>
+                      <td className="w-amt strong">{moneyShort(r.amount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td className="w-total-label" colSpan={dayInfo.length + 3}>
+                      Total wages (basic + overtime + production)
+                    </td>
+                    <td className="w-amt">{moneyShort(wagesTotal)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+
+          {/* ---------- Signatures ---------- */}
+          <div className="sh-sign">
+            <div>Employer Signature</div>
+            <p>This is a computer generated salary slip.</p>
+            <div>Employee Signature</div>
+          </div>
         </div>
-      )}
-    </div>
+      </div>
+    </section>
   );
 };
 
+/* ---------------------------------------------------------------------------
+   Page
+--------------------------------------------------------------------------- */
 export default function HRMSSalary() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
   const [selectedSlip, setSelectedSlip] = useState(null);
-  
-  // Filtering states
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [departments, setDepartments] = useState([]);
-  
-  // Print options
+
   const [printWages, setPrintWages] = useState(true);
-  
-  // Bulk Print
+
   const [bulkSlips, setBulkSlips] = useState([]);
   const [isBulkLoading, setIsBulkLoading] = useState(false);
 
@@ -239,6 +384,13 @@ export default function HRMSSalary() {
     fetchSalaries();
     fetchDepartments();
   }, [selectedMonth]);
+
+  // Print dialog band hone par bulk slips hata do
+  useEffect(() => {
+    const clear = () => setBulkSlips([]);
+    window.addEventListener('afterprint', clear);
+    return () => window.removeEventListener('afterprint', clear);
+  }, []);
 
   async function fetchDepartments() {
     const res = await apiGet('/hrms/departments/');
@@ -271,274 +423,234 @@ export default function HRMSSalary() {
     const res = await apiGet(`/hrms/salary/${id}/slip/`);
     if (res) {
       setSelectedSlip(res);
-      setBulkSlips([]); // Clear bulk
+      setBulkSlips([]);
     }
   };
 
-  const handlePrintSlip = () => {
-    window.print();
-  };
+  const handlePrintSlip = () => window.print();
 
   const salaries = data?.salaries || [];
   const totals = data?.totals || {};
 
-  // Apply filters
   const filteredSalaries = useMemo(() => {
-    return salaries.filter(sal => {
-      const matchSearch = (sal.employee_name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          (sal.employee_code || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const q = searchQuery.toLowerCase();
+    return salaries.filter((sal) => {
+      const matchSearch =
+        (sal.employee_name || '').toLowerCase().includes(q) ||
+        (sal.employee_code || '').toLowerCase().includes(q);
       const matchDept = selectedDepartment ? String(sal.department_name) === selectedDepartment : true;
       return matchSearch && matchDept;
     });
   }, [salaries, searchQuery, selectedDepartment]);
 
+  const filteredNet = useMemo(
+    () => filteredSalaries.reduce((s, x) => s + N(x.net_salary), 0),
+    [filteredSalaries]
+  );
+
   const handleBulkPrint = async () => {
     if (filteredSalaries.length === 0) {
-      alert("No employees found in the current filter.");
+      alert('No employees found in the current filter.');
       return;
     }
     if (!confirm(`Are you sure you want to fetch and print ${filteredSalaries.length} salary slips?`)) return;
 
     setIsBulkLoading(true);
-    setSelectedSlip(null); // Close single slip if open
+    setSelectedSlip(null);
 
-    const slips = await Promise.all(
-      filteredSalaries.map(sal => apiGet(`/hrms/salary/${sal.id}/slip/`))
-    );
-    
-    setBulkSlips(slips);
+    const slips = await Promise.all(filteredSalaries.map((sal) => apiGet(`/hrms/salary/${sal.id}/slip/`)));
+
+    setBulkSlips(slips.filter(Boolean));
     setIsBulkLoading(false);
-    
-    // Give DOM time to render the big list
-    setTimeout(() => {
-      window.print();
-    }, 1000);
+
+    // DOM ko bada list render karne ka time do
+    setTimeout(() => window.print(), 1000);
   };
+
+  const [selYear, selMonth] = selectedMonth.split('-');
+  const monthTitle = `${MONTH_NAMES[N(selMonth) - 1] || ''} ${selYear}`;
+  const listHidden = Boolean(selectedSlip) || isBulkLoading;
 
   return (
     <>
-      <style>{`
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          .no-print {
-            display: none !important;
-          }
-          .print-area, .print-area *, .bulk-container-wrapper, .bulk-container-wrapper * {
-            visibility: visible !important;
-          }
-          .print-area {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            padding: 10px;
-            box-sizing: border-box;
-          }
-          .bulk-container-wrapper {
-            position: absolute;
-            left: 0;
-            top: 0;
-            display: block !important;
-            width: 100%;
-          }
-          
-          /* A4 styling */
-          @page {
-            size: A4;
-            margin: 15mm;
-          }
-          
-          .print-header { border-bottom: 3px solid #1e293b; padding-bottom: 15px; margin-bottom: 20px; text-align: center; }
-          .print-header h2 { margin: 0; font-size: 24px; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing: 1px; }
-          .print-header p { margin: 8px 0 0; font-size: 14px; font-weight: 600; color: #475569; }
-          
-          .emp-details { display: flex; justify-content: space-between; margin-bottom: 25px; font-size: 13px; background: #f8fafc !important; -webkit-print-color-adjust: exact; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; }
-          .emp-details div { width: 48%; }
-          .emp-details p { margin: 6px 0; color: #000000; font-weight: 700; }
-          .emp-details strong { color: #000000; font-weight: 900; width: 130px; display: inline-block; }
-          
-          .salary-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-bottom: 25px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; }
-          .salary-table th, .salary-table td { border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; padding: 12px 15px; text-align: left; }
-          .salary-table th:last-child, .salary-table td:last-child { border-right: none; }
-          .salary-table tbody tr:last-child td { border-bottom: none; }
-          .salary-table th { background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact; font-weight: 800; color: #000000; text-transform: uppercase; font-size: 13px; font-weight: 900; letter-spacing: 0.5px; }
-          .salary-table td { color: #000000; font-weight: 700; font-size: 14px; }
-          
-          .net-pay { display: flex; justify-content: space-between; align-items: center; font-size: 18px; font-weight: 900; margin-bottom: 30px; padding: 15px 20px; background: #f0fdf4 !important; border: 2px solid #22c55e; border-radius: 8px; color: #166534; -webkit-print-color-adjust: exact; }
-          .signatures { display: flex; justify-content: space-between; margin-top: 50px; font-weight: 700; font-size: 13px; color: #475569; }
-          .signatures div { border-top: 1px solid #cbd5e1; padding-top: 10px; width: 200px; text-align: center; }
-        }
-        
-        @media screen {
-          .bulk-container-wrapper {
-            display: none !important;
-          }
-        }
-        
-        .wages-horizontal-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; border: 2px solid #000; }
-        .wages-horizontal-table th, .wages-horizontal-table td { border: 1px solid #000; padding: 6px 3px; text-align: center; color: #000; font-weight: 700; }
-        .wages-horizontal-table th { background-color: #e2e8f0 !important; -webkit-print-color-adjust: exact; font-weight: 900; }
-        .wages-section h3 { text-align: center; margin-bottom: 15px; font-size: 16px; font-weight: 900; color: #000; text-decoration: underline; text-underline-offset: 4px; }
-        
-        .filter-bar { display: flex; gap: 15px; align-items: center; background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .filter-input { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; flex: 1; }
-        .filter-select { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; min-width: 200px; }
-      `}</style>
-      
+      <style>{STYLES}</style>
+
       <div className="no-print">
         <Navbar />
       </div>
 
-      <div className="container">
-        <div className="page-header no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="hr-wrap">
+        {/* ---------- Hero ---------- */}
+        <div className="hr-hero no-print">
           <div>
-            <h1>💵 Monthly Salary & Payroll</h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-              Generate, filter, and print professional salary slips and wages records.
-            </p>
+            <h1>Payroll &amp; Salary Slips</h1>
+            <p>{monthTitle} · generate salaries, review them and print professional payslips.</p>
           </div>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <div className="hr-hero-actions">
             <input
               type="month"
-              className="form-input"
+              className="hr-input hr-month"
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              style={{ width: '180px' }}
             />
-            <button onClick={handleGenerate} className="btn btn-primary" style={{ background: '#2563eb' }} disabled={generating}>
-              {generating ? 'Calculating...' : '⚡ Generate / Recalculate'}
+            <button onClick={handleGenerate} className="hr-btn hr-btn-primary" disabled={generating}>
+              {generating ? 'Calculating…' : '⚡ Generate / Recalculate'}
             </button>
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="filter-bar no-print">
-          <input 
-            type="text" 
-            placeholder="Search by Employee Code or Name..." 
-            className="filter-input"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+        {/* ---------- Single slip ---------- */}
+        {!isBulkLoading && selectedSlip && (
+          <SlipRenderer
+            selectedSlip={selectedSlip}
+            printWages={{ value: printWages, setter: setPrintWages }}
+            onClose={() => setSelectedSlip(null)}
+            onPrint={handlePrintSlip}
           />
-          <select 
-            className="filter-select"
+        )}
+
+        {/* ---------- Bulk slips (print only) ---------- */}
+        {bulkSlips.length > 0 && (
+          <div className="bulk-wrapper">
+            {bulkSlips.map((slip, idx) => (
+              <SlipRenderer key={idx} selectedSlip={slip} printWages={{ value: true }} isBulk />
+            ))}
+          </div>
+        )}
+
+        {/* ---------- Stats ---------- */}
+        <div className="hr-stats no-print" style={{ display: listHidden ? 'none' : 'grid' }}>
+          <div className="hr-stat s-blue">
+            <div className="hr-stat-icon">₹</div>
+            <div>
+              <span>Total salary payout</span>
+              <b>₹{N(totals.total_payout).toLocaleString('en-IN')}</b>
+            </div>
+          </div>
+          <div className="hr-stat s-slate">
+            <div className="hr-stat-icon">🧾</div>
+            <div>
+              <span>Total earned basic</span>
+              <b>₹{N(totals.total_basic).toLocaleString('en-IN')}</b>
+            </div>
+          </div>
+          <div className="hr-stat s-green">
+            <div className="hr-stat-icon">🏭</div>
+            <div>
+              <span>Total piece production</span>
+              <b>₹{N(totals.total_production).toLocaleString('en-IN')}</b>
+            </div>
+          </div>
+          <div className="hr-stat s-violet">
+            <div className="hr-stat-icon">⏱</div>
+            <div>
+              <span>Total overtime amount</span>
+              <b>₹{N(totals.total_overtime).toLocaleString('en-IN')}</b>
+            </div>
+          </div>
+        </div>
+
+        {/* ---------- Filters ---------- */}
+        <div className="hr-filters no-print" style={{ display: listHidden ? 'none' : 'flex' }}>
+          <div className="hr-search">
+            <span>🔍</span>
+            <input
+              type="text"
+              placeholder="Search by employee code or name…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <select
+            className="hr-input hr-select"
             value={selectedDepartment}
             onChange={(e) => setSelectedDepartment(e.target.value)}
           >
-            <option value="">All Departments</option>
-            {departments.map(d => (
+            <option value="">All departments</option>
+            {departments.map((d) => (
               <option key={d.id} value={d.name}>{d.name}</option>
             ))}
           </select>
-          
-          <button 
-            onClick={handleBulkPrint} 
-            className="btn btn-primary" 
-            style={{ background: '#dc2626', minWidth: '150px' }}
+          <button
+            onClick={handleBulkPrint}
+            className="hr-btn hr-btn-danger"
             disabled={isBulkLoading || filteredSalaries.length === 0}
           >
-            {isBulkLoading ? 'Loading Slips...' : <><i className="fas fa-print mr-2"></i> Bulk Print All</>}
+            {isBulkLoading ? 'Loading slips…' : `🖨 Bulk print (${filteredSalaries.length})`}
           </button>
         </div>
 
-        {/* SINGLE Slip View */}
-        {!isBulkLoading && selectedSlip && (
-          <SlipRenderer 
-            selectedSlip={selectedSlip} 
-            printWages={{ value: printWages, setter: setPrintWages }} 
-            onClose={() => setSelectedSlip(null)} 
-            onPrint={handlePrintSlip} 
-          />
-        )}
-        
-        {/* BULK Slip Hidden View */}
-        {bulkSlips.length > 0 && (
-          <div className="bulk-container-wrapper">
-            {bulkSlips.map((slip, idx) => (
-              <SlipRenderer 
-                key={idx}
-                selectedSlip={slip}
-                printWages={{ value: true }}
-                isBulk={true}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Stats Grid */}
-        <div className="grid-4 no-print" style={{ marginBottom: '24px', display: (selectedSlip || isBulkLoading) ? 'none' : 'grid' }}>
-          <div className="stat-card">
-            <span className="stat-label">Total Salary Payout</span>
-            <span className="stat-number" style={{ color: '#2563eb' }}>₹{Number(totals.total_payout || 0).toLocaleString('en-IN')}</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-label">Total Earned Basic</span>
-            <span className="stat-number">₹{Number(totals.total_basic || 0).toLocaleString('en-IN')}</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-label">Total Piece Production</span>
-            <span className="stat-number" style={{ color: '#16a34a' }}>₹{Number(totals.total_production || 0).toLocaleString('en-IN')}</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-label">Total Overtime Amount</span>
-            <span className="stat-number" style={{ color: '#8b5cf6' }}>₹{Number(totals.total_overtime || 0).toLocaleString('en-IN')}</span>
-          </div>
-        </div>
-
-        {/* Salaries Table */}
-        <div className="card no-print" style={{ display: (selectedSlip || isBulkLoading) ? 'none' : 'block' }}>
-          <div className="table-container">
+        {/* ---------- Table ---------- */}
+        <div className="hr-card no-print" style={{ display: listHidden ? 'none' : 'block' }}>
+          <div className="hr-table-scroll">
             {loading ? (
-              <div style={{ textAlign: 'center', padding: '40px' }}>Loading salary records...</div>
+              <div className="hr-empty">Loading salary records…</div>
             ) : (
-              <table>
+              <table className="hr-table">
                 <thead>
-                  <tr style={{ background: '#1e293b', color: 'white' }}>
-                    <th>CODE</th>
-                    <th>EMPLOYEE</th>
-                    <th>DEPT</th>
-                    <th style={{ textAlign: 'right' }}>BASIC</th>
-                    <th style={{ textAlign: 'right' }}>OVERTIME</th>
-                    <th style={{ textAlign: 'right' }}>PRODUCTION</th>
-                      <th style={{ textAlign: 'right' }}>INCENTIVE</th>
-                    <th style={{ textAlign: 'right' }}>DEDUCTION</th>
-                    <th style={{ textAlign: 'right' }}>NET SALARY</th>
-                    <th style={{ textAlign: 'center' }}>PAYSLIP</th>
+                  <tr>
+                    <th>Employee</th>
+                    <th>Department</th>
+                    <th className="r">Basic</th>
+                    <th className="r">Overtime</th>
+                    <th className="r">Production</th>
+                    <th className="r">Incentive</th>
+                    <th className="r">Deduction</th>
+                    <th className="r">Net salary</th>
+                    <th className="c">Payslip</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredSalaries.map((sal) => (
                     <tr key={sal.id}>
-                      <td style={{ fontWeight: 700, color: '#2563eb' }}>{sal.employee_code}</td>
-                      <td style={{ fontWeight: 600 }}>{sal.employee_name}</td>
-                      <td>{sal.department_name || '-'}</td>
-                      <td style={{ textAlign: 'right' }}>₹{Number(sal.basic_salary).toFixed(2)}</td>
-                      <td style={{ textAlign: 'right' }}>₹{Number(sal.overtime_amount).toFixed(2)}</td>
-                      <td style={{ textAlign: 'right', color: '#16a34a' }}>₹{Number(sal.production_amount).toFixed(2)}</td>
-                        <td style={{ textAlign: 'right', color: '#8b5cf6' }}>₹{Number(sal.incentive_amount || 0).toFixed(2)}</td>
-                      <td style={{ textAlign: 'right', color: '#ef4444' }}>₹{(Number(sal.advance) + Number(sal.deduction) + Number(sal.pf_amount) + Number(sal.esi_amount)).toFixed(2)}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 800, color: '#2563eb', fontSize: '1.05rem' }}>₹{Number(sal.net_salary).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      <td style={{ textAlign: 'center' }}>
-                        <button
-                          onClick={() => fetchSlip(sal.id)}
-                          className="btn"
-                          style={{ padding: '6px 14px', fontSize: '0.78rem', background: '#3b82f6', color: '#ffffff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 700 }}
-                        >
-                          📄 Slip
+                      <td>
+                        <div className="emp">
+                          <div className="avatar">{initials(sal.employee_name)}</div>
+                          <div>
+                            <div className="emp-name">{sal.employee_name}</div>
+                            <div className="emp-code">{sal.employee_code}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        {sal.department_name ? <span className="badge">{sal.department_name}</span> : '-'}
+                      </td>
+                      <td className="r">₹{money(sal.basic_salary)}</td>
+                      <td className="r">₹{money(sal.overtime_amount)}</td>
+                      <td className="r t-green">₹{money(sal.production_amount)}</td>
+                      <td className="r t-violet">₹{money(sal.incentive_amount)}</td>
+                      <td className="r t-red">
+                        ₹{money(N(sal.advance) + N(sal.deduction) + N(sal.pf_amount) + N(sal.esi_amount))}
+                      </td>
+                      <td className="r">
+                        <span className="net-pill">₹{money(sal.net_salary)}</span>
+                      </td>
+                      <td className="c">
+                        <button onClick={() => fetchSlip(sal.id)} className="hr-btn hr-btn-soft">
+                          📄 View slip
                         </button>
                       </td>
                     </tr>
                   ))}
                   {!filteredSalaries.length && (
                     <tr>
-                      <td colSpan="9" style={{ textAlign: 'center', color: '#64748b', padding: '30px' }}>
-                        No salary records found. Try generating salaries or adjusting your filters.
+                      <td colSpan="9" className="hr-empty">
+                        No salary records found. Generate salaries for this month or change the filters.
                       </td>
                     </tr>
                   )}
                 </tbody>
+                {filteredSalaries.length > 0 && (
+                  <tfoot>
+                    <tr>
+                      <td colSpan="7" className="r">
+                        Total for {filteredSalaries.length} employee{filteredSalaries.length > 1 ? 's' : ''}
+                      </td>
+                      <td className="r">₹{money(filteredNet)}</td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             )}
           </div>
@@ -547,3 +659,217 @@ export default function HRMSSalary() {
     </>
   );
 }
+
+/* ---------------------------------------------------------------------------
+   Styles
+--------------------------------------------------------------------------- */
+const STYLES = `
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+  :root {
+    --ink: #0f172a;
+    --ink-2: #334155;
+    --muted: #64748b;
+    --line: #e2e8f0;
+    --brand: #1d4ed8;
+    --brand-dark: #1e3a8a;
+    --green: #15803d;
+    --red: #dc2626;
+    --violet: #7c3aed;
+    --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  /* ===================== SCREEN UI ===================== */
+  .hr-wrap { max-width: 1280px; margin: 0 auto; padding: 24px 20px 60px; font-family: var(--font); color: var(--ink); }
+  .hr-wrap * { font-family: inherit; }
+
+  .hr-hero { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; padding: 26px 30px; border-radius: 16px; margin-bottom: 22px; color: #fff; background: linear-gradient(120deg, #0f172a 0%, #1e3a8a 60%, #2563eb 100%); box-shadow: 0 12px 30px rgba(30, 58, 138, .25); }
+  .hr-hero h1 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -.3px; }
+  .hr-hero p { margin: 6px 0 0; font-size: 14px; color: #cbd5e1; }
+  .hr-hero-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+
+  .hr-input { padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; background: #fff; color: var(--ink); outline: none; }
+  .hr-input:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96,165,250,.25); }
+  .hr-month { width: 180px; font-weight: 600; }
+  .hr-select { min-width: 200px; }
+
+  .hr-btn { border: none; border-radius: 10px; padding: 10px 18px; font-size: 14px; font-weight: 700; cursor: pointer; transition: transform .12s ease, background .12s ease; white-space: nowrap; }
+  .hr-btn:disabled { opacity: .55; cursor: not-allowed; }
+  .hr-btn:not(:disabled):active { transform: translateY(1px); }
+  .hr-btn-primary { background: #fff; color: var(--brand-dark); }
+  .hr-btn-primary:not(:disabled):hover { background: #eff6ff; }
+  .hr-btn-danger { background: var(--red); color: #fff; box-shadow: 0 4px 12px rgba(220,38,38,.25); }
+  .hr-btn-danger:not(:disabled):hover { background: #b91c1c; }
+  .hr-btn-ghost { background: #f1f5f9; color: var(--ink); }
+  .hr-btn-ghost:hover { background: #e2e8f0; }
+  .hr-btn-soft { background: #2563eb; color: #fff; padding: 8px 14px; font-size: 13px; }
+  .hr-btn-soft:hover { background: #1d4ed8; }
+
+  .hr-stats { grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+  .hr-stat { display: flex; align-items: center; gap: 14px; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px; box-shadow: 0 1px 2px rgba(15,23,42,.04); }
+  .hr-stat-icon { width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; font-size: 20px; font-weight: 800; flex-shrink: 0; }
+  .hr-stat span { display: block; font-size: 12.5px; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+  .hr-stat b { font-size: 22px; font-weight: 800; letter-spacing: -.3px; }
+  .s-blue .hr-stat-icon { background: #dbeafe; color: var(--brand); } .s-blue b { color: var(--brand); }
+  .s-slate .hr-stat-icon { background: #e2e8f0; color: var(--ink-2); }
+  .s-green .hr-stat-icon { background: #dcfce7; color: var(--green); } .s-green b { color: var(--green); }
+  .s-violet .hr-stat-icon { background: #ede9fe; color: var(--violet); } .s-violet b { color: var(--violet); }
+
+  .hr-filters { gap: 12px; align-items: center; flex-wrap: wrap; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 12px; margin-bottom: 20px; }
+  .hr-search { flex: 1; min-width: 240px; display: flex; align-items: center; gap: 10px; padding: 0 14px; border: 1px solid var(--line); border-radius: 10px; background: #f8fafc; }
+  .hr-search:focus-within { border-color: #60a5fa; background: #fff; box-shadow: 0 0 0 3px rgba(96,165,250,.25); }
+  .hr-search input { flex: 1; border: none; outline: none; background: transparent; padding: 11px 0; font-size: 14px; }
+
+  .hr-card { background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: 0 1px 2px rgba(15,23,42,.04); }
+  .hr-table-scroll { overflow-x: auto; }
+  .hr-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .hr-table thead th { background: #0f172a; color: #e2e8f0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; padding: 14px 16px; text-align: left; white-space: nowrap; }
+  .hr-table td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .hr-table tbody tr:hover { background: #f8fafc; }
+  .hr-table .r { text-align: right; } .hr-table .c { text-align: center; }
+  .hr-table tfoot td { background: #f8fafc; font-weight: 800; border-top: 2px solid var(--line); border-bottom: none; }
+  .t-green { color: var(--green); font-weight: 600; } .t-violet { color: var(--violet); font-weight: 600; } .t-red { color: var(--red); font-weight: 600; }
+  .emp { display: flex; align-items: center; gap: 12px; }
+  .avatar { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6, #1e3a8a); color: #fff; display: grid; place-items: center; font-size: 13px; font-weight: 800; flex-shrink: 0; }
+  .emp-name { font-weight: 700; }
+  .emp-code { font-size: 12px; color: var(--brand); font-weight: 700; }
+  .badge { background: #f1f5f9; color: var(--ink-2); font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
+  .net-pill { background: #eff6ff; color: var(--brand-dark); font-weight: 800; padding: 6px 12px; border-radius: 8px; }
+  .hr-empty { text-align: center; color: var(--muted); padding: 40px 16px !important; }
+
+  @media (max-width: 900px) { .hr-stats { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 520px) { .hr-stats { grid-template-columns: 1fr; } .hr-hero { padding: 20px; } }
+
+  .slip-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px; margin-bottom: 18px; }
+  .slip-toolbar-left { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .hr-check { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .hr-check input { width: 18px; height: 18px; accent-color: var(--brand); }
+
+  /* ===================== SHEET (A4 LANDSCAPE) ===================== */
+  .sheet-scroll { overflow-x: auto; padding-bottom: 6px; }
+
+  .sheet {
+    --pr: 6px;      /* pay-table cell padding (vertical) */
+    --wr: 5px;      /* wages-table cell padding (vertical) */
+    --wf: 12px;     /* wages-table font size */
+    --sg: 22px;     /* gap above signatures */
+    width: 1122px;  /* 297mm */
+    margin: 0 auto 30px;
+    padding: 28px 30px 24px;
+    background: #fff;
+    color: #000;
+    font-family: var(--font);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    box-shadow: 0 14px 36px rgba(15,23,42,.12);
+    box-sizing: border-box;
+    font-variant-numeric: tabular-nums;
+  }
+  .sheet.d1 { --pr: 5px;   --wr: 4px;   --wf: 12px;   --sg: 18px; }
+  .sheet.d2 { --pr: 4px;   --wr: 2.5px; --wf: 11.5px; --sg: 14px; }
+  .sheet.d3 { --pr: 3px;   --wr: 1px;   --wf: 10.5px; --sg: 10px; }
+
+  .sh-head { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 3px solid #0f172a; margin-bottom: 10px; }
+  .sh-brand { display: flex; align-items: center; gap: 14px; }
+  .sh-logo { width: 46px; height: 46px; border-radius: 11px; background: #0f172a; color: #fff; display: grid; place-items: center; font-size: 26px; font-weight: 900; }
+  .sh-brand h1 { margin: 0; font-size: 24px; font-weight: 900; letter-spacing: .6px; color: #0f172a; line-height: 1.1; }
+  .sh-brand p { margin: 3px 0 0; font-size: 13px; font-weight: 600; color: #475569; }
+  .sh-period { text-align: right; }
+  .sh-period span { display: block; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .9px; }
+  .sh-period strong { display: block; font-size: 22px; font-weight: 800; color: #0f172a; margin-top: 2px; line-height: 1.1; }
+
+  .sh-top { display: grid; grid-template-columns: 1.18fr 1fr; gap: 14px; margin-bottom: 10px; align-items: stretch; }
+  .sh-left { display: flex; flex-direction: column; gap: 8px; }
+  .sh-right { display: flex; flex-direction: column; gap: 8px; }
+
+  .pay-table { width: 100%; border-collapse: separate; border-spacing: 0; border: 1.5px solid #94a3b8; border-radius: 8px; overflow: hidden; font-size: 12.5px; }
+  .pay-table th { background: #0f172a; color: #fff; padding: 8px 11px; font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; text-align: left; }
+  .pay-table td { white-space: nowrap; padding: var(--pr) 10px; border-bottom: 1px solid #e2e8f0; color: #000; font-weight: 600; }
+  .pay-table tbody tr:nth-child(even) td { background: #f8fafc; }
+  .pay-table .amt { text-align: right; width: 17%; white-space: nowrap; }
+  .pay-table .split { border-left: 1.5px solid #94a3b8; }
+  .pay-table tfoot td { background: #e2e8f0; font-weight: 900; font-size: 13.5px; border-top: 2px solid #475569; border-bottom: none; padding: 9px 11px; }
+
+  .net-pay { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 8px 14px; border-radius: 10px; background: #f0fdf4; border: 2px solid #22c55e; }
+  .net-label { display: block; font-size: 11px; font-weight: 800; color: #166534; text-transform: uppercase; letter-spacing: 1px; }
+  .net-words { display: block; margin-top: 4px; font-size: 11.5px; font-weight: 600; color: #166534; }
+  .net-amount { font-size: 24px; font-weight: 900; color: #14532d; white-space: nowrap; }
+
+  .emp-card { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; background: #f8fafc; }
+  .emp-card span { display: block; font-size: 10.5px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .6px; }
+  .emp-card strong { display: block; font-size: 14px; font-weight: 800; color: #000; margin-top: 2px; }
+
+  .mini-stats { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; }
+  .mini-stats div { text-align: center; padding: 7px 4px; border-right: 1px solid #cbd5e1; background: #fff; }
+  .mini-stats div:last-child { border-right: none; }
+  .mini-stats b { display: block; font-size: 18px; font-weight: 900; line-height: 1.1; }
+  .mini-stats span { display: block; font-size: 10.5px; font-weight: 700; color: #475569; margin-top: 2px; }
+
+  .chips { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; }
+  .chip { border-radius: 8px; padding: 6px 4px; text-align: center; border: 1px solid; }
+  .chip b { display: block; font-size: 17px; font-weight: 900; line-height: 1.1; }
+  .chip span { display: block; font-size: 10.5px; font-weight: 700; margin-top: 2px; }
+  .chip-p { background: #f0fdf4; border-color: #86efac; color: #166534; }
+  .chip-h { background: #fffbeb; border-color: #fcd34d; color: #92400e; }
+  .chip-hd { background: #eff6ff; border-color: #93c5fd; color: #1e40af; }
+  .chip-a { background: #fef2f2; border-color: #fca5a5; color: #991b1b; }
+  .chip-wo { background: #f1f5f9; border-color: #cbd5e1; color: #334155; }
+
+  /* ---------- Wages register ---------- */
+  .wages-title { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 6px; }
+  .wages-title h2 { margin: 0; font-size: 14px; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing: .6px; }
+  .legend { display: flex; gap: 12px; font-size: 11px; font-weight: 700; color: #334155; }
+  .legend span { display: inline-flex; align-items: center; gap: 4px; }
+  .lg { font-style: normal; min-width: 20px; height: 17px; padding: 0 3px; display: inline-grid; place-items: center; border-radius: 4px; font-size: 10px; font-weight: 900; border: 1px solid #000; color: #000; }
+  .lg-p { background: #dcfce7; } .lg-a { background: #fee2e2; } .lg-h { background: #fef3c7; } .lg-hd { background: #dbeafe; } .lg-wo { background: #e2e8f0; }
+
+  .wages-table { width: 100%; border-collapse: collapse; table-layout: fixed; border: 2px solid #000; color: #000; font-size: var(--wf); }
+  .wages-table th, .wages-table td { border: 1px solid #000; padding: var(--wr) 0; text-align: center; font-weight: 700; color: #000; overflow: hidden; white-space: nowrap; }
+  .wages-table thead th { background: #cbd5e1; font-weight: 900; padding: 3px 0; }
+  .wages-table .dn { display: block; font-size: 12px; line-height: 1.15; }
+  .wages-table .wd { display: block; font-size: 9px; font-weight: 700; color: #334155; line-height: 1.1; }
+  .wages-table .sun { background: #f1f5f9; }
+  .wages-table thead th.sun { background: #94a3b8; }
+  .wages-table .w-name { width: 30mm; text-align: left; padding-left: 6px; padding-right: 3px; font-weight: 800; }
+  .wages-table .w-name.prod { white-space: normal; line-height: 1.15; font-size: calc(var(--wf) - .5px); }
+  .wages-table .w-sum { width: 12mm; }
+  .wages-table .w-rate { width: 11mm; }
+  .wages-table .w-amt { width: 17mm; }
+  .wages-table .strong { font-weight: 900; }
+  .wages-table .qty-long { font-size: calc(var(--wf) - 2px); letter-spacing: -.3px; }
+  .wages-table td.st-p { background: #dcfce7; color: #166534; font-weight: 900; }
+  .wages-table td.st-a { background: #fee2e2; color: #991b1b; font-weight: 900; }
+  .wages-table td.st-h { background: #fef3c7; color: #92400e; font-weight: 900; }
+  .wages-table td.st-hd { background: #dbeafe; color: #1e40af; font-weight: 900; font-size: calc(var(--wf) - 2px); }
+  .wages-table td.st-wo { background: #e2e8f0; color: #334155; font-weight: 900; font-size: calc(var(--wf) - 2px); }
+  .wages-table tfoot td { background: #e2e8f0; font-weight: 900; padding: calc(var(--wr) + 1px) 0; }
+  .wages-table tfoot td.w-total-label { text-align: right; padding-right: 10px; }
+
+  .sh-sign { display: flex; justify-content: space-between; align-items: flex-end; margin-top: var(--sg); }
+  .sh-sign div { width: 200px; border-top: 1.5px solid #475569; padding-top: 4px; text-align: center; font-size: 12px; font-weight: 700; color: #334155; }
+  .sh-sign p { margin: 0; font-size: 10.5px; color: #94a3b8; }
+
+  .bulk-wrapper { display: none; }
+
+  /* ===================== PRINT — ek slip = ek A4 landscape page ===================== */
+  @page { size: A4 landscape; margin: 7mm; }
+
+  @media print {
+    html, body { background: #fff !important; height: auto !important; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+    .no-print { display: none !important; }
+    .hr-wrap { max-width: none !important; margin: 0 !important; padding: 0 !important; }
+    .bulk-wrapper { display: block !important; }
+
+    .slip-root { break-after: page; page-break-after: always; }
+    .slip-root:last-child, .slip-root.is-single { break-after: auto; page-break-after: auto; }
+
+    .sheet-scroll { overflow: visible !important; padding: 0 !important; }
+    .sheet {
+      width: auto !important; margin: 0 !important; padding: 0 !important;
+      border: none !important; border-radius: 0 !important; box-shadow: none !important;
+      break-inside: avoid; page-break-inside: avoid;
+    }
+  }
+`;
