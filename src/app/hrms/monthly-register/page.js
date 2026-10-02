@@ -16,6 +16,7 @@ export default function MonthlyRegister() {
   
   const [employees, setEmployees] = useState([]);
   const [attendanceData, setAttendanceData] = useState({});
+  const [activeDaysMap, setActiveDaysMap] = useState({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
@@ -77,6 +78,7 @@ export default function MonthlyRegister() {
         });
       }
       setAttendanceData(map);
+      if (res.active_days_map) setActiveDaysMap(res.active_days_map);
     }
     setLoading(false);
   }
@@ -184,6 +186,7 @@ export default function MonthlyRegister() {
                   {days.map(d => (
                     <th key={d} style={{ width: '50px' }}>{parseInt(d)}<br/><span style={{fontSize:'0.6rem'}}>St|OT</span></th>
                   ))}
+                  <th style={{ minWidth: '60px', background: '#10b981', right: '120px', position: 'sticky', zIndex: 12 }}>Active<br/><span style={{fontSize:'0.6rem'}}>Days</span></th>
                   <th style={{ minWidth: '60px', background: '#0284c7', right: '60px', position: 'sticky', zIndex: 12 }}>Total<br/><span style={{fontSize:'0.6rem'}}>Days</span></th>
                   <th style={{ minWidth: '60px', background: '#ea580c', right: 0, position: 'sticky', zIndex: 12 }}>Total<br/><span style={{fontSize:'0.6rem'}}>OT (h)</span></th>
                 </tr>
@@ -231,6 +234,7 @@ export default function MonthlyRegister() {
                         </td>
                       );
                     })}
+                          <td style={{ background: '#d1fae5', fontWeight: 'bold', fontSize: '0.9rem', color: '#047857', right: '120px', position: 'sticky', zIndex: 11 }} title="Present + Holiday + Half Day + Production Days">{activeDaysMap[emp.id] !== undefined ? activeDaysMap[emp.id] : '-'}</td>
                           <td style={{ background: '#e0f2fe', fontWeight: 'bold', fontSize: '0.9rem', color: '#0369a1', right: '60px', position: 'sticky', zIndex: 11 }}>{totalDays}</td>
                           <td style={{ background: '#ffedd5', fontWeight: 'bold', fontSize: '0.9rem', color: '#c2410c', right: 0, position: 'sticky', zIndex: 11 }}>{totalOT > 0 ? totalOT : 0}</td>
                         </>
