@@ -1,120 +1,115 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { useState, useEffect, useRef } from 'react';
 import Navbar from '@/components/Navbar';
-import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api';
+import { apiGet, apiPost, apiPatch, apiDelete } from '@/lib/api';
 
-export default function HRMEmployees() {
+const STYLES = `
+  * { box-sizing: border-box; }
+  .emp-page { background: #f8fafc; min-height: 100vh; padding: 28px 32px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  .emp-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; }
+  .emp-title h1 { font-size: 2rem; font-weight: 900; color: #0f172a; margin: 0 0 6px; letter-spacing: -0.5px; }
+  .emp-title p { color: #64748b; font-size: 0.9rem; font-weight: 500; margin: 0; }
+  .btn-primary { background: #1e40af; color: #fff; border: none; padding: 12px 24px; border-radius: 10px; font-weight: 800; font-size: 0.9rem; cursor: pointer; letter-spacing: 0.3px; transition: background .15s; }
+  .btn-primary:hover { background: #1d3a8a; }
+  .btn-ghost { background: #f1f5f9; color: #475569; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer; transition: background .15s; }
+  .btn-ghost:hover { background: #e2e8f0; }
+  .btn-danger { background: #fee2e2; color: #991b1b; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer; }
+
+  .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card { background: #fff; border-radius: 14px; padding: 18px 22px; border: 1px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,.04); }
+  .stat-card .val { font-size: 2rem; font-weight: 900; color: #0f172a; line-height: 1; }
+  .stat-card .lbl { font-size: 0.78rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-top: 6px; }
+  .stat-card.blue .val { color: #1e40af; }
+  .stat-card.green .val { color: #166534; }
+  .stat-card.red .val { color: #991b1b; }
+
+  .toolbar { display: flex; gap: 12px; margin-bottom: 20px; align-items: center; }
+  .search-box { flex: 1; position: relative; }
+  .search-box input { width: 100%; padding: 11px 16px 11px 42px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 0.9rem; font-weight: 500; outline: none; background: #fff; color: #0f172a; }
+  .search-box input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.1); }
+  .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 1rem; }
+  .filter-select { padding: 11px 16px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 0.88rem; font-weight: 600; color: #334155; background: #fff; outline: none; min-width: 200px; cursor: pointer; }
+  .filter-select:focus { border-color: #3b82f6; }
+
+  .table-wrap { background: #fff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,.05); }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: #1e293b; }
+  thead th { padding: 14px 18px; font-size: 0.72rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; text-align: left; white-space: nowrap; }
+  tbody tr { border-bottom: 1px solid #f1f5f9; transition: background .1s; }
+  tbody tr:hover { background: #f8fafc; }
+  tbody tr:last-child { border-bottom: none; }
+  td { padding: 14px 18px; font-size: 0.875rem; color: #334155; vertical-align: middle; }
+  .emp-name { font-weight: 800; color: #0f172a; font-size: 0.9rem; }
+  .emp-desig { font-size: 0.75rem; color: #94a3b8; font-weight: 600; margin-top: 2px; }
+  .emp-code { font-weight: 700; color: #1e40af; font-size: 0.85rem; }
+  .chip { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 0.72rem; font-weight: 800; }
+  .chip-company { background: #eff6ff; color: #1d4ed8; }
+  .chip-contractor { background: #fff7ed; color: #c2410c; }
+  .chip-active { background: #dcfce7; color: #166534; }
+  .chip-inactive { background: #fee2e2; color: #991b1b; }
+  .actions { display: flex; gap: 8px; align-items: center; }
+  .btn-view { background: #eff6ff; color: #1d4ed8; border: none; padding: 7px 14px; border-radius: 7px; font-weight: 700; font-size: 0.78rem; cursor: pointer; text-decoration: none; display: inline-block; }
+  .btn-edit { background: #f0fdf4; color: #166534; border: none; padding: 7px 14px; border-radius: 7px; font-weight: 700; font-size: 0.78rem; cursor: pointer; }
+
+  /* MODAL */
+  .overlay { position: fixed; inset: 0; background: rgba(15,23,42,.5); backdrop-filter: blur(4px); z-index: 1000; display: flex; align-items: flex-start; justify-content: center; padding: 40px 20px; overflow-y: auto; }
+  .modal { background: #fff; border-radius: 20px; width: 100%; max-width: 760px; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
+  .modal-head { padding: 24px 28px 0; border-bottom: 1px solid #f1f5f9; }
+  .modal-head h2 { font-size: 1.3rem; font-weight: 900; color: #0f172a; margin: 0 0 16px; }
+  .modal-body { padding: 24px 28px; }
+  .modal-foot { padding: 16px 28px 24px; display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid #f1f5f9; }
+  .section-title { font-size: 0.72rem; font-weight: 900; color: #3b82f6; text-transform: uppercase; letter-spacing: 1.5px; margin: 0 0 14px; padding-bottom: 6px; border-bottom: 2px solid #eff6ff; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 20px; margin-bottom: 24px; }
+  .form-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+  .form-group label { display: block; font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+  .form-group input, .form-group select { width: 100%; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.875rem; font-weight: 600; color: #0f172a; outline: none; background: #fff; }
+  .form-group input:focus, .form-group select:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.1); }
+  .msg-ok { background: #dcfce7; color: #166534; padding: 10px 16px; border-radius: 8px; font-weight: 700; font-size: 0.875rem; margin-bottom: 16px; }
+  .msg-err { background: #fee2e2; color: #991b1b; padding: 10px 16px; border-radius: 8px; font-weight: 700; font-size: 0.875rem; margin-bottom: 16px; }
+`;
+
+const EMPTY_FORM = {
+  employee_code: '', name: '', father_name: '', mobile: '', alternate_mobile: '',
+  email: '', dob: '', joining_date: new Date().toISOString().split('T')[0],
+  department: '', designation: '', employee_type: 'Company', contractor_name: '',
+  address: '', aadhaar: '', pan: '', bank_name: '', account_number: '',
+  ifsc: '', uan: '', esi_number: '',
+  basic_salary: '0', hourly_rate: '0', overtime_rate: '0', pf_percent: '0', esi_percent: '0',
+  status: 'Active',
+};
+
+export default function EmployeesPage() {
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showAddForm, setShowAddForm] = useState(false);
   const [search, setSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState('');
-  const [message, setMessage] = useState(null);
+  const [modal, setModal] = useState(null); // null | 'add' | 'edit'
+  const [formData, setFormData] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const [editId, setEditId] = useState(null);
 
-  const [formData, setFormData] = useState({
-    employee_code: '',
-    name: '',
-    father_name: '',
-    mobile: '',
-    alternate_mobile: '',
-    email: '',
-    dob: '',
-    joining_date: new Date().toISOString().split('T')[0],
-    department: '',
-    designation: '',
-    employee_type: 'Company',
-    contractor_name: '',
-    address: '',
-    aadhaar: '',
-    pan: '',
-    bank_name: '',
-    account_number: '',
-    ifsc: '',
-    uan: '',
-    esi_number: '',
-    basic_salary: '18000',
-    hourly_rate: '0',
-    overtime_rate: '100',
-    pf_percent: '0',
-    esi_percent: '0',
-    status: 'Active',
-  });
+  useEffect(() => { fetchAll(); }, []);
 
-  useEffect(() => {
-    fetchData();
-  }, [deptFilter]);
-
-  async function fetchData() {
+  async function fetchAll() {
     setLoading(true);
-    let query = '?status=Active&';
-    if (deptFilter) query += `department=${deptFilter}&`;
-
-    const [empRes, deptRes] = await Promise.all([
-      apiGet(`/hrms/employees/${query}`),
-      apiGet('/hrms/departments/'),
-    ]);
-
-    if (empRes) setEmployees(empRes);
-    if (deptRes) setDepartments(deptRes);
+    const [emps, depts] = await Promise.all([apiGet('/hrms/employees/'), apiGet('/hrms/departments/')]);
+    if (emps) setEmployees(emps);
+    if (depts) setDepartments(depts);
     setLoading(false);
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    setMessage(null);
+  function openAdd() {
+    setFormData(EMPTY_FORM);
+    setEditId(null);
+    setMsg(null);
+    setModal('add');
+  }
 
-    const res = await apiPost('/hrms/employees/', formData);
-    setSaving(false);
-
-    if (res && res.ok) {
-      setMessage({ type: 'success', text: `Employee "${res.data.name}" (${res.data.employee_code}) added successfully!` });
-      setShowAddForm(false);
-      setFormData({
-        employee_code: '',
-        name: '',
-        father_name: '',
-        mobile: '',
-        alternate_mobile: '',
-        email: '',
-        dob: '',
-        joining_date: new Date().toISOString().split('T')[0],
-        department: '',
-        designation: '',
-        employee_type: 'Company',
-        contractor_name: '',
-        address: '',
-        aadhaar: '',
-        pan: '',
-        bank_name: '',
-        account_number: '',
-        ifsc: '',
-        uan: '',
-        esi_number: '',
-        basic_salary: '18000',
-        hourly_rate: '0',
-        overtime_rate: '100',
-        pf_percent: '0',
-        esi_percent: '0',
-        status: 'Active',
-      });
-      fetchData();
-    } else {
-      setMessage({ type: 'error', text: res?.data ? JSON.stringify(res.data) : 'Failed to add employee' });
-    }
-  };
-
-  const [editEmp, setEditEmp] = useState(null);
-  const [editFormData, setEditFormData] = useState({});
-  const [updating, setUpdating] = useState(false);
-
-  const handleOpenEdit = (emp) => {
-    setEditEmp(emp);
-    setEditFormData({
+  function openEdit(emp) {
+    setFormData({
       employee_code: emp.employee_code || '',
       name: emp.name || '',
       father_name: emp.father_name || '',
@@ -142,744 +137,199 @@ export default function HRMEmployees() {
       esi_percent: emp.esi_percent || '0',
       status: emp.status || 'Active',
     });
-  };
+    setEditId(emp.id);
+    setMsg(null);
+    setModal('edit');
+  }
 
-  const handleEditSubmit = async (e) => {
-    e.preventDefault();
-    if (!editEmp) return;
-    setUpdating(true);
-    setMessage(null);
+  function setField(k, v) { setFormData(p => ({ ...p, [k]: v })); }
 
-    const res = await apiPut(`/hrms/employees/${editEmp.id}/`, editFormData);
-    setUpdating(false);
-
-    if (res) {
-      setMessage({ type: 'success', text: `✓ Employee "${editFormData.name}" (${editFormData.employee_code}) updated successfully!` });
-      setEditEmp(null);
-      fetchData();
+  async function handleSave() {
+    setSaving(true); setMsg(null);
+    const res = modal === 'edit'
+      ? await apiPatch(`/hrms/employees/${editId}/`, formData)
+      : await apiPost('/hrms/employees/', formData);
+    setSaving(false);
+    if (res && !res.error && !res.detail) {
+      setMsg({ ok: true, text: modal === 'edit' ? 'Employee updated!' : 'Employee added!' });
+      fetchAll();
+      setTimeout(() => { setModal(null); setMsg(null); }, 1500);
     } else {
-      setMessage({ type: 'error', text: 'Failed to update employee profile' });
+      const errText = res?.detail || JSON.stringify(res) || 'Failed to save.';
+      setMsg({ ok: false, text: errText });
     }
-  };
+  }
 
-  const handleDeleteEmp = async (emp) => {
-    if (!confirm(`Are you sure you want to delete employee "${emp.name}" (${emp.employee_code})?`)) return;
-    const res = await apiDelete(`/hrms/employees/${emp.id}/`);
-    if (res) {
-      setMessage({ type: 'success', text: `Employee "${emp.name}" deleted.` });
-      fetchData();
-    }
-  };
-
-  const filteredEmployees = employees.filter((emp) => {
-    if (!search) return true;
-    const term = search.toLowerCase();
-    return (
-      (emp.name && emp.name.toLowerCase().includes(term)) ||
-      (emp.employee_code && emp.employee_code.toLowerCase().includes(term)) ||
-      (emp.designation && emp.designation.toLowerCase().includes(term)) ||
-      (emp.mobile && emp.mobile.includes(term))
-    );
+  const filtered = (employees || []).filter(e => {
+    const q = search.toLowerCase();
+    const matchSearch = !q || e.name?.toLowerCase().includes(q) || e.employee_code?.toLowerCase().includes(q);
+    const matchDept = !deptFilter || String(e.department) === deptFilter;
+    return matchSearch && matchDept;
   });
+
+  const totalActive = employees.filter(e => e.status === 'Active').length;
+  const totalInactive = employees.filter(e => e.status !== 'Active').length;
+
+  function inp(key, label, type = 'text', opts = {}) {
+    return (
+      <div className="form-group" key={key}>
+        <label>{label}</label>
+        <input type={type} value={formData[key] || ''} onChange={e => setField(key, e.target.value)} {...opts} />
+      </div>
+    );
+  }
+
+  function sel(key, label, options) {
+    return (
+      <div className="form-group" key={key}>
+        <label>{label}</label>
+        <select value={formData[key] || ''} onChange={e => setField(key, e.target.value)}>
+          {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      </div>
+    );
+  }
 
   return (
     <>
+      <style>{STYLES}</style>
       <Navbar />
-      <div className="container">
-        <div className="page-header">
-          <div>
-            <h1>👨‍💼 Employee Directory</h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-              Comprehensive employee profiles, bank details & statutory records ({employees.length} active)
-            </p>
+      <div className="emp-page">
+        {/* Header */}
+        <div className="emp-header">
+          <div className="emp-title">
+            <h1>Employee Directory</h1>
+            <p>Comprehensive employee profiles, bank details and statutory records ({totalActive} active)</p>
           </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button
-              onClick={() => setShowAddForm(!showAddForm)}
-              className="btn btn-primary"
-              style={{ background: '#2563eb' }}
-            >
-              {showAddForm ? 'Close Form' : '+ Add New Employee'}
-            </button>
-          </div>
+          <button className="btn-primary" onClick={openAdd}>+ Add New Employee</button>
         </div>
 
-        {message && <div className={`message ${message.type}`} style={{ marginBottom: '20px' }}>{message.text}</div>}
+        {/* Stats */}
+        <div className="stat-row">
+          <div className="stat-card"><div className="val">{employees.length}</div><div className="lbl">Total Employees</div></div>
+          <div className="stat-card green"><div className="val">{totalActive}</div><div className="lbl">Active</div></div>
+          <div className="stat-card red"><div className="val">{totalInactive}</div><div className="lbl">Inactive</div></div>
+          <div className="stat-card blue"><div className="val">{departments.length}</div><div className="lbl">Departments</div></div>
+        </div>
 
-        {/* Full Comprehensive Add Employee Form Drawer */}
-        {showAddForm && (
-          <div className="card" style={{ marginBottom: '28px', borderLeft: '4px solid #2563eb', padding: '28px' }}>
-            <h2 style={{ marginBottom: '20px', color: '#1e293b' }}>
-              <i className="fas fa-user-plus mr-2" style={{ color: '#2563eb' }}></i> New Employee Full Registration
-            </h2>
-            
-            <form onSubmit={handleSubmit}>
-              {/* Section 1: Personal & Basic */}
-              <div style={{ marginBottom: '24px' }}>
-                <h3 style={{ fontSize: '0.85rem', textTransform: 'uppercase', color: '#2563eb', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px', marginBottom: '16px' }}>
-                  1. Personal & Basic Details
-                </h3>
-                <div className="grid-3">
-                  <div className="form-group">
-                    <label className="form-label">Employee Code * (e.g. EMP001)</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={formData.employee_code}
-                      onChange={(e) => setFormData({ ...formData, employee_code: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Full Name *</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Father's Name</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={formData.father_name}
-                      onChange={(e) => setFormData({ ...formData, father_name: e.target.value })}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Mobile Number *</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={formData.mobile}
-                      onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Alternate Mobile</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={formData.alternate_mobile}
-                      onChange={(e) => setFormData({ ...formData, alternate_mobile: e.target.value })}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Email Address</label>
-                    <input
-                      type="email"
-                      className="form-input"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Date of Birth</label>
-                    <input
-                      type="date"
-                      className="form-input"
-                      value={formData.dob}
-                      onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Date of Joining</label>
-                    <input
-                      type="date"
-                      className="form-input"
-                      value={formData.joining_date}
-                      onChange={(e) => setFormData({ ...formData, joining_date: e.target.value })}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Status *</label>
-                    <select
-                      className="form-select"
-                      value={formData.status}
-                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    >
-                      <option value="Active">Active</option>
-                      <option value="Inactive">Inactive</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="form-group" style={{ marginTop: '12px' }}>
-                  <label className="form-label">Address</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="Full residential address"
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              {/* Section 2: Department & Role */}
-              <div style={{ marginBottom: '24px' }}>
-                <h3 style={{ fontSize: '0.85rem', textTransform: 'uppercase', color: '#8b5cf6', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px', marginBottom: '16px' }}>
-                  2. Department & Employment Role
-                </h3>
-                <div className="grid-3">
-                  <div className="form-group">
-                    <label className="form-label">Department *</label>
-                    <select
-                      className="form-select"
-                      value={formData.department}
-                      onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                      required
-                    >
-                      <option value="">-- Select Department --</option>
-                      {departments.map((d) => (
-                        <option key={d.id} value={d.id}>{d.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Designation * (e.g. Operator, Helper)</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="e.g. Machine Operator"
-                      value={formData.designation}
-                      onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Employee Type *</label>
-                    <select
-                      className="form-select"
-                      value={formData.employee_type}
-                      onChange={(e) => setFormData({ ...formData, employee_type: e.target.value })}
-                    >
-                      <option value="Company">Company</option>
-                      <option value="Contractor">Contractor</option>
-                    </select>
-                  </div>
-                  {formData.employee_type === 'Contractor' && (
-                    <div className="form-group">
-                      <label className="form-label">Contractor Firm Name</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        placeholder="Contractor agency name"
-                        value={formData.contractor_name}
-                        onChange={(e) => setFormData({ ...formData, contractor_name: e.target.value })}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Section 3: Compensation & Payroll Rates */}
-              <div style={{ marginBottom: '24px' }}>
-                <h3 style={{ fontSize: '0.85rem', textTransform: 'uppercase', color: '#16a34a', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px', marginBottom: '16px' }}>
-                  3. Compensation, Rates & Statutory %
-                </h3>
-                <div className="grid-3">
-                  <div className="form-group">
-                    <label className="form-label">Basic Monthly Salary (₹) *</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      className="form-input"
-                      value={formData.basic_salary}
-                      onChange={(e) => setFormData({ ...formData, basic_salary: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Hourly Rate (₹/hr)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      className="form-input"
-                      value={formData.hourly_rate}
-                      onChange={(e) => setFormData({ ...formData, hourly_rate: e.target.value })}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Overtime Rate (₹/hr)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      className="form-input"
-                      value={formData.overtime_rate}
-                      onChange={(e) => setFormData({ ...formData, overtime_rate: e.target.value })}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">PF Deduction (% e.g. 12)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      className="form-input"
-                      value={formData.pf_percent}
-                      onChange={(e) => setFormData({ ...formData, pf_percent: e.target.value })}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">ESI Deduction (% e.g. 0.75)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      className="form-input"
-                      value={formData.esi_percent}
-                      onChange={(e) => setFormData({ ...formData, esi_percent: e.target.value })}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Section 4: Bank & Statutory Details */}
-              <div style={{ marginBottom: '24px' }}>
-                <h3 style={{ fontSize: '0.85rem', textTransform: 'uppercase', color: '#f59e0b', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px', marginBottom: '16px' }}>
-                  4. Bank & Statutory Info (Aadhaar, PAN, Bank)
-                </h3>
-                <div className="grid-3">
-                  <div className="form-group">
-                    <label className="form-label">Aadhaar Number (12 digit)</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      maxLength="12"
-                      value={formData.aadhaar}
-                      onChange={(e) => setFormData({ ...formData, aadhaar: e.target.value })}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">PAN Number (10 char)</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      maxLength="10"
-                      value={formData.pan}
-                      onChange={(e) => setFormData({ ...formData, pan: e.target.value })}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Bank Name</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="e.g. SBI, HDFC"
-                      value={formData.bank_name}
-                      onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Account Number</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={formData.account_number}
-                      onChange={(e) => setFormData({ ...formData, account_number: e.target.value })}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">IFSC Code</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="e.g. SBIN0001234"
-                      value={formData.ifsc}
-                      onChange={(e) => setFormData({ ...formData, ifsc: e.target.value })}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">UAN Number</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={formData.uan}
-                      onChange={(e) => setFormData({ ...formData, uan: e.target.value })}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">ESI Number</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={formData.esi_number}
-                      onChange={(e) => setFormData({ ...formData, esi_number: e.target.value })}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button type="submit" className="btn btn-primary" style={{ background: '#2563eb', padding: '10px 28px' }} disabled={saving}>
-                  {saving ? 'Saving...' : 'Save Complete Employee Profile'}
-                </button>
-                <button type="button" onClick={() => setShowAddForm(false)} className="btn" style={{ background: '#f1f5f9' }}>
-                  Cancel
-                </button>
-              </div>
-            </form>
+        {/* Toolbar */}
+        <div className="toolbar">
+          <div className="search-box">
+            <span className="search-icon">⌕</span>
+            <input placeholder="Search by name or code..." value={search} onChange={e => setSearch(e.target.value)} />
           </div>
-        )}
+          <select className="filter-select" value={deptFilter} onChange={e => setDeptFilter(e.target.value)}>
+            <option value="">All Departments</option>
+            {departments.map(d => <option key={d.id} value={String(d.id)}>{d.name}</option>)}
+          </select>
+        </div>
 
-        {/* Directory List Card */}
-        <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '16px', flexWrap: 'wrap' }}>
-            <div style={{ position: 'relative', width: '300px' }}>
-              <i className="fas fa-search" style={{ position: 'absolute', left: '12px', top: '10px', color: 'var(--text-muted)' }}></i>
-              <input
-                type="text"
-                className="form-input"
-                style={{ paddingLeft: '36px' }}
-                placeholder="Search Employee / Code..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-            <div>
-              <select
-                className="form-select"
-                value={deptFilter}
-                onChange={(e) => setDeptFilter(e.target.value)}
-              >
-                <option value="">All Departments</option>
-                {departments.map((d) => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="table-container">
-            {loading ? (
-              <div style={{ textAlign: 'center', padding: '30px' }}>Loading employee directory...</div>
-            ) : (
-              <table>
-                <thead>
-                  <tr>
-                    <th>Code</th>
-                    <th>Name</th>
-                    <th>Mobile</th>
-                    <th>Department</th>
-                    <th>Designation</th>
-                    <th>Type</th>
-                    <th style={{ textAlign: 'right' }}>Basic Salary</th>
-                    <th style={{ textAlign: 'right' }}>OT Rate</th>
-                    <th>Status</th>
-                    <th style={{ textAlign: 'center' }}>Actions</th>
+        {/* Table */}
+        <div className="table-wrap">
+          {loading ? (
+            <div style={{ padding: '60px', textAlign: 'center', color: '#94a3b8', fontWeight: 700 }}>Loading employees...</div>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Employee</th>
+                  <th>Department</th>
+                  <th>Type</th>
+                  <th style={{ textAlign: 'right' }}>Basic</th>
+                  <th style={{ textAlign: 'right' }}>OT Rate</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.length === 0 ? (
+                  <tr><td colSpan="8" style={{ textAlign: 'center', padding: '40px', color: '#94a3b8', fontWeight: 600 }}>No employees found.</td></tr>
+                ) : filtered.map(emp => (
+                  <tr key={emp.id}>
+                    <td><span className="emp-code">{emp.employee_code}</span></td>
+                    <td>
+                      <div className="emp-name">{emp.name}</div>
+                      <div className="emp-desig">{emp.designation}</div>
+                    </td>
+                    <td style={{ color: '#475569', fontWeight: 600 }}>{emp.department_name || '-'}</td>
+                    <td><span className={`chip ${emp.employee_type === 'Company' ? 'chip-company' : 'chip-contractor'}`}>{emp.employee_type}</span></td>
+                    <td style={{ textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>₹{Number(emp.basic_salary || 0).toLocaleString('en-IN')}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 700, color: '#475569' }}>₹{Number(emp.overtime_rate || 0).toFixed(2)}/hr</td>
+                    <td><span className={`chip ${emp.status === 'Active' ? 'chip-active' : 'chip-inactive'}`}>{emp.status}</span></td>
+                    <td>
+                      <div className="actions">
+                        <a href={`/hrms/employees/${emp.id}`} className="btn-view">View</a>
+                        <button className="btn-edit" onClick={() => openEdit(emp)}>Edit</button>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {filteredEmployees.map((emp) => (
-                    <tr key={emp.id}>
-                      <td style={{ fontWeight: 700, color: '#2563eb' }}>{emp.employee_code}</td>
-                      <td style={{ fontWeight: 600 }}>{emp.name}</td>
-                      <td>{emp.mobile || '—'}</td>
-                      <td>{emp.department_name || '—'}</td>
-                      <td>{emp.designation || '—'}</td>
-                      <td><span className="badge blue">{emp.employee_type}</span></td>
-                      <td style={{ textAlign: 'right', fontWeight: 600 }}>₹{Number(emp.basic_salary).toLocaleString('en-IN')}</td>
-                      <td style={{ textAlign: 'right', color: '#16a34a' }}>₹{emp.overtime_rate}/hr</td>
-                      <td><span className="badge green">{emp.status}</span></td>
-                      <td style={{ textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
-                          <Link href={`/hrms/employees/${emp.id}`} className="btn" style={{ padding: '4px 10px', fontSize: '0.75rem', background: '#f1f5f9', color: '#1e293b' }}>
-                            <i className="fas fa-eye"></i> View
-                          </Link>
-                          <button
-                            onClick={() => handleOpenEdit(emp)}
-                            className="btn"
-                            style={{ padding: '4px 10px', fontSize: '0.75rem', background: '#2563eb', color: '#ffffff' }}
-                          >
-                            <i className="fas fa-edit"></i> Edit
-                          </button>
-                          <button
-                            onClick={() => handleDeleteEmp(emp)}
-                            className="btn"
-                            style={{ padding: '4px 10px', fontSize: '0.75rem', background: '#ef4444', color: '#ffffff' }}
-                          >
-                            <i className="fas fa-trash"></i>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {!filteredEmployees.length && (
-                    <tr>
-                      <td colSpan="10" style={{ textAlign: 'center', color: '#64748b', padding: '30px' }}>
-                        No employees found matching filter.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            )}
-          </div>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
+      </div>
 
-        {/* Modal Overlay for Edit Employee */}
-        {editEmp && (
-          <div style={{
-            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
-          }}>
-            <div style={{
-              width: '800px', maxWidth: '95%', maxHeight: '90vh', overflowY: 'auto',
-              background: '#ffffff', borderRadius: '16px', padding: '32px',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.3)', color: '#0f172a'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #2563eb', paddingBottom: '12px' }}>
-                <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: '#0f172a' }}>
-                  ✏️ Edit Employee Profile — {editEmp.name} ({editEmp.employee_code})
-                </h2>
-                <button onClick={() => setEditEmp(null)} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#64748b' }}>✕</button>
+      {/* Modal */}
+      {modal && (
+        <div className="overlay" onClick={e => { if (e.target === e.currentTarget) setModal(null); }}>
+          <div className="modal">
+            <div className="modal-head">
+              <h2>{modal === 'edit' ? `Edit Employee — ${formData.name}` : 'Add New Employee'}</h2>
+            </div>
+            <div className="modal-body">
+              {msg && <div className={msg.ok ? 'msg-ok' : 'msg-err'}>{msg.text}</div>}
+
+              <p className="section-title">1. Basic & Personal Info</p>
+              <div className="form-grid">
+                {inp('employee_code', 'Employee Code *')}
+                {inp('name', 'Full Name *')}
+                {inp('father_name', "Father's Name")}
+                {inp('mobile', 'Mobile *', 'tel')}
+                {inp('alternate_mobile', 'Alternate Mobile', 'tel')}
+                {sel('status', 'Status', [{ value: 'Active', label: 'Active' }, { value: 'Inactive', label: 'Inactive' }])}
               </div>
 
-              <form onSubmit={handleEditSubmit}>
-                {/* 1. Basic & Personal Details */}
-                <div style={{ marginBottom: '20px' }}>
-                  <h3 style={{ fontSize: '0.85rem', textTransform: 'uppercase', color: '#2563eb', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px', marginBottom: '14px' }}>
-                    1. Basic & Personal Information
-                  </h3>
-                  <div className="grid-3">
-                    <div className="form-group">
-                      <label className="form-label">Employee Code *</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={editFormData.employee_code}
-                        onChange={(e) => setEditFormData({ ...editFormData, employee_code: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Full Name *</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={editFormData.name}
-                        onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Father's Name</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={editFormData.father_name}
-                        onChange={(e) => setEditFormData({ ...editFormData, father_name: e.target.value })}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Mobile Number *</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={editFormData.mobile}
-                        onChange={(e) => setEditFormData({ ...editFormData, mobile: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Alternate Mobile</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={editFormData.alternate_mobile}
-                        onChange={(e) => setEditFormData({ ...editFormData, alternate_mobile: e.target.value })}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Status *</label>
-                      <select
-                        className="form-select"
-                        value={editFormData.status}
-                        onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
-                      >
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
+              <p className="section-title">2. Department & Employment Role</p>
+              <div className="form-grid">
+                {sel('department', 'Department *', [{ value: '', label: '-- Select --' }, ...departments.map(d => ({ value: d.id, label: d.name }))])}
+                {inp('designation', 'Designation *')}
+                {sel('employee_type', 'Employee Type', [{ value: 'Company', label: 'Company' }, { value: 'Contractor', label: 'Contractor' }])}
+                {inp('contractor_name', 'Contractor Name (if applicable)')}
+                {inp('joining_date', 'Joining Date', 'date')}
+                {inp('dob', 'Date of Birth', 'date')}
+              </div>
 
-                {/* 2. Department & Role */}
-                <div style={{ marginBottom: '20px' }}>
-                  <h3 style={{ fontSize: '0.85rem', textTransform: 'uppercase', color: '#8b5cf6', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px', marginBottom: '14px' }}>
-                    2. Department & Employment Role
-                  </h3>
-                  <div className="grid-3">
-                    <div className="form-group">
-                      <label className="form-label">Department *</label>
-                      <select
-                        className="form-select"
-                        value={editFormData.department}
-                        onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
-                        required
-                      >
-                        <option value="">-- Select Department --</option>
-                        {departments.map((d) => (
-                          <option key={d.id} value={d.id}>{d.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Designation *</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={editFormData.designation}
-                        onChange={(e) => setEditFormData({ ...editFormData, designation: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Employee Type *</label>
-                      <select
-                        className="form-select"
-                        value={editFormData.employee_type}
-                        onChange={(e) => setEditFormData({ ...editFormData, employee_type: e.target.value })}
-                      >
-                        <option value="Company">Company</option>
-                        <option value="Contractor">Contractor</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
+              <p className="section-title">3. Salary & Rates</p>
+              <div className="form-grid three">
+                {inp('basic_salary', 'Basic Monthly Salary (₹)', 'number')}
+                {inp('hourly_rate', 'Hourly Rate (₹/hr)', 'number')}
+                {inp('overtime_rate', 'Overtime Rate (₹/hr)', 'number')}
+                {inp('pf_percent', 'PF Deduction %', 'number')}
+                {inp('esi_percent', 'ESI Deduction %', 'number')}
+              </div>
 
-                {/* 3. Salary & Rates */}
-                <div style={{ marginBottom: '20px' }}>
-                  <h3 style={{ fontSize: '0.85rem', textTransform: 'uppercase', color: '#16a34a', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px', marginBottom: '14px' }}>
-                    3. Basic Monthly Salary, Overtime Rate & PF/ESI %
-                  </h3>
-                  <div className="grid-3">
-                    <div className="form-group">
-                      <label className="form-label">Basic Monthly Salary (₹) *</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="form-input"
-                        value={editFormData.basic_salary}
-                        onChange={(e) => setEditFormData({ ...editFormData, basic_salary: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Hourly Rate (₹/hr)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="form-input"
-                        value={editFormData.hourly_rate}
-                        onChange={(e) => setEditFormData({ ...editFormData, hourly_rate: e.target.value })}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Overtime Rate (₹/hr)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="form-input"
-                        value={editFormData.overtime_rate}
-                        onChange={(e) => setEditFormData({ ...editFormData, overtime_rate: e.target.value })}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">PF Deduction % (e.g. 12)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="form-input"
-                        value={editFormData.pf_percent}
-                        onChange={(e) => setEditFormData({ ...editFormData, pf_percent: e.target.value })}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">ESI Deduction % (e.g. 0.75)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="form-input"
-                        value={editFormData.esi_percent}
-                        onChange={(e) => setEditFormData({ ...editFormData, esi_percent: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* 4. Bank & Statutory Details */}
-                <div style={{ marginBottom: '24px' }}>
-                  <h3 style={{ fontSize: '0.85rem', textTransform: 'uppercase', color: '#f59e0b', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px', marginBottom: '14px' }}>
-                    4. Bank & Statutory Info
-                  </h3>
-                  <div className="grid-3">
-                    <div className="form-group">
-                      <label className="form-label">Aadhaar Number</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        maxLength="12"
-                        value={editFormData.aadhaar}
-                        onChange={(e) => setEditFormData({ ...editFormData, aadhaar: e.target.value })}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">PAN Number</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        maxLength="10"
-                        value={editFormData.pan}
-                        onChange={(e) => setEditFormData({ ...editFormData, pan: e.target.value })}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Bank Name</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={editFormData.bank_name}
-                        onChange={(e) => setEditFormData({ ...editFormData, bank_name: e.target.value })}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Account Number</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={editFormData.account_number}
-                        onChange={(e) => setEditFormData({ ...editFormData, account_number: e.target.value })}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">IFSC Code</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={editFormData.ifsc}
-                        onChange={(e) => setEditFormData({ ...editFormData, ifsc: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                  <button type="button" onClick={() => setEditEmp(null)} className="btn" style={{ background: '#f1f5f9' }}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn btn-primary" style={{ background: '#2563eb', padding: '10px 28px' }} disabled={updating}>
-                    {updating ? 'Updating...' : 'Save Profile Changes'}
-                  </button>
-                </div>
-              </form>
+              <p className="section-title">4. Bank & Statutory Info</p>
+              <div className="form-grid">
+                {inp('aadhaar', 'Aadhaar Number')}
+                {inp('pan', 'PAN Number')}
+                {inp('bank_name', 'Bank Name')}
+                {inp('account_number', 'Account Number')}
+                {inp('ifsc', 'IFSC Code')}
+                {inp('uan', 'UAN Number')}
+                {inp('esi_number', 'ESI Number')}
+              </div>
+            </div>
+            <div className="modal-foot">
+              <button className="btn-ghost" onClick={() => setModal(null)}>Cancel</button>
+              <button className="btn-primary" onClick={handleSave} disabled={saving}>
+                {saving ? 'Saving...' : modal === 'edit' ? 'Update Employee' : 'Add Employee'}
+              </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </>
   );
 }
