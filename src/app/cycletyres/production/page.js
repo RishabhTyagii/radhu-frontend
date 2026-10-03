@@ -873,8 +873,6 @@ export default function CycleTyresProduction() {
                       value={formData.employee_id}
                       onChange={(e) => {
                         const empId = e.target.value;
-#                         const itemKey = `${empId}_${formData.tyre_item}`;
-#                         const savedRate = savedRates[itemKey] || '';
                         setFormData((p) => ({ ...p, employee_id: empId,  }));
                       }}
                       style={{
@@ -890,7 +888,6 @@ export default function CycleTyresProduction() {
                       ))}
                     </select>
                   </div>
-                  <div>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: theme.text, marginBottom: '4px' }}>
                       Rate/Pc (Rs)
@@ -916,6 +913,7 @@ export default function CycleTyresProduction() {
                       <div style={{ fontSize: '0.7rem', color: '#f59e0b', marginTop: '4px', fontWeight: 700 }}>⚠️ Will save new rate</div>
                     )}
                   </div>
+                </div>
                 {formData.employee_id && formData.rate && formData.all_curing && (
                   <div style={{ marginTop: '10px', fontSize: '0.8rem', color: darkMode ? '#c4b5fd' : '#7c3aed', fontWeight: 600 }}>
                     Total wages = {formData.all_curing} pcs x Rs {formData.rate} = <strong>Rs {(Number(formData.all_curing) * Number(formData.rate)).toFixed(2)}</strong> for {cpEmployees.find(e => String(e.id) === String(formData.employee_id))?.name}
@@ -1104,4 +1102,5 @@ export default function CycleTyresProduction() {
     </div>
   );
 }
+
 

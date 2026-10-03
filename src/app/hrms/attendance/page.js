@@ -39,6 +39,7 @@ export default function HRMSAttendance() {
           working_hours: a.working_hours,
           overtime_hours: a.overtime_hours,
           remarks: a.remarks || '',
+          leave_type: a.leave_type || '',
         };
       });
     }
@@ -49,7 +50,7 @@ export default function HRMSAttendance() {
         if (savedMap[e.id]) {
           map[e.id] = savedMap[e.id];
         } else {
-          map[e.id] = { status: 'Absent', working_hours: '0', overtime_hours: '0', remarks: '' };
+          map[e.id] = { status: 'Absent', working_hours: '0', overtime_hours: '0', leave_type: '', remarks: '' };
         }
       });
     }
@@ -61,6 +62,11 @@ export default function HRMSAttendance() {
   const handleFieldChange = (empId, field, val) => {
     let updatedVal = val;
     let autoWorkHours = attendanceMap[empId]?.working_hours || '0';
+    let updatedLeave = field === 'leave_type' ? val : attendanceMap[empId]?.leave_type;
+    if (field === 'leave_type') {
+      if (val === 'CL' || val === 'EL') { autoWorkHours = '8'; updatedVal = val; }
+      if (val === 'LOP') { autoWorkHours = '0'; updatedVal = val; }
+    }
 
     if (field === 'status') {
       if (val === 'Present') autoWorkHours = '8';
@@ -75,7 +81,8 @@ export default function HRMSAttendance() {
       [empId]: {
         ...prev[empId],
         [field]: updatedVal,
-        working_hours: field === 'status' ? autoWorkHours : prev[empId]?.working_hours,
+        working_hours: (field === 'status' || field === 'leave_type') ? autoWorkHours : prev[empId]?.working_hours,
+        leave_type: updatedLeave,
       },
     }));
   };
@@ -89,6 +96,7 @@ export default function HRMSAttendance() {
       status: attendanceMap[e.id]?.status || 'Absent',
       working_hours: attendanceMap[e.id]?.working_hours || '0',
       overtime_hours: attendanceMap[e.id]?.overtime_hours || '0',
+      leave_type: attendanceMap[e.id]?.leave_type || '',
       remarks: attendanceMap[e.id]?.remarks || '',
     }));
 
@@ -243,6 +251,7 @@ export default function HRMSAttendance() {
                           <th style={{ width: '180px' }}>NAME</th>
                           <th style={{ width: '120px' }}>TYPE</th>
                           <th style={{ width: '150px' }}>STATUS</th>
+                          <th style={{ width: '100px' }}>LEAVE</th>
                           <th style={{ width: '100px' }}>WORK HRS</th>
                           <th style={{ width: '100px' }}>OT HRS</th>
                           <th>REMARKS</th>
@@ -250,7 +259,7 @@ export default function HRMSAttendance() {
                       </thead>
                       <tbody>
                         {groups[dept].map((emp) => {
-                          const att = attendanceMap[emp.id] || { status: 'Absent', working_hours: '0', overtime_hours: '0', remarks: '' };
+                          const att = attendanceMap[emp.id] || { status: 'Absent', working_hours: '0', overtime_hours: '0', leave_type: '', remarks: '' };
                           return (
                             <tr key={emp.id} style={{ background: att.status === 'Absent' ? '#fff1f2' : att.status === 'Present' ? '#f0fdf4' : 'transparent' }}>
                               <td style={{ fontWeight: 700, color: '#2563eb' }}>{emp.employee_code}</td>
@@ -283,6 +292,19 @@ export default function HRMSAttendance() {
                                   <option value="Half Day" style={{ color: '#d97706', fontWeight: 700 }}>Half Day</option>
                                   <option value="Holiday">Holiday</option>
                                   <option value="Week Off">Week Off</option>
+                                </select>
+                              </td>
+                              <td>
+                                <select
+                                  className="form-select"
+                                  style={{ fontSize: '0.85rem', padding: '4px 8px', width: '80px', fontWeight: 700 }}
+                                  value={att.leave_type || ''}
+                                  onChange={(e) => handleFieldChange(emp.id, 'leave_type', e.target.value)}
+                                >
+                                  <option value="">--</option>
+                                  <option value="CL">CL</option>
+                                  <option value="EL">EL</option>
+                                  <option value="LOP">LOP</option>
                                 </select>
                               </td>
                               <td>

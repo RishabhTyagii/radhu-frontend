@@ -67,11 +67,11 @@ export default function MonthlyRegister() {
 
       if (res.attendance) {
         res.attendance.forEach(a => {
-          const empId = a.employee_id ?? a.employee; // serializer returns 'employee' field
+          const empId = a.employee_id ?? a.employee;
           const dStr = String(a.date.split('-')[2]).padStart(2, '0');
           if (map[empId] && map[empId][dStr] !== undefined) {
             map[empId][dStr] = {
-              status: a.status === 'Present' ? 'P' : a.status === 'Absent' ? 'A' : a.status === 'Half Day' ? 'HD' : a.status === 'Holiday' ? 'H' : a.status === 'Week Off' ? 'W' : '',
+              status: a.leave_type ? a.leave_type : (a.status === 'Present' ? 'P' : a.status === 'Absent' ? 'A' : a.status === 'Half Day' ? 'HD' : a.status === 'Holiday' ? 'H' : a.status === 'Week Off' ? 'W' : ''),
               ot: a.overtime_hours > 0 ? String(parseFloat(a.overtime_hours)) : ''
             };
           }
@@ -108,17 +108,21 @@ export default function MonthlyRegister() {
           const fullDate = `${month}-${d}`;
           let st = 'Absent';
           let wh = 0;
+          let lt = '';
           if (cell.status === 'P') { st = 'Present'; wh = 8; }
           else if (cell.status === 'A') { st = 'Absent'; wh = 0; }
           else if (cell.status === 'HD') { st = 'Half Day'; wh = 4; }
           else if (cell.status === 'H') { st = 'Holiday'; wh = 0; }
           else if (cell.status === 'W') { st = 'Week Off'; wh = 0; }
+          else if (cell.status === 'CL' || cell.status === 'EL') { st = 'Absent'; wh = 8; lt = cell.status; }
+          else if (cell.status === 'LOP') { st = 'Absent'; wh = 0; lt = 'LOP'; }
           
           entries.push({
             employee_id: emp.id,
             date: fullDate,
             status: st,
             working_hours: wh,
+            leave_type: lt,
             overtime_hours: parseFloat(cell.ot) || 0
           });
         }
@@ -145,6 +149,8 @@ export default function MonthlyRegister() {
         .status-P { color: #16a34a; }
         .status-A { color: #dc2626; }
         .status-HD { color: #d97706; }
+        .status-CL, .status-EL { color: #8b5cf6; }
+        .status-LOP { color: #ef4444; }
         .ot-input { width: 22px; height: 24px; border: none; border-left: 1px solid #e2e8f0; text-align: center; font-size: 0.75rem; background: #fffbeb; color: #92400e; }
         .ot-input:focus { outline: 1px solid #f59e0b; }
         .flex-cell { display: flex; align-items: center; justify-content: center; width: 50px; }
@@ -155,7 +161,7 @@ export default function MonthlyRegister() {
           <div>
             <h1>📅 Monthly Attendance Register</h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-              P: Present (8h) | A: Absent (0h) | HD: Half Day (4h) | H: Holiday | W: Week Off. Enter OT hours in the yellow box.
+              P: Present | A: Absent | HD: Half Day | H: Holiday | W: Week Off | CL: Casual Leave | EL: Earned Leave | LOP. Enter OT hours in the yellow box.
             </p>
           </div>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -201,7 +207,7 @@ export default function MonthlyRegister() {
                       let totalOT = 0;
                       days.forEach(d => {
                         const cell = attendanceData[emp.id]?.[d] || { status: '', ot: '' };
-                        if (cell.status === 'P' || cell.status === 'H') totalDays += 1;
+                        if (cell.status === 'P' || cell.status === 'H' || cell.status === 'CL' || cell.status === 'EL') totalDays += 1;
                         else if (cell.status === 'HD') totalDays += 0.5;
                         if (cell.ot && !isNaN(parseFloat(cell.ot))) {
                           totalOT += parseFloat(cell.ot);
@@ -220,7 +226,7 @@ export default function MonthlyRegister() {
                               className={`cell-input status-${cell.status}`}
                               value={cell.status}
                               onChange={e => handleCellChange(emp.id, d, 'status', e.target.value)}
-                              title="Status (P, A, HD, H, W)"
+                              title="Status (P, A, HD, H, W, CL, EL, LOP)"
                             />
                             <input
                               type="text"

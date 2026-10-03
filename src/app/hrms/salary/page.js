@@ -267,6 +267,9 @@ const SlipRenderer = ({ selectedSlip, printWages, onClose, onPrint, isBulk = fal
                 <div className="chip chip-p"><b>{att.present_days}</b><span>Present</span></div>
                 <div className="chip chip-h"><b>{att.half_days}</b><span>Half day</span></div>
                 <div className="chip chip-hd"><b>{att.holiday_days || 0}</b><span>Holiday</span></div>
+                {att.cl_days > 0 && <div className="chip chip-cl"><b>{att.cl_days}</b><span>CL</span></div>}
+                {att.el_days > 0 && <div className="chip chip-el"><b>{att.el_days}</b><span>EL</span></div>}
+                {att.lop_days > 0 && <div className="chip chip-a"><b>{att.lop_days}</b><span>LOP</span></div>}
                 <div className="chip chip-a"><b>{att.absent_days}</b><span>Absent</span></div>
                 <div className="chip chip-wo"><b>{att.week_off_days || 0}</b><span>Week off</span></div>
               </div>
@@ -829,6 +832,7 @@ const STYLES = `
   .chip-hd { background: #eff6ff; border-color: #93c5fd; color: #1e40af; }
   .chip-a { background: #fef2f2; border-color: #fca5a5; color: #991b1b; }
   .chip-wo { background: #f1f5f9; border-color: #cbd5e1; color: #334155; }
+  .chip-cl, .chip-el { background: #f3e8ff; border-color: #d8b4fe; color: #6b21a8; }
 
   /* ---------- WAGES REGISTER (ULTRA PREMIUM) ---------- */
   .wages { margin-top: 20px; }
