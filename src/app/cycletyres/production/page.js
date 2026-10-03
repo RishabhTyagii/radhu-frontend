@@ -32,9 +32,8 @@ export default function CycleTyresProduction() {
 
   // HRMS linking states
   const [cpEmployees, setCpEmployees] = useState([]);
-  const [savedRates, setSavedRates] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('ct_prod_rates') || '{}'); } catch { return {}; }
-  });
+  const [rateFetchedFromDB, setRateFetchedFromDB] = useState(false);
+  const [rateManuallyChanged, setRateManuallyChanged] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -56,6 +55,28 @@ export default function CycleTyresProduction() {
     }
   }
 
+  // Auto-fill rate from HRMS saved rates when employee + item changes
+  useEffect(() => {
+    if (!formData.employee_id || !formData.tyre_item) {
+      setRateFetchedFromDB(false);
+      return;
+    }
+    setRateFetchedFromDB(false);
+    setRateManuallyChanged(false);
+    // Build item name from selected item
+    const selectedItem = items.find(it => String(it.id) === String(formData.tyre_item));
+    if (!selectedItem) return;
+    const itemName = `${selectedItem.size} ${selectedItem.box_type} ${selectedItem.brand}`.trim();
+    apiGet(`/hrms/production/last-rate/?employee_id=${formData.employee_id}&product_name=${encodeURIComponent(itemName)}`)
+      .then(res => {
+        if (res && Number(res.rate) > 0) {
+          setFormData(prev => ({ ...prev, rate: res.rate }));
+          setRateFetchedFromDB(true);
+          setRateManuallyChanged(false);
+        }
+      });
+  }, [formData.employee_id, formData.tyre_item]);
+
   async function fetchInitialData() {
     const data = await apiGet('/cycletyres/production/');
     if (data) {
@@ -76,14 +97,8 @@ export default function CycleTyresProduction() {
     e.preventDefault();
     setLoading(true);
     setMessage(null);
-
-    // Save rate to memory if employee selected
-    if (formData.employee_id && formData.rate) {
-      const itemKey = `${formData.employee_id}_${formData.tyre_item}`;
-      const newRates = { ...savedRates, [itemKey]: formData.rate };
-      setSavedRates(newRates);
-      localStorage.setItem('ct_prod_rates', JSON.stringify(newRates));
-    }
+    setRateFetchedFromDB(false);
+    setRateManuallyChanged(false);
 
     const res = await apiPost('/cycletyres/production/', formData);
     setLoading(false);
@@ -858,9 +873,9 @@ export default function CycleTyresProduction() {
                       value={formData.employee_id}
                       onChange={(e) => {
                         const empId = e.target.value;
-                        const itemKey = `${empId}_${formData.tyre_item}`;
-                        const savedRate = savedRates[itemKey] || '';
-                        setFormData((p) => ({ ...p, employee_id: empId, rate: savedRate }));
+#                         const itemKey = `${empId}_${formData.tyre_item}`;
+#                         const savedRate = savedRates[itemKey] || '';
+                        setFormData((p) => ({ ...p, employee_id: empId,  }));
                       }}
                       style={{
                         width: '100%', padding: '8px 10px',
@@ -876,15 +891,16 @@ export default function CycleTyresProduction() {
                     </select>
                   </div>
                   <div>
+                  <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: theme.text, marginBottom: '4px' }}>
-                      Rate/Pc (Rs) {savedRates[`${formData.employee_id}_${formData.tyre_item}`] ? <span style={{ color: '#10b981' }}>💾 Saved</span> : ''}
+                      Rate/Pc (Rs)
                     </label>
                     <input
                       type="number"
                       step="any"
                       min="0"
                       value={formData.rate}
-                      onChange={(e) => setFormData((p) => ({ ...p, rate: e.target.value }))}
+                      onChange={(e) => { setFormData((p) => ({ ...p, rate: e.target.value })); setRateManuallyChanged(true); setRateFetchedFromDB(false); }}
                       placeholder="e.g. 1.7876"
                       style={{
                         width: '100%', padding: '8px 10px',
@@ -893,8 +909,13 @@ export default function CycleTyresProduction() {
                         color: '#7c3aed', fontWeight: 700, fontSize: '0.85rem', outline: 'none',
                       }}
                     />
+                    {rateFetchedFromDB && !rateManuallyChanged && (
+                      <div style={{ fontSize: '0.7rem', color: '#10b981', marginTop: '4px', fontWeight: 700 }}>✓ Auto-filled from DB</div>
+                    )}
+                    {rateManuallyChanged && (
+                      <div style={{ fontSize: '0.7rem', color: '#f59e0b', marginTop: '4px', fontWeight: 700 }}>⚠️ Will save new rate</div>
+                    )}
                   </div>
-                </div>
                 {formData.employee_id && formData.rate && formData.all_curing && (
                   <div style={{ marginTop: '10px', fontSize: '0.8rem', color: darkMode ? '#c4b5fd' : '#7c3aed', fontWeight: 600 }}>
                     Total wages = {formData.all_curing} pcs x Rs {formData.rate} = <strong>Rs {(Number(formData.all_curing) * Number(formData.rate)).toFixed(2)}</strong> for {cpEmployees.find(e => String(e.id) === String(formData.employee_id))?.name}
