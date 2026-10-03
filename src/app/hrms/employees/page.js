@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
-import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api';
+import { apiGet, apiPost, apiPatch, apiDelete } from '@/lib/api';
 
 export default function HRMEmployees() {
   const [employees, setEmployees] = useState([]);
@@ -150,10 +150,10 @@ export default function HRMEmployees() {
     setUpdating(true);
     setMessage(null);
 
-    const res = await apiPatch(`/hrms/employees/${editEmp.id}/`, editFormData);
+    const res = await apiPut(`/hrms/employees/${editEmp.id}/`, editFormData);
     setUpdating(false);
 
-    if (res && res.ok) {
+    if (res) {
       setMessage({ type: 'success', text: `✓ Employee "${editFormData.name}" (${editFormData.employee_code}) updated successfully!` });
       setEditEmp(null);
       fetchData();
@@ -165,7 +165,7 @@ export default function HRMEmployees() {
   const handleDeleteEmp = async (emp) => {
     if (!confirm(`Are you sure you want to delete employee "${emp.name}" (${emp.employee_code})?`)) return;
     const res = await apiDelete(`/hrms/employees/${emp.id}/`);
-    if (res && res.ok) {
+    if (res) {
       setMessage({ type: 'success', text: `Employee "${emp.name}" deleted.` });
       fetchData();
     }
@@ -883,4 +883,3 @@ export default function HRMEmployees() {
     </>
   );
 }
-
