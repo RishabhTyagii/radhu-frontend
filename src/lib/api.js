@@ -160,26 +160,3 @@ export async function apiPut(endpoint, data) {
     return null;
   }
 }
-
-export async function apiDownload(endpoint, filename) {
-  try {
-    const res = await apiFetch(endpoint);
-    if (!res || !res.ok) {
-        console.error("Download failed", res);
-        return false;
-    }
-    const blob = await res.blob();
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", filename);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-    return true;
-  } catch (e) {
-    console.error('API DOWNLOAD error:', e);
-    return false;
-  }
-}

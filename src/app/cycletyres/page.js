@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
-import { apiGet, apiDownload } from '@/lib/api';
-import * as XLSX from 'xlsx';
+import { apiGet } from '@/lib/api';
+
 export default function CycleTyresDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -100,17 +100,42 @@ export default function CycleTyresDashboard() {
     { label: 'All Time / Overall', value: 'all' },
   ];
 
-  const handleExportExcel = async () => {
-    let url = '/cycletyres/export-template/';
-    if (selectedMonth && selectedMonth !== 'all') {
-      const [year, month] = selectedMonth.split('-');
-      url += `?year=${year}&month=${month}`;
-    }
-    const filename = `CY_TYRE_CB_${selectedMonth || 'current'}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-    const success = await apiDownload(url, filename);
-    if (!success) {
-      alert("Failed to download template Excel");
-    }
+  const handleExportExcel = () => {
+    if (!items || !items.length) return;
+
+    const filename = `Cycle_Tyre_Dashboard_${selectedMonth || 'current'}_${new Date().toISOString().slice(0, 10)}.csv`;
+
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "SIZE,BOX TYPE,MATERIAL,BRAND,PREV CLOSING (1ST),PREV CLOSING (2ND),PROD (A=1ST),PROD (B=2ND),PROD (C=REJECTED),PROD (TOTAL),MONTH SALE (1ST),RFM,CLOSING (1ST),CLOSING (2ND),TOTAL STOCK (1ST+2ND+RFM)\n";
+
+    items.forEach(item => {
+      const row = [
+        `"${item.size || ''}"`,
+        `"${item.box_type || ''}"`,
+        `"${item.material || ''}"`,
+        `"${item.brand || ''}"`,
+        item.prev_closing_first ?? 0,
+        item.prev_closing_second ?? 0,
+        item.month_prod_first ?? 0,
+        item.month_prod_second ?? 0,
+        item.month_prod_rejected ?? 0,
+        item.month_prod_total ?? 0,
+        item.month_sale_first ?? 0,
+        item.rfm_stock ?? 0,
+        item.closing_first ?? 0,
+        item.closing_second ?? 0,
+        item.total_stock ?? 0,
+      ].join(",");
+      csvContent += row + "\n";
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const isMobile = windowWidth < 768;
