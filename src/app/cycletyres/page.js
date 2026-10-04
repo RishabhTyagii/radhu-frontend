@@ -106,7 +106,7 @@ export default function CycleTyresDashboard() {
     const filename = `Cycle_Tyre_Dashboard_${selectedMonth || 'current'}_${new Date().toISOString().slice(0, 10)}.csv`;
 
     let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "SIZE,BOX TYPE,MATERIAL,BRAND,PREV CLOSING (1ST),PREV CLOSING (2ND),MONTH PROD (TOTAL),MONTH PROD (1ST),MONTH PROD (2ND),MONTH SALE (1ST),RFM,CLOSING (1ST),CLOSING (2ND),TOTAL STOCK (1ST+2ND+RFM)\n";
+    csvContent += "SIZE,BOX TYPE,MATERIAL,BRAND,PREV CLOSING (1ST),PREV CLOSING (2ND),PROD (A=1ST),PROD (B=2ND),PROD (C=REJECTED),PROD (TOTAL),MONTH SALE (1ST),RFM,CLOSING (1ST),CLOSING (2ND),TOTAL STOCK (1ST+2ND+RFM)\n";
 
     items.forEach(item => {
       const row = [
@@ -116,9 +116,10 @@ export default function CycleTyresDashboard() {
         `"${item.brand || ''}"`,
         item.prev_closing_first ?? 0,
         item.prev_closing_second ?? 0,
-        item.month_prod_total ?? 0,
         item.month_prod_first ?? 0,
         item.month_prod_second ?? 0,
+        item.month_prod_rejected ?? 0,
+        item.month_prod_total ?? 0,
         item.month_sale_first ?? 0,
         item.rfm_stock ?? 0,
         item.closing_first ?? 0,
