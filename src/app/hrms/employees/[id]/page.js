@@ -44,6 +44,23 @@ export default function EmployeeDetailPage() {
   const [rateSaving, setRateSaving] = useState(false);
   const [rateMsg, setRateMsg] = useState(null);
 
+  const [editingLeaves, setEditingLeaves] = useState(false);
+  const [leaveForm, setLeaveForm] = useState({ cl: 7, el: 13 });
+  const [leaveSaving, setLeaveSaving] = useState(false);
+
+  async function handleSaveLeaves() {
+    setLeaveSaving(true);
+    const year = new Date().getFullYear();
+    const res = await apiPatch(`/hrms/employees/${params.id}/leave-balance/?year=${year}`, {
+      cl_balance: Number(leaveForm.cl),
+      el_balance: Number(leaveForm.el),
+    });
+    setLeaveSaving(false);
+    if (res && !res.error && !res.detail) {
+      setEditingLeaves(false);
+    }
+  }
+
   useEffect(() => {
     if (!params.id) return;
     setLoading(true);
@@ -226,7 +243,56 @@ export default function EmployeeDetailPage() {
                   </div>
                 </div>
               ))}
+
+              {/* Leave Balance Card */}
+              <div style={{ background: "#fff", borderRadius: "16px", padding: "24px", boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                  <h2 style={{ fontSize: "1.1rem", fontWeight: 800, color: "#1e293b", margin: 0 }}>Leave Balance ({new Date().getFullYear()})</h2>
+                  {!editingLeaves && (
+                    <button onClick={() => { setLeaveForm({ cl: data.leave_balance?.cl_balance ?? 7, el: data.leave_balance?.el_balance ?? 13 }); setEditingLeaves(true); }}
+                      style={{ padding: "6px 16px", background: "#eff6ff", color: "#2563eb", border: "1px solid #bfdbfe", borderRadius: "8px", cursor: "pointer", fontWeight: 700, fontSize: "0.8rem" }}>
+                      Edit
+                    </button>
+                  )}
+                </div>
+                {editingLeaves ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                    <div>
+                      <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#64748b", display: "block", marginBottom: "4px" }}>CL Balance (Casual Leave)</label>
+                      <input type="number" min="0" max="30" value={leaveForm.cl} onChange={e => setLeaveForm(p => ({ ...p, cl: e.target.value }))}
+                        style={{ width: "100%", padding: "8px 12px", border: "2px solid #3b82f6", borderRadius: "8px", fontWeight: 700, fontSize: "1rem", outline: "none" }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#64748b", display: "block", marginBottom: "4px" }}>EL Balance (Earned Leave)</label>
+                      <input type="number" min="0" max="30" value={leaveForm.el} onChange={e => setLeaveForm(p => ({ ...p, el: e.target.value }))}
+                        style={{ width: "100%", padding: "8px 12px", border: "2px solid #3b82f6", borderRadius: "8px", fontWeight: 700, fontSize: "1rem", outline: "none" }} />
+                    </div>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button onClick={handleSaveLeaves} disabled={leaveSaving}
+                        style={{ flex: 1, padding: "10px", background: "#16a34a", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: 700 }}>
+                        {leaveSaving ? "Saving..." : "Save"}
+                      </button>
+                      <button onClick={() => setEditingLeaves(false)}
+                        style={{ flex: 1, padding: "10px", background: "#f1f5f9", color: "#475569", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: 700 }}>
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                    <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: "10px", padding: "16px", textAlign: "center" }}>
+                      <div style={{ fontSize: "0.7rem", fontWeight: 800, color: "#166534", textTransform: "uppercase", marginBottom: "6px" }}>CL Remaining</div>
+                      <div style={{ fontSize: "2rem", fontWeight: 900, color: "#15803d" }}>{data.leave_balance?.cl_balance ?? 7}</div>
+                    </div>
+                    <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: "10px", padding: "16px", textAlign: "center" }}>
+                      <div style={{ fontSize: "0.7rem", fontWeight: 800, color: "#1d4ed8", textTransform: "uppercase", marginBottom: "6px" }}>EL Remaining</div>
+                      <div style={{ fontSize: "2rem", fontWeight: 900, color: "#2563eb" }}>{data.leave_balance?.el_balance ?? 13}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
+
 
             <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
               <div style={{ background: "#fff", borderRadius: "16px", padding: "24px", boxShadow: "0 4px 20px rgba(0,0,0,0.05)", border: "1px solid #e2e8f0" }}>
