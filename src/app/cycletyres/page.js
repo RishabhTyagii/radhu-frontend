@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
-import { apiGet } from '@/lib/api';
+import { apiGet, apiDownload } from '@/lib/api';
 import * as XLSX from 'xlsx';
 export default function CycleTyresDashboard() {
   const [data, setData] = useState(null);
@@ -100,77 +100,17 @@ export default function CycleTyresDashboard() {
     { label: 'All Time / Overall', value: 'all' },
   ];
 
-  const handleExportExcel = () => {
-    if (!items || !items.length) return;
-    const filename = `Cycle_Tyre_Dashboard_${selectedMonth || 'current'}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-
-    // Group items by box_type to create sections like "SEMI CTC", "RICK CTC"
-    const grouped = {};
-    items.forEach(item => {
-      const type = item.box_type || 'OTHER';
-      if (!grouped[type]) grouped[type] = [];
-      grouped[type].push(item);
-    });
-
-    const rows = [];
-    // Title row
-    rows.push([`CYCLE TYRE - ${selectedMonth === 'all' ? 'All Time' : selectedMonth} closing stock`]);
-    rows.push([new Date().toISOString().slice(0, 10)]);
-    rows.push([]);
-    
-    // Header row
-    rows.push([
-      'SR#', 'SIZE / PATTERN', 'PREV CL(1ST)', 'PREV CL(2ND)', 
-      'A(1ST)', 'B(2ND)', 'C(REJ)', 'TOTAL PROD', 
-      'SALE(1ST)', 'RFM', 'CLOSING(1ST)', 'CLOSING(2ND)', 'TOTAL STOCK'
-    ]);
-
-    let srNo = 1;
-    Object.keys(grouped).forEach(boxType => {
-      // Group header
-      rows.push(['', boxType, '', '', '', '', '', '', '', '', '', '', '']);
-      
-      grouped[boxType].forEach(item => {
-        const itemName = `${item.size || ''} ${item.material || ''} ${item.brand || ''}`;
-        rows.push([
-          srNo++,
-          itemName.trim(),
-          item.prev_closing_first ?? 0,
-          item.prev_closing_second ?? 0,
-          item.month_prod_first ?? 0,
-          item.month_prod_second ?? 0,
-          item.month_prod_rejected ?? 0,
-          item.month_prod_total ?? 0,
-          item.month_sale_first ?? 0,
-          item.rfm_stock ?? 0,
-          item.closing_first ?? 0,
-          item.closing_second ?? 0,
-          item.total_stock ?? 0
-        ]);
-      });
-    });
-
-    // Totals row at bottom
-    rows.push([]);
-    rows.push([
-      '', 'TOTALS',
-      totals.prev_closing_first ?? 0,
-      totals.prev_closing_second ?? 0,
-      totals.month_prod_first ?? 0,
-      totals.month_prod_second ?? 0,
-      totals.month_prod_rejected ?? 0,
-      totals.month_prod_total ?? 0,
-      totals.month_sale_first ?? 0,
-      totals.rfm_stock ?? 0,
-      totals.closing_first ?? 0,
-      totals.closing_second ?? 0,
-      totals.total_stock ?? 0
-    ]);
-
-    const worksheet = XLSX.utils.aoa_to_sheet(rows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Production Plan");
-    XLSX.writeFile(workbook, filename);
+  const handleExportExcel = async () => {
+    let url = '/cycletyres/export-template/';
+    if (selectedMonth && selectedMonth !== 'all') {
+      const [year, month] = selectedMonth.split('-');
+      url += `?year=${year}&month=${month}`;
+    }
+    const filename = `CY_TYRE_CB_${selectedMonth || 'current'}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    const success = await apiDownload(url, filename);
+    if (!success) {
+      alert("Failed to download template Excel");
+    }
   };
 
   const isMobile = windowWidth < 768;
