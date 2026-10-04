@@ -724,9 +724,10 @@ export default function CycleTyresDashboard() {
                         <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 800 }}>PATTERN</th>
                         <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 800, color: '#2563eb' }}>LAST CL (1ST)</th>
                         <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 800, color: '#d97706' }}>LAST CL (2ND)</th>
+                        <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 800, color: '#059669' }}>PROD (A)</th>
+                        <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 800, color: '#d97706' }}>PROD (B)</th>
+                        <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 800, color: '#ef4444' }}>PROD (C)</th>
                         <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 800, color: '#10b981' }}>PROD (TOTAL)</th>
-                        <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 800, color: '#059669' }}>PROD (1ST)</th>
-                        <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 800, color: '#d97706' }}>PROD (2ND)</th>
                         <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 800, color: '#ef4444' }}>SALE (1ST)</th>
                         <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 800, color: '#8b5cf6' }}>RFM</th>
                         <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 800, color: '#1d4ed8', backgroundColor: darkMode ? '#1e3a8a33' : '#eff6ff' }}>CLOSING (1ST)</th>
@@ -770,14 +771,17 @@ export default function CycleTyresDashboard() {
                             <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 700, color: '#d97706' }}>
                               {item.prev_closing_second ?? 0}
                             </td>
-                            <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 800, color: '#10b981' }}>
-                              {item.month_prod_total ?? 0}
-                            </td>
                             <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 700, color: '#059669' }}>
                               {item.month_prod_first ?? 0}
                             </td>
                             <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 700, color: '#d97706' }}>
                               {item.month_prod_second ?? 0}
+                            </td>
+                            <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 700, color: '#ef4444' }}>
+                              {item.month_prod_rejected ?? 0}
+                            </td>
+                            <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 800, color: '#10b981' }}>
+                              {item.month_prod_total ?? 0}
                             </td>
                             <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 800, color: '#ef4444' }}>
                               {item.month_sale_first ?? 0}
@@ -851,14 +855,17 @@ export default function CycleTyresDashboard() {
                           <td style={{ padding: '10px 8px', textAlign: 'right', color: '#d97706' }}>
                             {totals.prev_closing_second ?? 0}
                           </td>
-                          <td style={{ padding: '10px 8px', textAlign: 'right', color: '#10b981' }}>
-                            {totals.month_prod_total ?? 0}
-                          </td>
                           <td style={{ padding: '10px 8px', textAlign: 'right', color: '#059669' }}>
                             {totals.month_prod_first ?? 0}
                           </td>
                           <td style={{ padding: '10px 8px', textAlign: 'right', color: '#d97706' }}>
                             {totals.month_prod_second ?? 0}
+                          </td>
+                          <td style={{ padding: '10px 8px', textAlign: 'right', color: '#ef4444' }}>
+                            {totals.month_prod_rejected ?? 0}
+                          </td>
+                          <td style={{ padding: '10px 8px', textAlign: 'right', color: '#10b981' }}>
+                            {totals.month_prod_total ?? 0}
                           </td>
                           <td style={{ padding: '10px 8px', textAlign: 'right', color: '#ef4444' }}>
                             {totals.month_sale_first ?? 0}
