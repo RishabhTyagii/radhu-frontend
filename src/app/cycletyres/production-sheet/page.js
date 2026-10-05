@@ -232,6 +232,31 @@ export default function CycleTyreProductionSheet() {
                 {darkMode ? '🌙' : '☀️'}
                 <span style={{ fontSize: '0.7rem' }}>{darkMode ? 'Dark' : 'Light'}</span>
               </button>
+
+              {/* DATE-WISE EXPORT BUTTON */}
+              <button
+                onClick={handleExportExcel}
+                style={{
+                  padding: '8px 18px',
+                  background: 'linear-gradient(135deg, #059669, #10b981)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 4px 14px rgba(16,185,129,0.45)',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+              >
+                📅 Date-wise Export
+              </button>
             </div>
 
             <div style={{
