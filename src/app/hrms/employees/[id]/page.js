@@ -80,6 +80,8 @@ export default function EmployeeDetailPage() {
     }
   }, [activeTab, params.id]);
 
+  const [newRateForm, setNewRateForm] = useState({ product_name: '', rate: '' });
+  
   async function saveRate(id) {
     setRateSaving(true);
     const res = await apiPatch(`/hrms/item-rates/${id}/`, { rate: editingRateVal });
@@ -91,6 +93,26 @@ export default function EmployeeDetailPage() {
       setTimeout(() => setRateMsg(null), 3000);
     } else {
       setRateMsg({ type: "error", text: "Failed to update rate." });
+    }
+  }
+
+  async function handleAddRate(e) {
+    e.preventDefault();
+    if (!newRateForm.product_name || !newRateForm.rate) return;
+    setRateSaving(true);
+    const res = await apiPost(`/hrms/item-rates/`, { 
+      employee: params.id, 
+      product_name: newRateForm.product_name, 
+      rate: newRateForm.rate 
+    });
+    setRateSaving(false);
+    if (res && !res.error && !res.detail) {
+      setRateMsg({ type: "success", text: "New rate added!" });
+      setNewRateForm({ product_name: '', rate: '' });
+      apiGet(`/hrms/item-rates/?employee_id=${params.id}`).then(r => { if (Array.isArray(r)) setItemRates(r); });
+      setTimeout(() => setRateMsg(null), 3000);
+    } else {
+      setRateMsg({ type: "error", text: "Failed to add rate." });
     }
   }
 
@@ -387,9 +409,24 @@ export default function EmployeeDetailPage() {
                 {activeTab === "rates" && (
                   <div>
                     {rateMsg && <div style={{ padding: "10px 16px", marginBottom: "14px", borderRadius: "8px", fontWeight: 700, background: rateMsg.type === "success" ? "#dcfce7" : "#fee2e2", color: rateMsg.type === "success" ? "#166534" : "#991b1b" }}>{rateMsg.text}</div>}
-                    <input type="text" placeholder="Search item name..." value={rateSearch} onChange={(e) => setRateSearch(e.target.value)} style={{ width: "100%", padding: "10px 16px", borderRadius: "10px", border: "2px solid #e2e8f0", fontSize: "0.9rem", fontWeight: 600, outline: "none", boxSizing: "border-box", marginBottom: "16px" }} />
+                    
+                    <form onSubmit={handleAddRate} style={{ display: 'flex', gap: '10px', marginBottom: '20px', background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <div style={{ flex: 2, minWidth: '200px' }}>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>Item Name (Exact match)</label>
+                        <input type="text" required placeholder="e.g. 28 x 1.5 NYL RADHU GOLD" value={newRateForm.product_name} onChange={(e) => setNewRateForm({...newRateForm, product_name: e.target.value})} style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.85rem", outline: "none" }} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: '100px' }}>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>Rate (Rs)</label>
+                        <input type="number" step="0.0001" required placeholder="0.00" value={newRateForm.rate} onChange={(e) => setNewRateForm({...newRateForm, rate: e.target.value})} style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.85rem", outline: "none" }} />
+                      </div>
+                      <div style={{ marginTop: '20px' }}>
+                        <button type="submit" disabled={rateSaving} style={{ padding: '9px 18px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}>{rateSaving ? 'Adding...' : '+ Add Rate'}</button>
+                      </div>
+                    </form>
+
+                    <input type="text" placeholder="Search saved rates..." value={rateSearch} onChange={(e) => setRateSearch(e.target.value)} style={{ width: "100%", padding: "10px 16px", borderRadius: "10px", border: "2px solid #e2e8f0", fontSize: "0.9rem", fontWeight: 600, outline: "none", boxSizing: "border-box", marginBottom: "16px" }} />
                     {ratesLoading ? <div style={{ textAlign: "center", padding: "40px" }}>Loading...</div>
-                      : filteredRates.length === 0 ? <div style={{ textAlign: "center", padding: "40px", color: "#94a3b8" }}>{rateSearch ? "No items match." : "No rates saved."}</div>
+                      : filteredRates.length === 0 ? <div style={{ textAlign: "center", padding: "40px", color: "#94a3b8", background: '#f8fafc', borderRadius: '10px' }}>{rateSearch ? "No items match." : "No rates saved yet. Use the form above to add a rate."}</div>
                         : (
                           <div style={{ border: "1px solid #e2e8f0", borderRadius: "10px", overflow: "hidden" }}>
                             <table style={{ width: "100%", borderCollapse: "collapse" }}>

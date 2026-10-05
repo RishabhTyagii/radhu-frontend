@@ -239,7 +239,33 @@ const SlipRenderer = ({ selectedSlip, printWages, onClose, onPrint, isBulk = fal
                 </tfoot>
               </table>
 
-              <div className="net-pay">
+              {prodRows.length > 0 && (
+                <div style={{ marginTop: '20px' }}>
+                  <h3 style={{ fontSize: '14px', color: '#0f172a', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Piece-Rate Production Details</h3>
+                  <table className="pay-table" style={{ fontSize: '13px' }}>
+                    <thead>
+                      <tr>
+                        <th>Item Name</th>
+                        <th className="amt">Qty</th>
+                        <th className="amt">Rate</th>
+                        <th className="amt">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {prodRows.map((r) => (
+                        <tr key={r.name}>
+                          <td>{r.name}</td>
+                          <td className="amt">{r.qty}</td>
+                          <td className="amt">{r.rate}</td>
+                          <td className="amt">{money(r.amount)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <div className="net-pay" style={{ marginTop: '20px' }}>
                 <div>
                   <span className="net-label">Net payable salary</span>
                   <span className="net-words">{amountInWords(salary.net_salary)}</span>

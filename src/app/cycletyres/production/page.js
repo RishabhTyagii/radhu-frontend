@@ -48,7 +48,8 @@ export default function CycleTyresProduction() {
     const selectedItem = items.find(it => String(it.id) === String(formData.tyre_item));
     if (!selectedItem) return;
     
-    const w_str = selectedItem.weight ? ` [${selectedItem.weight}kg]` : "";
+    const wVal = Number(selectedItem.weight);
+    const w_str = wVal > 0 ? ` [${selectedItem.weight}kg]` : "";
     const itemName = `${selectedItem.size} ${selectedItem.box_type} ${selectedItem.material} ${selectedItem.brand}${w_str}`.replace(/\s+/g, " ").trim();
     
     apiGet(`/hrms/production/last-rate/?employee_id=${formData.employee_id}&product_name=${encodeURIComponent(itemName)}`)

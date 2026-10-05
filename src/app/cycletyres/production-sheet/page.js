@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { apiGet } from '@/lib/api';
+import * as XLSX from 'xlsx';
 
 export default function CycleTyreProductionSheet() {
   const [viewMode, setViewMode] = useState('month');
@@ -43,6 +44,67 @@ export default function CycleTyreProductionSheet() {
     const d = new Date(date);
     d.setDate(d.getDate() + days);
     setDate(d.toISOString().split('T')[0]);
+  };
+
+  const handleExportExcel = () => {
+    if (!data || !data.data || data.data.length === 0) return;
+    const itemsList = data.data;
+    
+    let uniqueDates = new Set();
+    itemsList.forEach(item => {
+      if (item.dates_data) {
+        Object.keys(item.dates_data).forEach(d => uniqueDates.add(d));
+      }
+    });
+    
+    let sortedDates = Array.from(uniqueDates).sort();
+    if (sortedDates.length === 0) {
+      sortedDates = [viewMode === 'date' ? date : `${month}-01`];
+    }
+
+    const rows = [];
+    
+    const header1 = ['ITEM NAME', 'PLY & BOX'];
+    sortedDates.forEach(d => {
+      header1.push(d, '', '');
+    });
+    header1.push('TOTAL A', 'TOTAL B', 'TOTAL C');
+    rows.push(header1);
+    
+    const header2 = ['', ''];
+    sortedDates.forEach(() => {
+      header2.push('A(1ST)', 'B(2ND)', 'C(REJ)');
+    });
+    header2.push('', '', '');
+    rows.push(header2);
+    
+    itemsList.forEach(item => {
+      const row = [
+        item.tyre_name || '',
+        item.box_type || '',
+      ];
+      
+      let totA = 0, totB = 0, totC = 0;
+      sortedDates.forEach(d => {
+        if (item.dates_data && item.dates_data[d]) {
+          const day = item.dates_data[d];
+          row.push(day.a || 0, day.b || 0, day.c || 0);
+          totA += day.a || 0;
+          totB += day.b || 0;
+          totC += day.c || 0;
+        } else {
+          row.push(0, 0, 0);
+        }
+      });
+      
+      row.push(totA, totB, totC);
+      rows.push(row);
+    });
+    
+    const worksheet = XLSX.utils.aoa_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Production");
+    XLSX.writeFile(workbook, `Cycle_Tyre_Production_${viewMode === 'date' ? date : month}.xlsx`);
   };
 
   const changeMonth = (months) => {
@@ -453,36 +515,64 @@ export default function CycleTyreProductionSheet() {
                 {data?.count || 0} items
               </span>
             </span>
-            <button
-              onClick={fetchData}
-              style={{
-                padding: '4px 12px',
-                backgroundColor: darkMode ? '#334155' : '#e2e8f0',
-                border: `2px solid ${theme.border}`,
-                borderRadius: '8px',
-                color: theme.text,
-                cursor: 'pointer',
-                fontSize: '0.7rem',
-                fontWeight: 600,
-                transition: 'all 0.3s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#3b82f6';
-                e.currentTarget.style.color = 'white';
-                e.currentTarget.style.transform = 'scale(1.05)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = darkMode ? '#334155' : '#e2e8f0';
-                e.currentTarget.style.color = theme.text;
-                e.currentTarget.style.transform = 'scale(1)';
-              }}
-            >
-              <i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`}></i>
-              Refresh
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={handleExportExcel}
+                style={{
+                  padding: '4px 12px',
+                  backgroundColor: '#10b981',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontSize: '0.7rem',
+                  fontWeight: 600,
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                }}
+              >
+                <i className="fas fa-file-excel"></i>
+                Export
+              </button>
+              <button
+                onClick={fetchData}
+                style={{
+                  padding: '4px 12px',
+                  backgroundColor: darkMode ? '#334155' : '#e2e8f0',
+                  border: `2px solid ${theme.border}`,
+                  borderRadius: '8px',
+                  color: theme.text,
+                  cursor: 'pointer',
+                  fontSize: '0.7rem',
+                  fontWeight: 600,
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#3b82f6';
+                  e.currentTarget.style.color = 'white';
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = darkMode ? '#334155' : '#e2e8f0';
+                  e.currentTarget.style.color = theme.text;
+                  e.currentTarget.style.transform = 'scale(1)';
+                }}
+              >
+                <i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`}></i>
+                Refresh
+              </button>
+            </div>
           </div>
 
           {loading ? (
