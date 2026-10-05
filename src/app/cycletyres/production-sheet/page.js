@@ -46,44 +46,66 @@ export default function CycleTyreProductionSheet() {
     setDate(d.toISOString().split('T')[0]);
   };
 
-  const handleExportExcel = () => {
-    if (!data || !data.data || data.data.length === 0) return;
-    const itemsList = data.data;
-    
-    let uniqueDates = new Set();
-    itemsList.forEach(item => {
-      if (item.dates_data) {
-        Object.keys(item.dates_data).forEach(d => uniqueDates.add(d));
-      }
-    });
-    
-    let sortedDates = Array.from(uniqueDates).sort();
-    if (sortedDates.length === 0) {
-      sortedDates = [viewMode === 'date' ? date : `${month}-01`];
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportMonthly = async () => {
+    setExporting(true);
+    // Always fetch full month data for export regardless of current view
+    const exportMonth = month; // current selected month YYYY-MM
+    const res = await apiGet(`/cycletyres/production-sheet/?month=${exportMonth}`);
+    setExporting(false);
+
+    if (!res || !res.data || res.data.length === 0) {
+      alert('Is mahine ka koi data nahi mila!');
+      return;
     }
 
-    const rows = [];
-    
-    const header1 = ['ITEM NAME', 'PLY & BOX'];
-    sortedDates.forEach(d => {
-      header1.push(d, '', '');
+    const itemsList = res.data;
+
+    // Collect all unique dates in this month that have entries
+    let uniqueDates = new Set();
+    itemsList.forEach(item => {
+      Object.keys(item.dates_data || {}).forEach(d => uniqueDates.add(d));
     });
-    header1.push('TOTAL A', 'TOTAL B', 'TOTAL C');
+    let sortedDates = Array.from(uniqueDates).sort();
+
+    if (sortedDates.length === 0) {
+      alert('Is mahine koi production entries nahi hain!');
+      return;
+    }
+
+    // Format dates as DD.MM.YYYY for display
+    const formatDate = (d) => {
+      const parts = d.split('-');
+      return `${parts[2]}.${parts[1]}.${parts[0]}`;
+    };
+
+    const rows = [];
+
+    // Row 1: Merged date headers
+    const header1 = ['ITEM NAME', 'PLY & BOX TYPE'];
+    sortedDates.forEach(d => {
+      header1.push(formatDate(d), '', '');
+    });
+    header1.push('TOTAL A', 'TOTAL B', 'TOTAL C', 'GRAND TOTAL');
     rows.push(header1);
-    
+
+    // Row 2: A B C sub-headers
     const header2 = ['', ''];
     sortedDates.forEach(() => {
-      header2.push('A(1ST)', 'B(2ND)', 'C(REJ)');
+      header2.push('A (1ST)', 'B (2ND)', 'C (REJ)');
     });
-    header2.push('', '', '');
+    header2.push('', '', '', '');
     rows.push(header2);
-    
+
+    // Data rows - one row per item
+    let grandTotA = 0, grandTotB = 0, grandTotC = 0;
     itemsList.forEach(item => {
       const row = [
         item.tyre_name || '',
-        item.box_type || '',
+        `${item.box_type || ''} ${item.material || ''}`.trim(),
       ];
-      
+
       let totA = 0, totB = 0, totC = 0;
       sortedDates.forEach(d => {
         if (item.dates_data && item.dates_data[d]) {
@@ -93,18 +115,33 @@ export default function CycleTyreProductionSheet() {
           totB += day.b || 0;
           totC += day.c || 0;
         } else {
-          row.push(0, 0, 0);
+          row.push('', '', '');
         }
       });
-      
-      row.push(totA, totB, totC);
+
+      row.push(totA, totB, totC, totA + totB + totC);
+      grandTotA += totA; grandTotB += totB; grandTotC += totC;
       rows.push(row);
     });
-    
+
+    // Grand Total row
+    const totRow = ['GRAND TOTAL', ''];
+    sortedDates.forEach(() => { totRow.push('', '', ''); });
+    totRow.push(grandTotA, grandTotB, grandTotC, grandTotA + grandTotB + grandTotC);
+    rows.push(totRow);
+
     const worksheet = XLSX.utils.aoa_to_sheet(rows);
+
+    // Column widths
+    worksheet['!cols'] = [
+      { wch: 30 }, { wch: 18 },
+      ...sortedDates.flatMap(() => [{ wch: 8 }, { wch: 8 }, { wch: 8 }]),
+      { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 12 },
+    ];
+
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Production");
-    XLSX.writeFile(workbook, `Cycle_Tyre_Production_${viewMode === 'date' ? date : month}.xlsx`);
+    XLSX.utils.book_append_sheet(workbook, worksheet, `Production ${exportMonth}`);
+    XLSX.writeFile(workbook, `Cycle_Tyre_Production_${exportMonth}.xlsx`);
   };
 
   const changeMonth = (months) => {
@@ -233,18 +270,19 @@ export default function CycleTyreProductionSheet() {
                 <span style={{ fontSize: '0.7rem' }}>{darkMode ? 'Dark' : 'Light'}</span>
               </button>
 
-              {/* DATE-WISE EXPORT BUTTON */}
+              {/* DATE-WISE MONTHLY EXPORT BUTTON */}
               <button
-                onClick={handleExportExcel}
+                onClick={handleExportMonthly}
+                disabled={exporting}
                 style={{
                   padding: '8px 18px',
-                  background: 'linear-gradient(135deg, #059669, #10b981)',
+                  background: exporting ? '#94a3b8' : 'linear-gradient(135deg, #059669, #10b981)',
                   color: '#fff',
                   border: 'none',
                   borderRadius: '10px',
                   fontWeight: 800,
                   fontSize: '0.82rem',
-                  cursor: 'pointer',
+                  cursor: exporting ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
@@ -252,10 +290,10 @@ export default function CycleTyreProductionSheet() {
                   whiteSpace: 'nowrap',
                   transition: 'all 0.2s ease',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+                onMouseEnter={(e) => { if (!exporting) e.currentTarget.style.transform = 'scale(1.05)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
               >
-                📅 Date-wise Export
+                {exporting ? '⏳ Exporting...' : '📅 Export Full Month'}
               </button>
             </div>
 

@@ -32,8 +32,7 @@ export default function CycleTyresProduction() {
   async function fetchCpEmployees() {
     const res = await apiGet('/hrms/employees/?status=Active');
     if (res) {
-      const cp = res.filter(e => (e.department_name || '').toLowerCase().includes('cycle press'));
-      setCpEmployees(cp);
+      setCpEmployees(res); // Show ALL active employees
     }
   }
 

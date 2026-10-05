@@ -178,14 +178,15 @@ export default function CycleTubeEntries() {
                 </div>
                 
                 {isDropdownOpen && (
-                  <div className="custom-dropdown-menu">
+                  <div className="custom-dropdown-menu" onMouseDown={(e) => e.stopPropagation()}>
                     <div className="custom-dropdown-search">
                       <input 
                         type="text" 
                         placeholder="Type to search tube..." 
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        autoFocus
+                        onClick={(e) => e.stopPropagation()}
+                        ref={(input) => input && setTimeout(() => input.focus(), 50)}
                       />
                     </div>
                     <div className="custom-dropdown-list">

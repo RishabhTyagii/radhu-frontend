@@ -48,7 +48,7 @@ export default function CycleTyresEntries() {
   async function fetchEmployees() {
     const res = await apiGet("/hrms/employees/?status=Active");
     if (res) {
-      setEmployees(res.filter(e => (e.department_name || "").toLowerCase().includes("cycle press")));
+      setEmployees(res); // Show ALL active employees, not just cycle press
     }
   }
 
@@ -200,16 +200,17 @@ export default function CycleTyresEntries() {
                 </div>
                 
                 {isDropdownOpen && (
-                  <div className="custom-dropdown-menu">
-                    <div className="custom-dropdown-search">
-                      <input 
-                        type="text" 
-                        placeholder="Type to search tyre..." 
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        autoFocus
-                      />
-                    </div>
+                <div className="custom-dropdown-menu" onMouseDown={(e) => e.stopPropagation()}>
+                  <div className="custom-dropdown-search">
+                    <input 
+                      type="text" 
+                      placeholder="Type to search tyre..." 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      ref={(input) => input && setTimeout(() => input.focus(), 50)}
+                    />
+                  </div>
                     <div className="custom-dropdown-list">
                       <div 
                         className={`custom-dropdown-item ${!filters.tyre_item ? 'selected' : ''}`}

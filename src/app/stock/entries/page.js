@@ -168,14 +168,15 @@ export default function Entries() {
                   borderRadius: '8px',
                   boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
                   overflow: 'hidden',
-                }}>
+                }} onMouseDown={(e) => e.stopPropagation()}>
                   <div style={{ padding: '8px', borderBottom: `1px solid #e2e8f0`, backgroundColor: '#f8fafc' }}>
                     <input
                       type="text"
                       placeholder="Type to search tyre..."
                       value={tyreSearchQuery}
                       onChange={(e) => setTyreSearchQuery(e.target.value)}
-                      autoFocus
+                      onClick={(e) => e.stopPropagation()}
+                      ref={(input) => input && setTimeout(() => input.focus(), 50)}
                       style={{
                         width: '100%',
                         padding: '6px 10px',
