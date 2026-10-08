@@ -580,7 +580,8 @@ export default function CycleTyreProductionSheet() {
             </span>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
-                onClick={handleExportExcel}
+                onClick={handleExportMonthly}
+                disabled={exporting}
                 style={{
                   padding: '4px 12px',
                   backgroundColor: '#10b981',
