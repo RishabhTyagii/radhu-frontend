@@ -17,9 +17,9 @@ const fmtDate = (ds) => {
 
 const diffColor = (v) => {
   const n = parseFloat(v);
-  if (n < -0.01) return '#ef4444';
-  if (n > 0.01) return '#22c55e';
-  return '#94a3b8';
+  if (n < -0.01) return '#dc2626';
+  if (n > 0.01) return '#16a34a';
+  return '#64748b';
 };
 
 // ─── Inline editable cell ─────────────────────────────────────────────────────
@@ -38,13 +38,13 @@ function Cell({ value, onSave, color, bold, isInt = false, readOnly = false, hig
 
   const numDisplay = () => {
     const n = isInt ? parseInt(val) : parseFloat(val);
-    if (isNaN(n) || n === 0) return <span style={{ color: '#64748b', fontStyle: 'italic', fontSize: '0.75rem' }}>—</span>;
+    if (isNaN(n) || n === 0) return <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.75rem' }}>—</span>;
     return isInt ? n : n.toFixed(2);
   };
 
   const tdStyle = {
     textAlign: 'right',
-    padding: '7px 10px',
+    padding: '9px 12px',
     fontWeight: bold ? 700 : 500,
     color: color || '#1e293b',
     fontSize: '0.85rem',
@@ -56,7 +56,7 @@ function Cell({ value, onSave, color, bold, isInt = false, readOnly = false, hig
   );
 
   if (editing) return (
-    <td style={{ padding: '2px 4px', background: '#eff6ff' }}>
+    <td style={{ padding: '4px 6px', background: '#eff6ff' }}>
       <input
         ref={inputRef}
         type="number"
@@ -70,10 +70,10 @@ function Cell({ value, onSave, color, bold, isInt = false, readOnly = false, hig
         }}
         autoFocus
         style={{
-          width: '76px', height: '30px', border: '2px solid #3b82f6',
-          borderRadius: '5px', textAlign: 'right', padding: '0 6px',
-          fontSize: '0.83rem', background: 'white', outline: 'none',
-          boxShadow: '0 0 0 3px rgba(59,130,246,0.15)',
+          width: '80px', height: '32px', border: '2px solid #2563eb',
+          borderRadius: '6px', textAlign: 'right', padding: '0 8px',
+          fontSize: '0.85rem', background: '#ffffff', outline: 'none',
+          boxShadow: '0 0 0 3px rgba(37,99,235,0.15)', color: '#0f172a', fontWeight: 700
         }}
       />
     </td>
@@ -86,7 +86,7 @@ function Cell({ value, onSave, color, bold, isInt = false, readOnly = false, hig
       style={{
         ...tdStyle,
         cursor: 'pointer',
-        borderBottom: '1.5px dashed #93c5fd',
+        borderBottom: '1.5px dashed #60a5fa',
         transition: 'background 0.12s',
       }}
       onMouseEnter={e => e.currentTarget.style.background = '#dbeafe'}
@@ -139,7 +139,6 @@ export default function CycleTyresSummary() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const saveField = async (date, field, value) => {
-    // Optimistic
     setEditMap(prev => ({ ...prev, [date]: { ...prev[date], [field]: value } }));
     setSaving(date);
 
@@ -170,14 +169,14 @@ export default function CycleTyresSummary() {
 
   // ── Stats cards ──
   const stats = [
-    { label: 'Curing PCS', value: totals.production_pcs || 0, icon: '🔥', color: '#7c3aed', bg: '#7c3aed22' },
-    { label: 'Packing PCS', value: totals.packing_pcs || 0, icon: '📦', color: '#0284c7', bg: '#0284c722' },
-    { label: 'Theo KG', value: parseFloat(totals.theoretical_kg || 0).toFixed(1), icon: '⚖️', color: '#0f766e', bg: '#0f766e22' },
-    { label: 'Parchi KG', value: parseFloat(totals.parchi_kg || 0).toFixed(1), icon: '📋', color: '#d97706', bg: '#d9770622' },
-    { label: 'KG Diff', value: parseFloat(totals.difference || 0).toFixed(1), icon: '📐', color: '#dc2626', bg: '#dc262622' },
-    { label: 'Variance', value: parseFloat(totals.variance || 0).toFixed(1), icon: '📉', color: '#db2777', bg: '#db277722' },
-    { label: 'Chakka', value: parseFloat(totals.chakka || 0).toFixed(1), icon: '🔩', color: '#475569', bg: '#47556922' },
-    { label: 'Tar', value: parseFloat(totals.tar || 0).toFixed(1), icon: '🛢️', color: '#57534e', bg: '#57534e22' },
+    { label: 'Curing PCS', value: totals.production_pcs || 0, icon: '🔥', color: '#6d28d9', bg: '#f5f3ff', border: '#ddd6fe' },
+    { label: 'Packing PCS', value: totals.packing_pcs || 0, icon: '📦', color: '#0369a1', bg: '#f0f9ff', border: '#bae6fd' },
+    { label: 'Theo KG', value: parseFloat(totals.theoretical_kg || 0).toFixed(1), icon: '⚖️', color: '#0f766e', bg: '#f0fdf4', border: '#bbf7d0' },
+    { label: 'Parchi KG', value: parseFloat(totals.parchi_kg || 0).toFixed(1), icon: '📋', color: '#b45309', bg: '#fffbeb', border: '#fef3c7' },
+    { label: 'KG Diff', value: parseFloat(totals.difference || 0).toFixed(1), icon: '📐', color: '#b91c1c', bg: '#fef2f2', border: '#fecaca' },
+    { label: 'Variance', value: parseFloat(totals.variance || 0).toFixed(1), icon: '📉', color: '#be185d', bg: '#fdf2f8', border: '#fbcfe8' },
+    { label: 'Chakka', value: parseFloat(totals.chakka || 0).toFixed(1), icon: '🔩', color: '#334155', bg: '#f8fafc', border: '#e2e8f0' },
+    { label: 'Tar', value: parseFloat(totals.tar || 0).toFixed(1), icon: '🛢️', color: '#44403c', bg: '#fafaf9', border: '#e7e5e4' },
   ];
 
   return (
@@ -188,109 +187,109 @@ export default function CycleTyresSummary() {
       {toast && (
         <div style={{
           position: 'fixed', bottom: 28, right: 28, zIndex: 9999,
-          background: toast.type === 'error' ? '#450a0a' : '#052e16',
-          color: toast.type === 'error' ? '#fca5a5' : '#86efac',
-          border: `1px solid ${toast.type === 'error' ? '#7f1d1d' : '#14532d'}`,
+          background: toast.type === 'error' ? '#fef2f2' : '#f0fdf4',
+          color: toast.type === 'error' ? '#991b1b' : '#166534',
+          border: `1px solid ${toast.type === 'error' ? '#fca5a5' : '#86efac'}`,
           padding: '12px 22px', borderRadius: '10px', fontWeight: 700,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.4)', fontSize: '0.88rem',
+          boxShadow: '0 8px 30px rgba(0,0,0,0.12)', fontSize: '0.88rem',
         }}>
           {toast.msg}
         </div>
       )}
 
-      <div style={{ background: '#0f172a', minHeight: '100vh', paddingBottom: 48 }}>
+      <div style={{ background: '#f8fafc', minHeight: '100vh', paddingBottom: 48, color: '#0f172a' }}>
 
         {/* ── Header ── */}
         <div style={{
-          background: '#1e293b',
-          borderBottom: '1px solid #334155',
-          padding: '14px 24px',
+          background: '#ffffff',
+          borderBottom: '1px solid #e2e8f0',
+          padding: '16px 24px',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           flexWrap: 'wrap', gap: 12,
-          position: 'sticky', top: 0, zIndex: 100,
-          boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
         }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#f1f5f9' }}>
+            <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#0f172a' }}>
               📊 Cycle Tyre Daily Summary
             </h1>
-            <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.78rem', marginTop: 2 }}>
-              ✏️ dashed cells ko click karo — inline edit hoga, blur pe auto-save
+            <p style={{ margin: 0, color: '#64748b', fontSize: '0.8rem', marginTop: 3 }}>
+              ✏️ Dashed cells ko click karke edit karo — Packing PCS, Parchi KG, Mixing, Chakka, Calander, Pack Waste, Tar.
             </p>
           </div>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
             {[['FROM', fromDate, setFromDate], ['TO', toDate, setToDate]].map(([label, val, setter]) => (
               <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 700 }}>{label}</span>
+                <span style={{ fontSize: '0.75rem', color: '#475569', fontWeight: 800 }}>{label}</span>
                 <input type="date" value={val} onChange={e => setter(e.target.value)}
                   style={{
-                    background: '#0f172a', border: '1px solid #475569', borderRadius: 8,
-                    padding: '6px 10px', fontSize: '0.83rem', color: '#e2e8f0', cursor: 'pointer',
-                    outline: 'none',
+                    background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 8,
+                    padding: '6px 10px', fontSize: '0.83rem', color: '#0f172a', cursor: 'pointer',
+                    outline: 'none', fontWeight: 600
                   }} />
               </div>
             ))}
             <button onClick={fetchData} style={{
-              background: '#3b82f6', color: 'white', border: 'none', borderRadius: 8,
+              background: '#2563eb', color: 'white', border: 'none', borderRadius: 8,
               padding: '8px 18px', fontWeight: 700, fontSize: '0.83rem', cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(59,130,246,0.4)',
+              boxShadow: '0 2px 6px rgba(37,99,235,0.25)',
             }}>🔄 Refresh</button>
           </div>
         </div>
 
         {/* ── Stats Cards ── */}
-        <div style={{ display: 'flex', gap: 10, padding: '16px 20px', overflowX: 'auto', flexWrap: 'nowrap' }}>
+        <div style={{ display: 'flex', gap: 12, padding: '16px 24px', overflowX: 'auto', flexWrap: 'nowrap' }}>
           {stats.map(s => (
             <div key={s.label} style={{
-              background: s.bg, border: `1px solid ${s.color}55`,
+              background: s.bg, border: `1px solid ${s.border}`,
               borderRadius: 12, padding: '12px 18px', minWidth: 110,
-              flexShrink: 0, textAlign: 'center', backdropFilter: 'blur(4px)',
+              flexShrink: 0, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
             }}>
               <div style={{ fontSize: '1.3rem' }}>{s.icon}</div>
               <div style={{ fontSize: '1.25rem', fontWeight: 800, color: s.color, lineHeight: 1.1 }}>{s.value}</div>
-              <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700, marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{s.label}</div>
+              <div style={{ fontSize: '0.68rem', color: '#475569', fontWeight: 700, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{s.label}</div>
             </div>
           ))}
         </div>
 
-        {/* ── Table ── */}
-        <div style={{ margin: '0 16px', borderRadius: 14, overflow: 'hidden', border: '1px solid #334155', boxShadow: '0 4px 24px rgba(0,0,0,0.3)' }}>
+        {/* ── Table Container ── */}
+        <div style={{ margin: '0 24px', borderRadius: 14, overflow: 'hidden', border: '1px solid #cbd5e1', background: '#ffffff', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
           {loading ? (
-            <div style={{ textAlign: 'center', padding: 60, color: '#64748b', background: '#1e293b' }}>
+            <div style={{ textAlign: 'center', padding: 60, color: '#64748b', background: '#ffffff' }}>
               <div style={{ fontSize: '2rem', marginBottom: 10 }}>⏳</div>
-              Loading…
+              Loading Daily Summary…
             </div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
+            <div style={{ overflowX: 'auto', maxHeight: 'calc(100vh - 270px)', overflowY: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, fontSize: '0.84rem' }}>
 
                 {/* THEAD */}
                 <thead>
-                  <tr style={{ background: '#1e293b', position: 'sticky', top: 61, zIndex: 50 }}>
+                  <tr>
                     {[
-                      ['DATE', '#e2e8f0', true],
-                      ['CURING PCS', '#c4b5fd', false],
-                      ['PACKING PCS ✏️', '#7dd3fc', false],
-                      ['THEO KG', '#6ee7b7', false],
-                      ['PARCHI KG ✏️', '#fde68a', false],
-                      ['DIFF KG', '#fca5a5', false],
-                      ['THEO COMP', '#a5f3fc', false],
-                      ['MIXING ACT ✏️', '#fde68a', false],
-                      ['VARIANCE', '#fca5a5', false],
-                      ['CHAKKA ✏️', '#fde68a', false],
-                      ['CALANDER ✏️', '#fde68a', false],
-                      ['PACK WASTE ✏️', '#fde68a', false],
-                      ['TAR ✏️', '#fde68a', false],
-                      ['', '#475569', false],
+                      ['DATE', '#0f172a', true],
+                      ['CURING PCS', '#5b21b6', false],
+                      ['PACKING PCS ✏️', '#0369a1', false],
+                      ['THEO KG', '#047857', false],
+                      ['PARCHI KG ✏️', '#b45309', false],
+                      ['DIFF KG', '#b91c1c', false],
+                      ['THEO COMP', '#0e7490', false],
+                      ['MIXING ACT ✏️', '#7e22ce', false],
+                      ['VARIANCE', '#be185d', false],
+                      ['CHAKKA ✏️', '#334155', false],
+                      ['CALANDER ✏️', '#334155', false],
+                      ['PACK WASTE ✏️', '#334155', false],
+                      ['TAR ✏️', '#334155', false],
+                      ['', '#64748b', false],
                     ].map(([label, color, left], i) => (
                       <th key={i} style={{
-                        padding: '10px 10px',
+                        padding: '12px 10px',
                         textAlign: left ? 'left' : 'right',
-                        color, fontSize: '0.7rem', fontWeight: 800,
+                        color, fontSize: '0.72rem', fontWeight: 800,
                         letterSpacing: '0.05em', whiteSpace: 'nowrap',
-                        borderBottom: '1px solid #334155',
-                        background: '#1e293b',
-                        ...(left ? { position: 'sticky', left: 0, zIndex: 51, paddingLeft: 16 } : {}),
+                        borderBottom: '2px solid #cbd5e1',
+                        background: '#f1f5f9',
+                        position: 'sticky', top: 0, zIndex: left ? 30 : 20,
+                        ...(left ? { left: 0, paddingLeft: 16 } : {}),
                       }}>
                         {label}
                       </th>
@@ -302,85 +301,85 @@ export default function CycleTyresSummary() {
                 <tbody>
                   {rows.length === 0 && (
                     <tr>
-                      <td colSpan={14} style={{ textAlign: 'center', padding: 50, color: '#475569', background: '#0f172a' }}>
-                        Koi data nahi mila is range mein.
+                      <td colSpan={14} style={{ textAlign: 'center', padding: 50, color: '#64748b', background: '#ffffff' }}>
+                        Is date range mein koi data nahi mila.
                       </td>
                     </tr>
                   )}
                   {rows.map((r, i) => {
-                    const bg = i % 2 === 0 ? '#0f172a' : '#1a2540';
+                    const bg = i % 2 === 0 ? '#ffffff' : '#f8fafc';
                     const isSaving = saving === r.date;
                     const diff = parseFloat(r.difference || 0);
                     const variance = parseFloat(r.variance || 0);
 
                     return (
                       <tr key={r.date}
-                        style={{ background: bg, borderBottom: '1px solid #1e293b', transition: 'background 0.1s' }}
-                        onMouseEnter={e => e.currentTarget.style.background = '#1e3a5f'}
+                        style={{ background: bg, borderBottom: '1px solid #e2e8f0', transition: 'background 0.1s' }}
+                        onMouseEnter={e => e.currentTarget.style.background = '#f1f5f9'}
                         onMouseLeave={e => e.currentTarget.style.background = bg}
                       >
                         {/* DATE sticky */}
                         <td style={{
-                          padding: '9px 16px', fontWeight: 700, color: '#e2e8f0',
+                          padding: '10px 16px', fontWeight: 700, color: '#0f172a',
                           fontSize: '0.85rem', position: 'sticky', left: 0, background: bg,
-                          zIndex: 5, borderRight: '1px solid #334155', whiteSpace: 'nowrap',
+                          zIndex: 10, borderRight: '1px solid #e2e8f0', whiteSpace: 'nowrap',
                         }}>
                           {fmtDate(r.date)}
                           <span style={{ display: 'block', fontSize: '0.68rem', color: '#64748b', fontWeight: 400 }}>{r.date}</span>
                         </td>
 
                         {/* CURING PCS — read only */}
-                        <td style={{ textAlign: 'right', padding: '9px 10px', fontWeight: 800, color: '#a78bfa', fontSize: '0.9rem' }}>
-                          {r.production_pcs > 0 ? r.production_pcs : <span style={{ color: '#334155' }}>—</span>}
+                        <td style={{ textAlign: 'right', padding: '10px', fontWeight: 800, color: '#6d28d9', fontSize: '0.9rem' }}>
+                          {r.production_pcs > 0 ? r.production_pcs : <span style={{ color: '#cbd5e1' }}>—</span>}
                         </td>
 
-                        {/* PACKING PCS — NOW EDITABLE */}
+                        {/* PACKING PCS — EDITABLE */}
                         <Cell
                           value={g(r.date, 'packing_pcs')}
                           onSave={v => saveField(r.date, 'packing_pcs', v)}
-                          color="#38bdf8" bold isInt
+                          color="#0284c7" bold isInt
                         />
 
                         {/* THEO KG */}
-                        <td style={{ textAlign: 'right', padding: '9px 10px', color: '#34d399', fontWeight: 500 }}>
-                          {parseFloat(r.theoretical_kg) !== 0 ? parseFloat(r.theoretical_kg).toFixed(2) : <span style={{ color: '#334155' }}>—</span>}
+                        <td style={{ textAlign: 'right', padding: '10px', color: '#047857', fontWeight: 600 }}>
+                          {parseFloat(r.theoretical_kg) !== 0 ? parseFloat(r.theoretical_kg).toFixed(2) : <span style={{ color: '#cbd5e1' }}>—</span>}
                         </td>
 
                         {/* PARCHI KG editable */}
-                        <Cell value={g(r.date, 'parchi_kg')} onSave={v => saveField(r.date, 'parchi_kg', v)} color="#fbbf24" bold />
+                        <Cell value={g(r.date, 'parchi_kg')} onSave={v => saveField(r.date, 'parchi_kg', v)} color="#b45309" bold />
 
                         {/* DIFF */}
-                        <td style={{ textAlign: 'right', padding: '9px 10px', fontWeight: 700, color: diffColor(diff), fontSize: '0.85rem' }}>
-                          {diff !== 0 ? (diff > 0 ? '+' : '') + diff.toFixed(2) : <span style={{ color: '#334155' }}>—</span>}
+                        <td style={{ textAlign: 'right', padding: '10px', fontWeight: 700, color: diffColor(diff), fontSize: '0.85rem' }}>
+                          {diff !== 0 ? (diff > 0 ? '+' : '') + diff.toFixed(2) : <span style={{ color: '#cbd5e1' }}>—</span>}
                         </td>
 
                         {/* THEO COMP */}
-                        <td style={{ textAlign: 'right', padding: '9px 10px', color: '#67e8f9', fontWeight: 500 }}>
-                          {parseFloat(r.theoretical_total_compound) !== 0 ? parseFloat(r.theoretical_total_compound).toFixed(2) : <span style={{ color: '#334155' }}>—</span>}
+                        <td style={{ textAlign: 'right', padding: '10px', color: '#0e7490', fontWeight: 600 }}>
+                          {parseFloat(r.theoretical_total_compound) !== 0 ? parseFloat(r.theoretical_total_compound).toFixed(2) : <span style={{ color: '#cbd5e1' }}>—</span>}
                         </td>
 
                         {/* MIXING ACTUAL editable */}
-                        <Cell value={g(r.date, 'mixing_actual_compound')} onSave={v => saveField(r.date, 'mixing_actual_compound', v)} color="#c084fc" bold />
+                        <Cell value={g(r.date, 'mixing_actual_compound')} onSave={v => saveField(r.date, 'mixing_actual_compound', v)} color="#7e22ce" bold />
 
                         {/* VARIANCE */}
-                        <td style={{ textAlign: 'right', padding: '9px 10px', fontWeight: 700, color: diffColor(variance), fontSize: '0.85rem' }}>
-                          {variance !== 0 ? (variance > 0 ? '+' : '') + variance.toFixed(2) : <span style={{ color: '#334155' }}>—</span>}
+                        <td style={{ textAlign: 'right', padding: '10px', fontWeight: 700, color: diffColor(variance), fontSize: '0.85rem' }}>
+                          {variance !== 0 ? (variance > 0 ? '+' : '') + variance.toFixed(2) : <span style={{ color: '#cbd5e1' }}>—</span>}
                         </td>
 
                         {/* CHAKKA editable */}
-                        <Cell value={g(r.date, 'chakka')} onSave={v => saveField(r.date, 'chakka', v)} color="#cbd5e1" />
+                        <Cell value={g(r.date, 'chakka')} onSave={v => saveField(r.date, 'chakka', v)} color="#334155" />
                         {/* CALANDER editable */}
-                        <Cell value={g(r.date, 'calander_bias_cutt')} onSave={v => saveField(r.date, 'calander_bias_cutt', v)} color="#cbd5e1" />
+                        <Cell value={g(r.date, 'calander_bias_cutt')} onSave={v => saveField(r.date, 'calander_bias_cutt', v)} color="#334155" />
                         {/* PACK WASTAGE editable */}
-                        <Cell value={g(r.date, 'packing_wastage')} onSave={v => saveField(r.date, 'packing_wastage', v)} color="#cbd5e1" />
+                        <Cell value={g(r.date, 'packing_wastage')} onSave={v => saveField(r.date, 'packing_wastage', v)} color="#334155" />
                         {/* TAR editable */}
-                        <Cell value={g(r.date, 'tar')} onSave={v => saveField(r.date, 'tar', v)} color="#cbd5e1" />
+                        <Cell value={g(r.date, 'tar')} onSave={v => saveField(r.date, 'tar', v)} color="#334155" />
 
                         {/* Status */}
-                        <td style={{ textAlign: 'center', padding: '9px 8px' }}>
+                        <td style={{ textAlign: 'center', padding: '10px 8px' }}>
                           {isSaving
                             ? <span style={{ fontSize: '0.75rem', color: '#f59e0b' }}>💾</span>
-                            : <span style={{ fontSize: '0.75rem', color: '#22c55e' }}>✓</span>}
+                            : <span style={{ fontSize: '0.75rem', color: '#16a34a' }}>✓</span>}
                         </td>
                       </tr>
                     );
@@ -390,20 +389,20 @@ export default function CycleTyresSummary() {
                 {/* TOTALS footer */}
                 {rows.length > 0 && (
                   <tfoot>
-                    <tr style={{ background: '#1e3a5f', borderTop: '2px solid #3b82f6' }}>
-                      <td style={{ padding: '10px 16px', fontWeight: 800, color: '#f1f5f9', fontSize: '0.85rem', position: 'sticky', left: 0, background: '#1e3a5f', borderRight: '1px solid #334155' }}>TOTALS</td>
-                      <td style={{ textAlign: 'right', padding: '10px', fontWeight: 800, color: '#a78bfa' }}>{totals.production_pcs || 0}</td>
-                      <td style={{ textAlign: 'right', padding: '10px', fontWeight: 800, color: '#38bdf8' }}>{totals.packing_pcs || 0}</td>
-                      <td style={{ textAlign: 'right', padding: '10px', fontWeight: 700, color: '#34d399' }}>{parseFloat(totals.theoretical_kg || 0).toFixed(2)}</td>
-                      <td style={{ textAlign: 'right', padding: '10px', fontWeight: 700, color: '#fbbf24' }}>{parseFloat(totals.parchi_kg || 0).toFixed(2)}</td>
+                    <tr style={{ background: '#f1f5f9', borderTop: '2px solid #cbd5e1' }}>
+                      <td style={{ padding: '12px 16px', fontWeight: 800, color: '#0f172a', fontSize: '0.85rem', position: 'sticky', left: 0, background: '#f1f5f9', zIndex: 10, borderRight: '1px solid #cbd5e1' }}>TOTALS</td>
+                      <td style={{ textAlign: 'right', padding: '10px', fontWeight: 800, color: '#6d28d9' }}>{totals.production_pcs || 0}</td>
+                      <td style={{ textAlign: 'right', padding: '10px', fontWeight: 800, color: '#0284c7' }}>{totals.packing_pcs || 0}</td>
+                      <td style={{ textAlign: 'right', padding: '10px', fontWeight: 700, color: '#047857' }}>{parseFloat(totals.theoretical_kg || 0).toFixed(2)}</td>
+                      <td style={{ textAlign: 'right', padding: '10px', fontWeight: 700, color: '#b45309' }}>{parseFloat(totals.parchi_kg || 0).toFixed(2)}</td>
                       <td style={{ textAlign: 'right', padding: '10px', fontWeight: 700, color: diffColor(totals.difference) }}>{parseFloat(totals.difference || 0).toFixed(2)}</td>
-                      <td style={{ textAlign: 'right', padding: '10px', fontWeight: 700, color: '#67e8f9' }}>{parseFloat(totals.theoretical_total_compound || 0).toFixed(2)}</td>
-                      <td style={{ textAlign: 'right', padding: '10px', fontWeight: 700, color: '#c084fc' }}>{parseFloat(totals.mixing_actual_compound || 0).toFixed(2)}</td>
+                      <td style={{ textAlign: 'right', padding: '10px', fontWeight: 700, color: '#0e7490' }}>{parseFloat(totals.theoretical_total_compound || 0).toFixed(2)}</td>
+                      <td style={{ textAlign: 'right', padding: '10px', fontWeight: 700, color: '#7e22ce' }}>{parseFloat(totals.mixing_actual_compound || 0).toFixed(2)}</td>
                       <td style={{ textAlign: 'right', padding: '10px', fontWeight: 700, color: diffColor(totals.variance) }}>{parseFloat(totals.variance || 0).toFixed(2)}</td>
-                      <td style={{ textAlign: 'right', padding: '10px', color: '#cbd5e1', fontWeight: 700 }}>{parseFloat(totals.chakka || 0).toFixed(2)}</td>
-                      <td style={{ textAlign: 'right', padding: '10px', color: '#cbd5e1', fontWeight: 700 }}>{parseFloat(totals.calander_bias_cutt || 0).toFixed(2)}</td>
-                      <td style={{ textAlign: 'right', padding: '10px', color: '#cbd5e1', fontWeight: 700 }}>{parseFloat(totals.packing_wastage || 0).toFixed(2)}</td>
-                      <td style={{ textAlign: 'right', padding: '10px', color: '#cbd5e1', fontWeight: 700 }}>{parseFloat(totals.tar || 0).toFixed(2)}</td>
+                      <td style={{ textAlign: 'right', padding: '10px', color: '#334155', fontWeight: 700 }}>{parseFloat(totals.chakka || 0).toFixed(2)}</td>
+                      <td style={{ textAlign: 'right', padding: '10px', color: '#334155', fontWeight: 700 }}>{parseFloat(totals.calander_bias_cutt || 0).toFixed(2)}</td>
+                      <td style={{ textAlign: 'right', padding: '10px', color: '#334155', fontWeight: 700 }}>{parseFloat(totals.packing_wastage || 0).toFixed(2)}</td>
+                      <td style={{ textAlign: 'right', padding: '10px', color: '#334155', fontWeight: 700 }}>{parseFloat(totals.tar || 0).toFixed(2)}</td>
                       <td></td>
                     </tr>
                   </tfoot>
@@ -415,19 +414,20 @@ export default function CycleTyresSummary() {
 
         {/* Formula bar */}
         <div style={{
-          margin: '12px 16px 0', padding: '10px 16px',
-          background: '#1e293b', borderRadius: 10, border: '1px solid #334155',
-          fontSize: '0.73rem', color: '#94a3b8', display: 'flex', flexWrap: 'wrap', gap: 10,
+          margin: '16px 24px 0', padding: '12px 18px',
+          background: '#ffffff', borderRadius: 10, border: '1px solid #e2e8f0',
+          fontSize: '0.75rem', color: '#64748b', display: 'flex', flexWrap: 'wrap', gap: 12,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
         }}>
-          <span>⚖️ <strong style={{ color: '#e2e8f0' }}>Theo KG</strong> = Curing × Weight</span>
-          <span style={{ color: '#475569' }}>|</span>
-          <span>🧪 <strong style={{ color: '#e2e8f0' }}>Theo Comp</strong> = Theo KG × 0.825</span>
-          <span style={{ color: '#475569' }}>|</span>
-          <span>📏 <strong style={{ color: '#e2e8f0' }}>Diff</strong> = Parchi − Theo KG</span>
-          <span style={{ color: '#475569' }}>|</span>
-          <span>📉 <strong style={{ color: '#e2e8f0' }}>Variance</strong> = Mixing − Theo Comp</span>
-          <span style={{ color: '#475569' }}>|</span>
-          <span>✏️ <strong style={{ color: '#93c5fd' }}>Dashed cells</strong> = click to edit</span>
+          <span>⚖️ <strong style={{ color: '#0f172a' }}>Theo KG</strong> = Curing × Weight</span>
+          <span style={{ color: '#cbd5e1' }}>|</span>
+          <span>🧪 <strong style={{ color: '#0f172a' }}>Theo Comp</strong> = Theo KG × 0.825</span>
+          <span style={{ color: '#cbd5e1' }}>|</span>
+          <span>📏 <strong style={{ color: '#0f172a' }}>Diff</strong> = Parchi − Theo KG</span>
+          <span style={{ color: '#cbd5e1' }}>|</span>
+          <span>📉 <strong style={{ color: '#0f172a' }}>Variance</strong> = Mixing − Theo Comp</span>
+          <span style={{ color: '#cbd5e1' }}>|</span>
+          <span>✏️ <strong style={{ color: '#2563eb' }}>Dashed cells</strong> = Click to edit manually</span>
         </div>
 
       </div>
