@@ -6,7 +6,7 @@ import { apiGet, apiPost } from '@/lib/api';
 
 const today = () => {
   const d = new Date();
-  return "${d.getFullYear()}--";
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
 const fmtDate = (ds) => {
@@ -118,7 +118,7 @@ export default function CycleTubeSummary() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const res = await apiGet(/cycletube/production-summary/?start_date=&end_date=);
+    const res = await apiGet(`/cycletube/production-summary/?start_date=${fromDate}&end_date=${toDate}`);
     if (res) {
       setRows(res.summary || []);
       setTotals(res.totals || {});
@@ -159,7 +159,7 @@ export default function CycleTubeSummary() {
 
     const res = await apiPost('/cycletube/production-summary/', payload);
     if (res) {
-      showToast(✏️  saved);
+      showToast(`✏️ ${date} saved`);
       fetchData();
     } else {
       showToast('❌ Save failed', 'error');
@@ -186,7 +186,7 @@ export default function CycleTubeSummary() {
           position: 'fixed', bottom: 28, right: 28, zIndex: 9999,
           background: toast.type === 'error' ? '#fef2f2' : '#f0fdf4',
           color: toast.type === 'error' ? '#991b1b' : '#166534',
-          border: 1px solid ,
+          border: `1px solid ${toast.type === 'error' ? '#fca5a5' : '#86efac'}`,
           padding: '12px 22px', borderRadius: '10px', fontWeight: 700,
           boxShadow: '0 8px 30px rgba(0,0,0,0.12)', fontSize: '0.88rem',
         }}>
@@ -215,7 +215,7 @@ export default function CycleTubeSummary() {
           {/* Stats */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 24 }}>
             {stats.map((s, i) => (
-              <div key={i} style={{ background: s.bg, border: 1px solid , borderRadius: 16, padding: 16, display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div key={i} style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: 16, padding: 16, display: 'flex', alignItems: 'center', gap: 16 }}>
                 <div style={{ width: 42, height: 42, borderRadius: 12, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                   {s.icon}
                 </div>
