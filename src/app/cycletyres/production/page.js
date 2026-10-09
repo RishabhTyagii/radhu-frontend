@@ -30,9 +30,10 @@ export default function CycleTyresProduction() {
   }, []);
 
   async function fetchCpEmployees() {
-    const res = await apiGet('/hrms/employees/?status=Active');
+    // Only Cycle Press department (ID=5)
+    const res = await apiGet('/hrms/employees/?status=Active&department=5');
     if (res) {
-      setCpEmployees(res); // Show ALL active employees
+      setCpEmployees(res);
     }
   }
 
@@ -172,7 +173,7 @@ export default function CycleTyresProduction() {
                 <select className="form-select" value={formData.tyre_item} onChange={e => setFormData(p => ({ ...p, tyre_item: e.target.value }))} required>
                   <option value="">-- Select Tyre --</option>
                   {items.map(it => (
-                    <option key={it.id} value={it.id}>{it.size} - {it.box_type} {it.brand} (1st: {it.stock}, 2nd: {it.second_stock})</option>
+                    <option key={it.id} value={it.id}>{it.size} {it.material} {it.box_type} - {it.brand} (1st: {it.stock}, 2nd: {it.second_stock})</option>
                   ))}
                 </select>
               </div>
@@ -266,12 +267,15 @@ export default function CycleTyresProduction() {
                     <tr key={e.id}>
                       <td style={{ whiteSpace: 'nowrap' }}>{e.date}</td>
                       <td>
-                        <select className="form-select" style={{ padding: '4px 8px', fontSize: '0.75rem', width: 'auto', minWidth: '100px' }} value={e.linked_employee_id || ''} onChange={(evt) => updateEmployee(e.id, evt.target.value)}>
+                        {e.linked_employee_name && (
+                          <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#7c3aed', marginBottom: '2px' }}>✓ {e.linked_employee_name}</div>
+                        )}
+                        <select className="form-select" style={{ padding: '4px 8px', fontSize: '0.75rem', width: 'auto', minWidth: '120px' }} value={e.linked_employee_id || ''} onChange={(evt) => updateEmployee(e.id, evt.target.value)}>
                           <option value="">- None -</option>
                           {cpEmployees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
                         </select>
                       </td>
-                      <td style={{ fontSize: '0.75rem' }}>{e.tyre_item_detail ? `${e.tyre_item_detail.size} ${e.tyre_item_detail.box_type}` : '-'}</td>
+                      <td style={{ fontSize: '0.75rem' }}>{e.tyre_item_detail ? `${e.tyre_item_detail.size} ${e.tyre_item_detail.material} ${e.tyre_item_detail.box_type}` : '-'}</td>
                       <td style={{ textAlign: 'right', fontWeight: 600 }}>{e.all_curing}</td>
                       <td style={{ textAlign: 'right', fontWeight: 600, color: '#10b981' }}>+{e.first_grade}</td>
                       <td style={{ textAlign: 'right', fontWeight: 600, color: '#f59e0b' }}>{e.second_grade}</td>
