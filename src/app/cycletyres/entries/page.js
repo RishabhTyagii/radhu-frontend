@@ -46,9 +46,9 @@ export default function CycleTyresEntries() {
   }
 
   async function fetchEmployees() {
-    const res = await apiGet("/hrms/employees/?status=Active");
+    const res = await apiGet("/hrms/employees/?status=Active&department=5");
     if (res) {
-      setEmployees(res); // Show ALL active employees, not just cycle press
+      setEmployees(res); // Show only cycle press employees
     }
   }
 
@@ -193,7 +193,7 @@ export default function CycleTyresEntries() {
                 >
                   <span style={{ color: selectedItemObject ? '#0f172a' : '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {selectedItemObject 
-                      ? `${selectedItemObject.size} ${selectedItemObject.box_type} ${selectedItemObject.brand}`
+                      ? `${selectedItemObject.size} ${selectedItemObject.material} ${selectedItemObject.box_type} ${selectedItemObject.brand}`
                       : 'Select Tyre Item...'}
                   </span>
                   <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>▼</span>
