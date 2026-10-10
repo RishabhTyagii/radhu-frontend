@@ -127,88 +127,83 @@ export default function Home() {
   const visibleModules = modulesList.filter((m) => m.alwaysShow || m.keys.some(k => isAllowed(k)));
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f8f8f8', fontFamily: 'Helvetica, Arial, sans-serif' }}>
       <Navbar />
 
-      <main style={{ 
-        flex: 1,
-        maxWidth: '1400px',
-        width: '100%',
-        margin: '0 auto',
-        padding: isMobile ? '20px 16px' : '40px 24px',
-      }}>
-        
-        <div style={{ marginBottom: '32px' }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#0f172a', margin: '0 0 4px 0' }}>System Modules</h1>
-          <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0 }}>Select a module below to access its dashboard and tools.</p>
+      {/* DJANGO ADMIN HEADER */}
+      <div style={{ backgroundColor: '#417690', padding: '10px 20px', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 'normal' }}>Radhu Industries ERP</h1>
+        <span style={{ fontSize: '12px', color: '#c4dce8' }}>System Status: Online</span>
+      </div>
+
+      {/* BREADCRUMB */}
+      <div style={{ padding: '8px 20px', backgroundColor: '#79aec8', color: '#fff', fontSize: '12px' }}>
+        Home &rsaquo; System Modules
+      </div>
+
+      <main style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
+
+        <p style={{ fontSize: '12px', color: '#666', marginBottom: '20px' }}>
+          Select a module to access its dashboard and tools.
+        </p>
+
+        {/* MODULE TABLE (BIOS/Admin style) */}
+        <div style={{ border: '1px solid #ccc', backgroundColor: '#fff' }}>
+          <div style={{ backgroundColor: '#417690', padding: '6px 12px', color: '#fff', fontSize: '12px', fontWeight: 'bold', letterSpacing: '0.05em' }}>
+            AVAILABLE MODULES — {visibleModules.length} found
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+            <thead>
+              <tr style={{ backgroundColor: '#efefef', borderBottom: '1px solid #ccc' }}>
+                <th style={{ padding: '8px 12px', textAlign: 'left', borderRight: '1px solid #ccc', width: '32px' }}></th>
+                <th style={{ padding: '8px 12px', textAlign: 'left', borderRight: '1px solid #ccc' }}>Module</th>
+                <th style={{ padding: '8px 12px', textAlign: 'left', borderRight: '1px solid #ccc' }}>Description</th>
+                <th style={{ padding: '8px 12px', textAlign: 'left' }}>Key Features</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleModules.map((mod, idx) => (
+                <tr
+                  key={mod.path}
+                  onClick={() => router.push(mod.path)}
+                  style={{ borderBottom: '1px solid #eee', backgroundColor: idx % 2 === 0 ? '#fff' : '#fafafa', cursor: 'pointer' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#e8f0f7'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = idx % 2 === 0 ? '#fff' : '#fafafa'; }}
+                >
+                  <td style={{ padding: '10px 12px', borderRight: '1px solid #eee', color: '#417690', fontSize: '16px', textAlign: 'center' }}>
+                    {mod.icon}
+                  </td>
+                  <td style={{ padding: '10px 12px', borderRight: '1px solid #eee', fontWeight: 'bold', color: '#003b5c', whiteSpace: 'nowrap' }}>
+                    {mod.title}
+                  </td>
+                  <td style={{ padding: '10px 12px', borderRight: '1px solid #eee', color: '#555', lineHeight: 1.4 }}>
+                    {mod.description}
+                  </td>
+                  <td style={{ padding: '10px 12px' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                      {mod.features.map((f) => (
+                        <span key={f} style={{ display: 'inline-block', backgroundColor: '#e8f0f7', border: '1px solid #c4dce8', color: '#003b5c', padding: '2px 7px', fontSize: '11px', borderRadius: '3px' }}>
+                          {f}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {!visibleModules.length && (
+                <tr>
+                  <td colSpan="4" style={{ padding: '20px', textAlign: 'center', color: '#999' }}>No modules available for your access level.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
 
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
-          gap: '20px',
-        }}>
-          {visibleModules.map((mod) => (
-            <div
-              key={mod.path}
-              onClick={() => router.push(mod.path)}
-              style={{
-                backgroundColor: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '8px',
-                padding: '24px',
-                cursor: 'pointer',
-                transition: 'border-color 0.2s ease',
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#94a3b8'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e2e8f0'; }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  backgroundColor: '#f1f5f9',
-                  color: '#475569',
-                  borderRadius: '6px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '1.1rem',
-                }}>
-                  {mod.icon}
-                </div>
-                <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#1e293b' }}>
-                  {mod.title}
-                </h2>
-              </div>
-
-              <p style={{ color: '#64748b', fontSize: '0.85rem', lineHeight: 1.5, margin: '0 0 20px 0', flex: 1 }}>
-                {mod.description}
-              </p>
-
-              <div style={{ display: 'flex', alignItems: 'center', color: '#2563eb', fontSize: '0.85rem', fontWeight: 500 }}>
-                Open Module <i className="fas fa-arrow-right" style={{ marginLeft: '6px', fontSize: '0.75rem' }}></i>
-              </div>
-            </div>
-          ))}
-          
-          {!visibleModules.length && (
-            <div style={{ gridColumn: '1 / -1', padding: '40px', textAlign: 'center', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-              <p style={{ color: '#64748b', margin: 0 }}>No modules available for your access level.</p>
-            </div>
-          )}
+        <div style={{ marginTop: '20px', fontSize: '11px', color: '#999', textAlign: 'right' }}>
+          &copy; {new Date().getFullYear()} Radhu Industries ERP
         </div>
-
       </main>
-      
-      <footer style={{ borderTop: '1px solid #e2e8f0', padding: '20px 24px', background: '#ffffff' }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: 0 }}>© {new Date().getFullYear()} Radhu ERP System. All rights reserved.</p>
-          <div style={{ fontSize: '0.8rem', color: '#64748b' }}>System Status: <span style={{ color: '#10b981', fontWeight: 500 }}>Online</span></div>
-        </div>
-      </footer>
     </div>
   );
 }
+

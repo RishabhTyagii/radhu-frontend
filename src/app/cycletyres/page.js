@@ -277,629 +277,149 @@ export default function CycleTyresDashboard() {
 
   return (
     <div style={{
+      backgroundColor: '#f8f8f8',
+      color: '#333',
       minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      backgroundColor: theme.bg,
-      margin: 0,
-      padding: 0,
-      overflow: 'hidden',
-      transition: 'all 0.3s ease',
+      fontFamily: 'Helvetica, Arial, sans-serif',
     }}>
+      <style>{`footer { display: none !important; }`}</style>
       <Navbar />
 
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        height: 'calc(100vh - 60px)',
-        overflow: 'hidden',
-      }}>
-
-        {/* STICKY HEADER */}
-        <div style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 1000,
-          backgroundColor: theme.bg2,
-          boxShadow: theme.shadow,
-        }}>
-
-          {/* Toolbar */}
-          <div style={{
-            borderBottom: `2px solid ${theme.border}`,
-            padding: isMobile ? '8px 10px' : '10px 18px',
-            display: 'flex',
-            flexDirection: isMobile ? 'column' : 'row',
-            justifyContent: 'space-between',
-            alignItems: isMobile ? 'stretch' : 'center',
-            gap: '8px',
-            flexWrap: 'wrap',
-            backgroundColor: theme.bg2,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span style={{
-                fontSize: isMobile ? '1.05rem' : '1.3rem',
-                fontWeight: 900,
-                color: theme.text,
-                background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}>
-                🚴 Cycle Tyre Dashboard
-              </span>
-
-              {/* Dark Mode Toggle */}
-              <button
-                onClick={() => setDarkMode(!darkMode)}
-                style={{
-                  padding: '3px 8px',
-                  borderRadius: '16px',
-                  border: `1px solid ${theme.border}`,
-                  backgroundColor: darkMode ? '#334155' : '#f1f5f9',
-                  color: theme.text,
-                  cursor: 'pointer',
-                  fontSize: '0.7rem',
-                  fontWeight: 600,
-                }}
-              >
-                {darkMode ? '🌙 Dark' : '☀️ Light'}
-              </button>
-            </div>
-
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              flexWrap: 'wrap',
-              flex: isMobile ? '1' : '0 1 auto',
-            }}>
-              {/* Month Selector */}
-              <select
-                style={{
-                  padding: '5px 10px',
-                  border: `2px solid ${!isCustomRange ? theme.primary : theme.border}`,
-                  borderRadius: '8px',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  backgroundColor: !isCustomRange && !darkMode ? '#eff6ff' : theme.bg2,
-                  color: theme.text,
-                  height: '34px',
-                  minWidth: '115px',
-                  outline: 'none',
-                }}
-                value={isCustomRange ? 'custom' : selectedMonth}
-                onChange={(e) => handleMonthChange(e.target.value)}
-              >
-                {availableMonths.map((m) => (
-                  <option key={m.value} value={m.value}>
-                    📅 {m.label}
-                  </option>
-                ))}
-                {isCustomRange && <option value="custom">📅 Custom Range</option>}
-              </select>
-
-              {/* Custom Date Range Filter */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                backgroundColor: isCustomRange ? (darkMode ? '#1e3a8a33' : '#eff6ff') : 'transparent',
-                padding: '2px 4px',
-                borderRadius: '8px',
-                border: `1px solid ${isCustomRange ? '#3b82f6' : theme.border}`,
-              }}>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  style={{
-                    padding: '4px 6px',
-                    border: `1px solid ${theme.border}`,
-                    borderRadius: '6px',
-                    fontSize: '0.75rem',
-                    backgroundColor: theme.bg2,
-                    color: theme.text,
-                    height: '28px',
-                    outline: 'none',
-                  }}
-                  title="Start Date"
-                />
-                <span style={{ fontSize: '0.7rem', color: theme.text2 }}>to</span>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  style={{
-                    padding: '4px 6px',
-                    border: `1px solid ${theme.border}`,
-                    borderRadius: '6px',
-                    fontSize: '0.75rem',
-                    backgroundColor: theme.bg2,
-                    color: theme.text,
-                    height: '28px',
-                    outline: 'none',
-                  }}
-                  title="End Date"
-                />
-                <button
-                  onClick={handleApplyDateRange}
-                  disabled={!startDate || !endDate}
-                  style={{
-                    padding: '4px 8px',
-                    backgroundColor: '#2563eb',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '0.7rem',
-                    fontWeight: 700,
-                    cursor: (!startDate || !endDate) ? 'not-allowed' : 'pointer',
-                    height: '28px',
-                    opacity: (!startDate || !endDate) ? 0.6 : 1,
-                  }}
-                >
-                  Apply
-                </button>
-                {isCustomRange && (
-                  <button
-                    onClick={handleResetFilters}
-                    style={{
-                      padding: '4px 6px',
-                      backgroundColor: 'transparent',
-                      color: '#ef4444',
-                      border: 'none',
-                      fontSize: '0.75rem',
-                      cursor: 'pointer',
-                      fontWeight: 700,
-                    }}
-                    title="Reset to Month View"
-                  >
-                    ✖
-                  </button>
-                )}
-              </div>
-
-              {/* Search Bar */}
-              <div style={{
-                position: 'relative',
-                flex: isMobile ? '1' : '0 1 130px',
-                minWidth: '100px',
-              }}>
-                <input
-                  type="text"
-                  style={{
-                    padding: '5px 8px 5px 10px',
-                    border: `1px solid ${theme.border}`,
-                    borderRadius: '8px',
-                    fontSize: '0.75rem',
-                    width: '100%',
-                    backgroundColor: theme.bg2,
-                    color: theme.text,
-                    height: '34px',
-                    outline: 'none',
-                  }}
-                  placeholder="🔍 Search..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-
-              <button
-                onClick={() => isCustomRange ? fetchDashboard({ start: startDate, end: endDate }) : fetchDashboard({ month: selectedMonth })}
-                style={{
-                  padding: '5px 10px',
-                  backgroundColor: darkMode ? '#334155' : '#e2e8f0',
-                  color: theme.text,
-                  border: `1px solid ${theme.border}`,
-                  borderRadius: '8px',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  height: '34px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                <i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`}></i>
-                {!isMobile && 'Refresh'}
-              </button>
-
-              <button
-                onClick={handleExportExcel}
-                style={{
-                  padding: '5px 12px',
-                  backgroundColor: '#10b981',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  height: '34px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                <i className="fas fa-file-excel"></i>
-                Export
-              </button>
-            </div>
+      <div style={{ padding: '20px' }}>
+        {/* DJANGO ADMIN HEADER */}
+        <div style={{ backgroundColor: '#417690', padding: '10px 20px', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 'normal' }}>Cycle Tyre Dashboard</h1>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <span style={{ fontSize: '12px' }}>Total Stock: <strong>{totals.total_stock ?? 0}</strong></span>
+            <button onClick={handleExportExcel} style={{ backgroundColor: '#79aec8', border: 'none', color: '#fff', padding: '4px 8px', cursor: 'pointer', fontSize: '12px' }}>Export CSV</button>
           </div>
-
-          {/* TOP SUMMARY KPI CARDS */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)',
-            gap: '1px',
-            backgroundColor: theme.border,
-          }}>
-            {/* Card 1: Last Month Closing */}
-            <div style={{
-              backgroundColor: theme.bg2,
-              padding: isMobile ? '8px 10px' : '10px 14px',
-              textAlign: 'center',
-              borderBottom: '3px solid #3b82f6',
-            }}>
-              <div style={{ fontSize: '0.65rem', color: theme.text2, fontWeight: 700, textTransform: 'uppercase' }}>
-                ⏮️ Last Month Closing
-              </div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#3b82f6', marginTop: '2px' }}>
-                {(totals.prev_closing_first ?? 0) + (totals.prev_closing_second ?? 0)}
-              </div>
-              <div style={{ fontSize: '0.65rem', color: theme.text2, marginTop: '2px', fontWeight: 600 }}>
-                1st: <b style={{ color: '#2563eb' }}>{totals.prev_closing_first ?? 0}</b> | 2nd: <b style={{ color: '#d97706' }}>{totals.prev_closing_second ?? 0}</b>
-              </div>
-            </div>
-
-            {/* Card 2: This Month Production */}
-            <div style={{
-              backgroundColor: theme.bg2,
-              padding: isMobile ? '8px 10px' : '10px 14px',
-              textAlign: 'center',
-              borderBottom: '3px solid #10b981',
-            }}>
-              <div style={{ fontSize: '0.65rem', color: theme.text2, fontWeight: 700, textTransform: 'uppercase' }}>
-                ⚙️ Month Production
-              </div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981', marginTop: '2px' }}>
-                {totals.month_prod_total ?? 0}
-              </div>
-              <div style={{ fontSize: '0.65rem', color: theme.text2, marginTop: '2px', fontWeight: 600 }}>
-                1st: <b style={{ color: '#059669' }}>{totals.month_prod_first ?? 0}</b> | 2nd: <b style={{ color: '#d97706' }}>{totals.month_prod_second ?? 0}</b>
-              </div>
-            </div>
-
-            {/* Card 3: This Month Sales (1st only) */}
-            <div style={{
-              backgroundColor: theme.bg2,
-              padding: isMobile ? '8px 10px' : '10px 14px',
-              textAlign: 'center',
-              borderBottom: '3px solid #ef4444',
-            }}>
-              <div style={{ fontSize: '0.65rem', color: theme.text2, fontWeight: 700, textTransform: 'uppercase' }}>
-                🏷️ Sales (1st Grade)
-              </div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ef4444', marginTop: '2px' }}>
-                {totals.month_sale_first ?? 0}
-              </div>
-              <div style={{ fontSize: '0.65rem', color: theme.text2, marginTop: '2px', fontWeight: 600 }}>
-                RFM: <b style={{ color: '#8b5cf6' }}>{totals.rfm_stock ?? 0}</b>
-              </div>
-            </div>
-
-            {/* Card 4: Current Closing (1st & 2nd) */}
-            <div style={{
-              backgroundColor: theme.bg2,
-              padding: isMobile ? '8px 10px' : '10px 14px',
-              textAlign: 'center',
-              borderBottom: '3px solid #8b5cf6',
-            }}>
-              <div style={{ fontSize: '0.65rem', color: theme.text2, fontWeight: 700, textTransform: 'uppercase' }}>
-                📦 Closing Stock
-              </div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#8b5cf6', marginTop: '2px' }}>
-                {(totals.closing_first ?? 0) + (totals.closing_second ?? 0)}
-              </div>
-              <div style={{ fontSize: '0.65rem', color: theme.text2, marginTop: '2px', fontWeight: 600 }}>
-                1st: <b style={{ color: '#2563eb' }}>{totals.closing_first ?? 0}</b> | 2nd: <b style={{ color: '#d97706' }}>{totals.closing_second ?? 0}</b>
-              </div>
-            </div>
-
-            {/* Card 5: Grand Total Stock (1st + 2nd + RFM) */}
-            <div style={{
-              backgroundColor: theme.bg2,
-              padding: isMobile ? '8px 10px' : '10px 14px',
-              textAlign: 'center',
-              borderBottom: '3px solid #2563eb',
-              gridColumn: isMobile ? 'span 2' : 'auto',
-            }}>
-              <div style={{ fontSize: '0.65rem', color: '#2563eb', fontWeight: 800, textTransform: 'uppercase' }}>
-                🌟 Total Stock (1st + 2nd + RFM)
-              </div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#2563eb', marginTop: '2px' }}>
-                {totals.total_stock ?? 0}
-              </div>
-              <div style={{ fontSize: '0.65rem', color: theme.text2, marginTop: '2px', fontWeight: 600 }}>
-                Closing + RFM Live
-              </div>
-            </div>
-          </div>
-
-          {/* STICKY TOTALS BAR */}
-          {items.length > 0 && !isMobile && (
-            <div style={{
-              backgroundColor: darkMode ? '#1e293b' : '#f0fdf4',
-              borderTop: `2px solid ${theme.border}`,
-              borderBottom: `2px solid #3b82f6`,
-              padding: '6px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-            }}>
-              <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#166534', minWidth: '100px' }}>
-                📊 SUMMARY ROW:
-              </div>
-              <div style={{ display: 'flex', gap: '12px', flex: 1, flexWrap: 'wrap', fontSize: '0.75rem' }}>
-                <div>Last Cl (1st): <b style={{ color: '#2563eb' }}>{totals.prev_closing_first ?? 0}</b></div>
-                <div>Last Cl (2nd): <b style={{ color: '#d97706' }}>{totals.prev_closing_second ?? 0}</b></div>
-                <div>Prod Total: <b style={{ color: '#10b981' }}>{totals.month_prod_total ?? 0}</b></div>
-                <div>Prod 1st: <b style={{ color: '#059669' }}>{totals.month_prod_first ?? 0}</b></div>
-                <div>Prod 2nd: <b style={{ color: '#d97706' }}>{totals.month_prod_second ?? 0}</b></div>
-                <div>Sale 1st: <b style={{ color: '#ef4444' }}>{totals.month_sale_first ?? 0}</b></div>
-                <div>RFM: <b style={{ color: '#8b5cf6' }}>{totals.rfm_stock ?? 0}</b></div>
-                <div>Closing 1st: <b style={{ color: '#2563eb' }}>{totals.closing_first ?? 0}</b></div>
-                <div>Closing 2nd: <b style={{ color: '#d97706' }}>{totals.closing_second ?? 0}</b></div>
-                <div style={{ marginLeft: 'auto', fontWeight: 900, color: '#2563eb', fontSize: '0.85rem' }}>
-                  TOTAL STOCK: {totals.total_stock ?? 0}
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Table / List Section */}
-        <div style={{
-          flex: 1,
-          overflow: 'hidden',
-          backgroundColor: theme.bg2,
-        }}>
-          {loading ? (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: '100%',
-            }}>
-              <div style={{ textAlign: 'center' }}>
-                <i className="fas fa-spinner fa-spin" style={{
-                  fontSize: '2.5rem',
-                  color: '#3b82f6',
-                  display: 'block',
-                  marginBottom: '12px',
-                }}></i>
-                <p style={{ color: theme.text2, fontWeight: 600 }}>Calculating live stocks & closing...</p>
-              </div>
-            </div>
-          ) : (
-            <>
-              {isMobile ? (
-                <div style={{
-                  flex: 1,
-                  overflowY: 'auto',
-                  padding: '6px',
-                  height: '100%',
-                }}>
-                  {items.length > 0 ? (
-                    items.map(item => renderMobileCard(item))
-                  ) : (
-                    <div style={{ textAlign: 'center', padding: '40px', color: theme.text2 }}>
-                      No items found
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div style={{
-                  height: '100%',
-                  overflow: 'auto',
-                }}>
-                  <table style={{
-                    width: '100%',
-                    borderCollapse: 'collapse',
-                    fontSize: '0.8rem',
-                  }}>
-                    <thead style={{
-                      position: 'sticky',
-                      top: 0,
-                      zIndex: 10,
-                      backgroundColor: theme.bg3,
-                    }}>
-                      <tr style={{
-                        borderBottom: `2px solid ${theme.border}`,
-                      }}>
-                        <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 800 }}>SIZE</th>
-                        <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 800 }}>PLY / TYPE</th>
-                        <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 800 }}>PATTERN</th>
-                        <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 800, color: '#2563eb' }}>LAST CL (1ST)</th>
-                        <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 800, color: '#d97706' }}>LAST CL (2ND)</th>
-                        <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 800, color: '#059669' }}>PROD (A)</th>
-                        <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 800, color: '#d97706' }}>PROD (B)</th>
-                        <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 800, color: '#ef4444' }}>PROD (C)</th>
-                        <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 800, color: '#10b981' }}>PROD (TOTAL)</th>
-                        <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 800, color: '#ef4444' }}>SALE (1ST)</th>
-                        <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 800, color: '#8b5cf6' }}>RFM</th>
-                        <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 800, color: '#1d4ed8', backgroundColor: darkMode ? '#1e3a8a33' : '#eff6ff' }}>CLOSING (1ST)</th>
-                        <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 800, color: '#b45309', backgroundColor: darkMode ? '#78350f33' : '#fefce8' }}>CLOSING (2ND)</th>
-                        <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 900, color: 'white', backgroundColor: '#2563eb' }}>TOTAL STOCK</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {items.map((item) => {
-                        const isNegative = (item.total_stock || 0) < 0;
-                        return (
-                          <tr
-                            key={item.id}
-                            style={{
-                              borderBottom: `1px solid ${theme.border}`,
-                              backgroundColor: theme.bg2,
-                              transition: 'background-color 0.15s ease',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = theme.cardHover;
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = theme.bg2;
-                            }}
-                          >
-                            <td style={{ padding: '8px 12px', fontWeight: 900, color: theme.text, fontSize: '0.85rem' }}>
-                              {item.size || '-'}
-                            </td>
-                            <td style={{ padding: '8px 12px' }}>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                {item.material && <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#059669' }}>{item.material}</span>}
-                                {item.box_type && item.box_type !== item.material && <span style={{ fontSize: '0.65rem', color: theme.text2, fontWeight: 600 }}>{item.box_type}</span>}
-                              </div>
-                            </td>
-                            <td style={{ padding: '8px 12px', fontWeight: 800, color: '#7c3aed', fontSize: '0.8rem' }}>
-                              {item.brand || '-'}
-                            </td>
-                            <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 700, color: '#2563eb' }}>
-                              {item.prev_closing_first ?? 0}
-                            </td>
-                            <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 700, color: '#d97706' }}>
-                              {item.prev_closing_second ?? 0}
-                            </td>
-                            <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 700, color: '#059669' }}>
-                              {item.month_prod_first ?? 0}
-                            </td>
-                            <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 700, color: '#d97706' }}>
-                              {item.month_prod_second ?? 0}
-                            </td>
-                            <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 700, color: '#ef4444' }}>
-                              {item.month_prod_rejected ?? 0}
-                            </td>
-                            <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 800, color: '#10b981' }}>
-                              {item.month_prod_total ?? 0}
-                            </td>
-                            <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 800, color: '#ef4444' }}>
-                              {item.month_sale_first ?? 0}
-                            </td>
-                            <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 700, color: '#8b5cf6' }}>
-                              {item.rfm_stock ?? 0}
-                            </td>
-                            <td style={{
-                              padding: '8px 8px',
-                              textAlign: 'right',
-                              fontWeight: 800,
-                              color: '#1e40af',
-                              backgroundColor: darkMode ? '#1e3a8a22' : '#eff6ff',
-                            }}>
-                              {item.closing_first ?? 0}
-                            </td>
-                            <td style={{
-                              padding: '8px 8px',
-                              textAlign: 'right',
-                              fontWeight: 800,
-                              color: '#92400e',
-                              backgroundColor: darkMode ? '#78350f22' : '#fefce8',
-                            }}>
-                              {item.closing_second ?? 0}
-                            </td>
-                            <td style={{
-                              padding: '8px 12px',
-                              textAlign: 'right',
-                              fontWeight: 900,
-                              fontSize: '0.9rem',
-                              color: isNegative ? '#ef4444' : '#2563eb',
-                              backgroundColor: isNegative ? 'rgba(239,68,68,0.1)' : 'rgba(37,99,235,0.08)',
-                            }}>
-                              {item.total_stock ?? 0}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      {!items.length && (
-                        <tr>
-                          <td colSpan="13" style={{
-                            textAlign: 'center',
-                            padding: '40px',
-                            color: theme.text2,
-                          }}>
-                            No matching items found
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
+        {/* BREADCRUMB */}
+        <div style={{ padding: '8px 20px', backgroundColor: '#79aec8', color: '#fff', fontSize: '12px' }}>
+          Home &rsaquo; Stock &rsaquo; Cycle Tyre Dashboard
+        </div>
 
-                    {/* Table Footer */}
-                    {items.length > 0 && (
-                      <tfoot style={{
-                        position: 'sticky',
-                        bottom: 0,
-                        zIndex: 10,
-                      }}>
-                        <tr style={{
-                          backgroundColor: darkMode ? '#1e293b' : '#eff6ff',
-                          borderTop: `2px solid #3b82f6`,
-                          borderBottom: `2px solid #3b82f6`,
-                          fontWeight: 900,
-                        }}>
-                          <td colSpan="3" style={{ padding: '10px 12px', color: '#1e40af' }}>
-                            📊 TOTALS
-                          </td>
-                          <td style={{ padding: '10px 8px', textAlign: 'right', color: '#2563eb' }}>
-                            {totals.prev_closing_first ?? 0}
-                          </td>
-                          <td style={{ padding: '10px 8px', textAlign: 'right', color: '#d97706' }}>
-                            {totals.prev_closing_second ?? 0}
-                          </td>
-                          <td style={{ padding: '10px 8px', textAlign: 'right', color: '#059669' }}>
-                            {totals.month_prod_first ?? 0}
-                          </td>
-                          <td style={{ padding: '10px 8px', textAlign: 'right', color: '#d97706' }}>
-                            {totals.month_prod_second ?? 0}
-                          </td>
-                          <td style={{ padding: '10px 8px', textAlign: 'right', color: '#ef4444' }}>
-                            {totals.month_prod_rejected ?? 0}
-                          </td>
-                          <td style={{ padding: '10px 8px', textAlign: 'right', color: '#10b981' }}>
-                            {totals.month_prod_total ?? 0}
-                          </td>
-                          <td style={{ padding: '10px 8px', textAlign: 'right', color: '#ef4444' }}>
-                            {totals.month_sale_first ?? 0}
-                          </td>
-                          <td style={{ padding: '10px 8px', textAlign: 'right', color: '#8b5cf6' }}>
-                            {totals.rfm_stock ?? 0}
-                          </td>
-                          <td style={{ padding: '10px 8px', textAlign: 'right', color: '#1e40af', backgroundColor: darkMode ? '#1e3a8a33' : '#dbeafe' }}>
-                            {totals.closing_first ?? 0}
-                          </td>
-                          <td style={{ padding: '10px 8px', textAlign: 'right', color: '#92400e', backgroundColor: darkMode ? '#78350f33' : '#fef3c7' }}>
-                            {totals.closing_second ?? 0}
-                          </td>
-                          <td style={{
-                            padding: '10px 12px',
-                            textAlign: 'right',
-                            color: 'white',
-                            backgroundColor: '#2563eb',
-                            fontSize: '1rem',
-                            fontWeight: 900,
-                          }}>
-                            {totals.total_stock ?? 0}
-                          </td>
-                        </tr>
-                      </tfoot>
-                    )}
-                  </table>
-                </div>
+        {/* TOOLBAR */}
+        <div style={{ marginTop: '20px', display: 'flex', gap: '15px', alignItems: 'center', backgroundColor: '#fff', padding: '10px', border: '1px solid #ccc', flexWrap: 'wrap' }}>
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 'bold', marginRight: '5px' }}>Search:</label>
+            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="size, box type, brand..." style={{ padding: '4px', border: '1px solid #ccc', fontSize: '12px', width: '200px' }} />
+          </div>
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 'bold', marginRight: '5px' }}>Month:</label>
+            <select value={isCustomRange ? 'custom' : selectedMonth} onChange={(e) => handleMonthChange(e.target.value)} style={{ padding: '4px', border: '1px solid #ccc', fontSize: '12px' }}>
+              {availableMonths.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+              {isCustomRange && <option value="custom">Custom Range</option>}
+            </select>
+          </div>
+          <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+            <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Date Range:</label>
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={{ padding: '4px', border: '1px solid #ccc', fontSize: '12px' }} />
+            <span style={{ fontSize: '12px' }}>-</span>
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={{ padding: '4px', border: '1px solid #ccc', fontSize: '12px' }} />
+            <button onClick={handleApplyDateRange} style={{ padding: '4px 8px', backgroundColor: '#999', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '12px' }}>Apply</button>
+            {isCustomRange && <button onClick={handleResetFilters} style={{ padding: '4px 8px', backgroundColor: '#d9534f', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '12px' }}>Clear</button>}
+          </div>
+          <button onClick={() => isCustomRange ? fetchDashboard({ start: startDate, end: endDate }) : fetchDashboard({ month: selectedMonth })} style={{ padding: '4px 8px', backgroundColor: '#417690', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '12px' }}>Refresh</button>
+        </div>
+
+        {/* SUMMARY STATS */}
+        <div style={{ marginTop: '20px', border: '1px solid #ccc', backgroundColor: '#fff' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+            <thead>
+              <tr style={{ backgroundColor: '#efefef', borderBottom: '1px solid #ccc' }}>
+                <th style={{ padding: '8px', textAlign: 'left', borderRight: '1px solid #ccc' }}>Last Month Closing (1st)</th>
+                <th style={{ padding: '8px', textAlign: 'left', borderRight: '1px solid #ccc' }}>Last Month Closing (2nd)</th>
+                <th style={{ padding: '8px', textAlign: 'left', borderRight: '1px solid #ccc' }}>Month Production (Total)</th>
+                <th style={{ padding: '8px', textAlign: 'left', borderRight: '1px solid #ccc' }}>Month Sales (1st)</th>
+                <th style={{ padding: '8px', textAlign: 'left', borderRight: '1px solid #ccc' }}>RFM</th>
+                <th style={{ padding: '8px', textAlign: 'left' }}>Total Stock</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={{ padding: '8px', borderRight: '1px solid #ccc', fontWeight: 'bold' }}>{totals.prev_closing_first ?? 0}</td>
+                <td style={{ padding: '8px', borderRight: '1px solid #ccc', fontWeight: 'bold' }}>{totals.prev_closing_second ?? 0}</td>
+                <td style={{ padding: '8px', borderRight: '1px solid #ccc', fontWeight: 'bold' }}>{totals.month_prod_total ?? 0}</td>
+                <td style={{ padding: '8px', borderRight: '1px solid #ccc', fontWeight: 'bold' }}>{totals.month_sale_first ?? 0}</td>
+                <td style={{ padding: '8px', borderRight: '1px solid #ccc', fontWeight: 'bold' }}>{totals.rfm_stock ?? 0}</td>
+                <td style={{ padding: '8px', fontWeight: 'bold', color: '#417690' }}>{totals.total_stock ?? 0}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* MAIN DATA TABLE */}
+        <div style={{ marginTop: '20px', border: '1px solid #ccc', backgroundColor: '#fff', overflowX: 'auto' }}>
+          {loading ? (
+            <div style={{ padding: '20px', textAlign: 'center', fontSize: '12px', color: '#666' }}>Loading data...</div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', textAlign: 'left' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#efefef', borderBottom: '2px solid #ccc' }}>
+                  <th style={{ padding: '8px', borderRight: '1px solid #ccc' }}>#</th>
+                  <th style={{ padding: '8px', borderRight: '1px solid #ccc' }}>SIZE</th>
+                  <th style={{ padding: '8px', borderRight: '1px solid #ccc' }}>PLY / TYPE</th>
+                  <th style={{ padding: '8px', borderRight: '1px solid #ccc' }}>BRAND</th>
+                  <th style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>LAST CL (1ST)</th>
+                  <th style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>LAST CL (2ND)</th>
+                  <th style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>PROD (A)</th>
+                  <th style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>PROD (B)</th>
+                  <th style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>PROD (C)</th>
+                  <th style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right', fontWeight: 'bold' }}>PROD (TOTAL)</th>
+                  <th style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>SALE (1ST)</th>
+                  <th style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>RFM</th>
+                  <th style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>CLOSING (1ST)</th>
+                  <th style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>CLOSING (2ND)</th>
+                  <th style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold', backgroundColor: '#e2ebf0' }}>TOTAL STOCK</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.length === 0 && <tr><td colSpan="15" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>No data available.</td></tr>}
+                {items.map((item, idx) => (
+                  <tr key={item.id} style={{ borderBottom: '1px solid #eee', backgroundColor: idx % 2 === 0 ? '#fff' : '#fcfcfc' }}>
+                    <td style={{ padding: '6px 8px', borderRight: '1px solid #eee', color: '#888' }}>{idx + 1}</td>
+                    <td style={{ padding: '6px 8px', borderRight: '1px solid #eee', fontWeight: 'bold' }}>{item.size || '-'}</td>
+                    <td style={{ padding: '6px 8px', borderRight: '1px solid #eee' }}>{item.material || ''} {item.box_type && item.box_type !== item.material ? `/ ${item.box_type}` : ''}</td>
+                    <td style={{ padding: '6px 8px', borderRight: '1px solid #eee' }}>{item.brand || '-'}</td>
+                    <td style={{ padding: '6px 8px', borderRight: '1px solid #eee', textAlign: 'right' }}>{item.prev_closing_first ?? 0}</td>
+                    <td style={{ padding: '6px 8px', borderRight: '1px solid #eee', textAlign: 'right' }}>{item.prev_closing_second ?? 0}</td>
+                    <td style={{ padding: '6px 8px', borderRight: '1px solid #eee', textAlign: 'right' }}>{item.month_prod_first ?? 0}</td>
+                    <td style={{ padding: '6px 8px', borderRight: '1px solid #eee', textAlign: 'right' }}>{item.month_prod_second ?? 0}</td>
+                    <td style={{ padding: '6px 8px', borderRight: '1px solid #eee', textAlign: 'right' }}>{item.month_prod_rejected ?? 0}</td>
+                    <td style={{ padding: '6px 8px', borderRight: '1px solid #eee', textAlign: 'right', fontWeight: 'bold' }}>{item.month_prod_total ?? 0}</td>
+                    <td style={{ padding: '6px 8px', borderRight: '1px solid #eee', textAlign: 'right' }}>{item.month_sale_first ?? 0}</td>
+                    <td style={{ padding: '6px 8px', borderRight: '1px solid #eee', textAlign: 'right' }}>{item.rfm_stock ?? 0}</td>
+                    <td style={{ padding: '6px 8px', borderRight: '1px solid #eee', textAlign: 'right', fontWeight: 'bold' }}>{item.closing_first ?? 0}</td>
+                    <td style={{ padding: '6px 8px', borderRight: '1px solid #eee', textAlign: 'right' }}>{item.closing_second ?? 0}</td>
+                    <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 'bold', backgroundColor: '#eef3f6', color: (item.total_stock || 0) < 0 ? '#c00' : '#2a5f8a' }}>{item.total_stock ?? 0}</td>
+                  </tr>
+                ))}
+              </tbody>
+              {items.length > 0 && (
+                <tfoot>
+                  <tr style={{ backgroundColor: '#e2ebf0', borderTop: '2px solid #ccc', fontWeight: 'bold' }}>
+                    <td colSpan="4" style={{ padding: '8px', borderRight: '1px solid #ccc' }}>TOTALS ({items.length} items)</td>
+                    <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.prev_closing_first ?? 0}</td>
+                    <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.prev_closing_second ?? 0}</td>
+                    <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.month_prod_first ?? 0}</td>
+                    <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.month_prod_second ?? 0}</td>
+                    <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>-</td>
+                    <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.month_prod_total ?? 0}</td>
+                    <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.month_sale_first ?? 0}</td>
+                    <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.rfm_stock ?? 0}</td>
+                    <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.closing_first ?? 0}</td>
+                    <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.closing_second ?? 0}</td>
+                    <td style={{ padding: '8px', textAlign: 'right' }}>{totals.total_stock ?? 0}</td>
+                  </tr>
+                </tfoot>
               )}
-            </>
+            </table>
           )}
         </div>
       </div>
     </div>
   );
 }
+
