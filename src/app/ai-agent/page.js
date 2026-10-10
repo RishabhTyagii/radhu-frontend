@@ -416,14 +416,14 @@ export default function AIAgentPage() {
           align-items: center;
           gap: 12px;
           padding: 14px 20px;
-          background: linear-gradient(135deg, #0f172a, #1e1b4b);
+          background: #0f172a;
           border-bottom: 1px solid #1e293b;
           flex-wrap: wrap;
         }
         .ai-header-left { display: flex; align-items: center; gap: 12px; }
         .ai-avatar {
           width: 44px; height: 44px; border-radius: 50%;
-          background: linear-gradient(135deg, #7c3aed, #2563eb);
+          background: #1e293b;
           display: flex; align-items: center; justify-content: center;
           font-size: 1.25rem;
         }
@@ -468,7 +468,7 @@ export default function AIAgentPage() {
         .ai-row.user { flex-direction: row-reverse; }
         .ai-face {
           width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
-          background: linear-gradient(135deg, #7c3aed, #2563eb);
+          background: #1e293b;
           display: flex; align-items: center; justify-content: center;
         }
         .ai-col { max-width: 75%; }
@@ -478,7 +478,7 @@ export default function AIAgentPage() {
           word-break: break-word;
         }
         .ai-bubble.user {
-          background: linear-gradient(135deg, #7c3aed, #2563eb); color: #fff;
+          background: #1e293b; color: #fff;
           border-radius: 16px 16px 4px 16px;
         }
         .ai-bubble.ai {
@@ -539,13 +539,13 @@ export default function AIAgentPage() {
           color: #f1f5f9; padding: 12px 14px; font: inherit;
         }
         .ai-send {
-          background: linear-gradient(135deg, #7c3aed, #2563eb); color: #fff; font-weight: 700;
+          background: #1e293b; color: #fff; font-weight: 700;
         }
         .ai-send:disabled { opacity: 0.45; cursor: not-allowed; }
         .ai-bubble.typing { display: flex; gap: 6px; align-items: center; }
         .ai-bubble.typing span {
           width: 8px; height: 8px; border-radius: 50%; background: #a78bfa;
-          animation: aiBounce 1.1s infinite ease-in-out;
+          
         }
         .ai-bubble.typing span:nth-child(2) { animation-delay: 0.15s; }
         .ai-bubble.typing span:nth-child(3) { animation-delay: 0.3s; }

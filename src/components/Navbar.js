@@ -56,14 +56,14 @@ export default function Navbar() {
   };
 
   const modulesList = [
-    { id: 'stock', name: 'Auto Tyre', icon: '🏎️', path: '/stock', color: '#2563eb' },
-    { id: 'cycletyres', name: 'Cycle Tyre', icon: '🚴', path: '/cycletyres', color: '#059669' },
-    { id: 'cycletube', name: 'Cycle Tube', icon: '🚲', path: '/cycletube', color: '#d97706' },
-    { id: 'tallysync', name: 'Tally Sync', icon: '📊', path: '/tallysync', color: '#7c3aed' },
-    { id: 'hrms', name: 'HRMS', icon: '👥', path: '/hrms', color: '#0284c7' },
-    { id: 'orders', name: 'Orders', icon: '📦', path: '/orders', color: '#e11d48' },
-    { id: 'ai', name: 'RADHU AI', icon: '🤖', path: '/ai-agent', color: '#7c3aed' },
-    ...(userData?.is_superuser ? [{ id: 'users', name: 'Users', icon: '⚙️', path: '/users', color: '#475569' }] : []),
+    { id: 'stock', name: 'Auto Tyre', icon: <i className="fas fa-car-side"></i>, path: '/stock', color: '#1e293b' },
+    { id: 'cycletyres', name: 'Cycle Tyre', icon: <i className="fas fa-bicycle"></i>, path: '/cycletyres', color: '#1e293b' },
+    { id: 'cycletube', name: 'Cycle Tube', icon: <i className="fas fa-life-ring"></i>, path: '/cycletube', color: '#1e293b' },
+    { id: 'tallysync', name: 'Tally Sync', icon: <i className="fas fa-file-invoice-dollar"></i>, path: '/tallysync', color: '#1e293b' },
+    { id: 'hrms', name: 'HRMS', icon: <i className="fas fa-users"></i>, path: '/hrms', color: '#1e293b' },
+    { id: 'orders', name: 'Orders', icon: <i className="fas fa-box"></i>, path: '/orders', color: '#1e293b' },
+    { id: 'ai', name: 'RADHU AI', icon: <i className="fas fa-robot"></i>, path: '/ai-agent', color: '#1e293b' },
+    ...(userData?.is_superuser ? [{ id: 'users', name: 'Users', icon: <i className="fas fa-cog"></i>, path: '/users', color: '#1e293b' }] : []),
   ];
 
   const stockNavItems = [
@@ -186,25 +186,24 @@ export default function Navbar() {
               target="_blank"
               rel="noopener noreferrer"
               style={{
-                background: 'linear-gradient(135deg, #064e3b, #047857)',
-                border: '1px solid #10b981',
-                color: '#d1fae5',
+                background: '#1e293b',
+                border: '1px solid #475569',
+                color: '#e2e8f0',
                 padding: '6px 12px',
                 borderRadius: '8px',
                 fontSize: '0.78rem',
-                fontWeight: 700,
+                fontWeight: 600,
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
                 textDecoration: 'none',
                 transition: 'all 0.2s ease',
-                boxShadow: '0 2px 8px rgba(16,185,129,0.2)',
               }}
               title="Open Django Admin Panel (Radhu Industries Portal)"
             >
-              <span>🐍</span>
+              <i className="fas fa-database"></i>
               <span>Django Admin</span>
-              <i className="fas fa-external-link-alt" style={{ fontSize: '0.65rem', opacity: 0.8 }}></i>
+              <i className="fas fa-external-link-alt" style={{ fontSize: '0.65rem', opacity: 0.6 }}></i>
             </a>
           )}
 
