@@ -184,8 +184,8 @@ export default function TallySyncLogs() {
           boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
         }}>
           <div style={{
-            maxWidth: '1440px',
-            margin: '0 auto',
+            maxWidth: '100%',
+            margin: '0',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -243,7 +243,7 @@ export default function TallySyncLogs() {
         </div>
 
         {/* Main Content - Edge to Edge with padding */}
-        <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px 40px' }}>
+        <div style={{ maxWidth: '100%', margin: '0', padding: '24px 40px' }}>
           {message && (
             <div style={{
               padding: '16px 24px',
@@ -859,7 +859,7 @@ export default function TallySyncLogs() {
             <div style={{
               background: 'white',
               borderRadius: '20px',
-              maxWidth: '520px',
+              maxWidth: '100%',
               width: '100%',
               padding: '32px',
               boxShadow: '0 25px 60px rgba(0,0,0,0.3)',

@@ -36,7 +36,7 @@ export default function AddCycleTubeItem() {
   return (
     <>
       <Navbar />
-      <div className="container" style={{ maxWidth: '600px' }}>
+      <div className="container" style={{ maxWidth: '100%' }}>
         <div className="page-header">
           <h1>🚲 Add Cycle Tube Item</h1>
         </div>
@@ -112,3 +112,4 @@ export default function AddCycleTubeItem() {
     </>
   );
 }
+

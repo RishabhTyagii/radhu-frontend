@@ -19,7 +19,7 @@ export default function Footer() {
         background: 'linear-gradient(90deg, transparent, #6366f1, #38bdf8, #6366f1, transparent)',
       }} />
 
-      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '48px 24px 24px' }}>
+      <div style={{ maxWidth: '100%', margin: '0', padding: '48px 24px 24px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '40px', marginBottom: '40px' }}>
 
           <div>
@@ -148,3 +148,4 @@ export default function Footer() {
     </footer>
   );
 }
+

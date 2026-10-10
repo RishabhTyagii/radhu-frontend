@@ -134,7 +134,7 @@ export default function CycleTyresAIAnalytics() {
     <div style={{ minHeight: '100vh', backgroundColor: theme.bg, transition: 'all 0.3s ease' }}>
       <Navbar />
 
-      <div style={{ maxWidth: '1600px', margin: '0 auto', padding: isMobile ? '12px' : '24px' }}>
+      <div style={{ maxWidth: '100%', margin: '0', padding: isMobile ? '12px' : '24px' }}>
         
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
@@ -628,7 +628,7 @@ export default function CycleTyresAIAnalytics() {
                       📅 {p.predicted_reorder_date}
                       <div style={{ fontSize: '0.7rem', fontWeight: 600 }}>{p.urgency}</div>
                     </td>
-                    <td style={{ padding: '12px 14px', fontWeight: 600, color: '#2563eb', fontSize: '0.8rem', maxWidth: '160px' }}>
+                    <td style={{ padding: '12px 14px', fontWeight: 600, color: '#2563eb', fontSize: '0.8rem', maxWidth: '100%' }}>
                       <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.preferred_item}</div>
                     </td>
                     <td style={{ padding: '12px 14px', fontWeight: 800, color: '#f59e0b' }}>{p.predicted_quantity} pcs</td>
@@ -667,3 +667,4 @@ export default function CycleTyresAIAnalytics() {
     </div>
   );
 }
+

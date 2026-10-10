@@ -141,7 +141,7 @@ export default function Home() {
         Home &rsaquo; System Modules
       </div>
 
-      <main style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
+      <main style={{ padding: '20px', maxWidth: '100%', margin: '0' }}>
 
         <p style={{ fontSize: '12px', color: '#666', marginBottom: '20px' }}>
           Select a module to access its dashboard and tools.
@@ -206,4 +206,6 @@ export default function Home() {
     </div>
   );
 }
+
+
 

@@ -45,7 +45,7 @@ export default function AddTyre() {
 
         {msg && <div className={`message ${msg.type}`}>{msg.text}</div>}
 
-        <div className="card" style={{ maxWidth: '600px', margin: '0 auto' }}>
+        <div className="card" style={{ maxWidth: '100%', margin: '0' }}>
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label className="form-label">Tyre Name (e.g. 275-18)</label>
@@ -76,3 +76,4 @@ export default function AddTyre() {
     </>
   );
 }
+

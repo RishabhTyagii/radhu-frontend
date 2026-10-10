@@ -288,7 +288,7 @@ export default function CycleTyresReportWithCharts() {
     <div style={{ minHeight: '100vh', backgroundColor: theme.bg, transition: 'all 0.3s ease' }}>
       <Navbar />
 
-      <div style={{ maxWidth: '1600px', margin: '0 auto', padding: isMobile ? '12px' : '24px' }}>
+      <div style={{ maxWidth: '100%', margin: '0', padding: isMobile ? '12px' : '24px' }}>
         {/* Header with AI Hub link */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '14px' }}>
           <div>
@@ -574,3 +574,4 @@ export default function CycleTyresReportWithCharts() {
     </div>
   );
 }
+

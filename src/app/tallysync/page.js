@@ -225,7 +225,7 @@ export default function TallySalesSummary() {
     <div style={{ minHeight: '100vh', background: colors.bgMain, color: colors.textMain, transition: 'all 0.25s ease' }}>
       <Navbar />
 
-      <main style={{ padding: '24px 32px 60px', maxWidth: '100%', margin: '0 auto' }}>
+      <main style={{ padding: '24px 32px 60px', maxWidth: '100%', margin: '0' }}>
         
         {/* Top Header Bar */}
         <div style={{
@@ -1281,5 +1281,6 @@ export default function TallySalesSummary() {
     </div>
   );
 }
+
 
 

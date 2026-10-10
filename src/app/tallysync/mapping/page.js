@@ -366,7 +366,7 @@ export default function TallyMappingList() {
           background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
         }}>
-          <div className="card" style={{ maxWidth: '480px', width: '90%', padding: '24px' }}>
+          <div className="card" style={{ maxWidth: '100%', width: '90%', padding: '24px' }}>
             <h3 style={{ color: '#ef4444', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <i className="fas fa-exclamation-triangle"></i> Delete Confirmation
             </h3>
@@ -415,3 +415,4 @@ export default function TallyMappingList() {
     </>
   );
 }
+

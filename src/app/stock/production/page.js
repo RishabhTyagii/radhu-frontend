@@ -337,7 +337,7 @@ export default function AutoTyreProduction() {
 
       <div style={{
         maxWidth: activeViewMode === 'sheet' ? '100%' : '1440px',
-        margin: '0 auto',
+        margin: '0',
         padding: activeViewMode === 'sheet' ? '0' : (isMobile ? '12px' : '24px'),
       }}>
         
@@ -1280,3 +1280,4 @@ export default function AutoTyreProduction() {
     </div>
   );
 }
+

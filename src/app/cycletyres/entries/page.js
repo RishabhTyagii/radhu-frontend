@@ -165,7 +165,7 @@ export default function CycleTyresEntries() {
               <label>Date</label>
               <input type="date" name="date" value={filters.date} onChange={handleFilterChange} className="filter-input" />
             </div>
-            <div className="filter-group" style={{ maxWidth: '40px', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="filter-group" style={{ maxWidth: '100%', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#94a3b8', marginTop: '15px' }}>OR</span>
             </div>
             <div className="filter-group">
@@ -312,3 +312,4 @@ export default function CycleTyresEntries() {
     </>
   );
 }
+

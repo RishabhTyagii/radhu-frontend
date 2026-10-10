@@ -98,7 +98,7 @@ export default function CreateUserPage() {
         {message && <div className={`message ${message.type}`} style={{ marginBottom: '20px' }}>{message.text}</div>}
 
         <form onSubmit={handleSubmit}>
-          <div className="card" style={{ padding: '28px', maxWidth: '1000px', margin: '0 auto' }}>
+          <div className="card" style={{ padding: '28px', maxWidth: '100%', margin: '0' }}>
             {/* Section 1: User Credentials */}
             <div style={{ borderBottom: '2px solid #e2e8f0', paddingBottom: '20px', marginBottom: '24px' }}>
               <h2 style={{ fontSize: '1.1rem', color: '#1e293b', marginBottom: '16px' }}>User Account Credentials & Role</h2>
@@ -221,3 +221,4 @@ export default function CreateUserPage() {
     </>
   );
 }
+
