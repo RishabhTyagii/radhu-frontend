@@ -350,6 +350,21 @@ export default function CycleTyresDashboard() {
           </table>
         </div>
 
+        {/* C-GRADE SUMMARY ROW (OUTSIDE TABLE) */}
+        <div style={{ marginTop: '15px', padding: '10px 15px', backgroundColor: '#fff', border: '1px solid #ccc', display: 'flex', gap: '30px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ fontWeight: 'bold', fontSize: '12px', color: '#417690', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            C-Grade Summary:
+          </span>
+          <div style={{ fontSize: '12px' }}>
+            <span style={{ color: '#666', marginRight: '6px' }}>Total C Production:</span>
+            <strong style={{ color: '#000', fontSize: '13px' }}>{totals.month_prod_rejected ?? 0} pcs</strong>
+          </div>
+          <div style={{ fontSize: '12px' }}>
+            <span style={{ color: '#666', marginRight: '6px' }}>Total C Sale:</span>
+            <strong style={{ color: '#000', fontSize: '13px' }}>{totals.month_sale_rejected ?? 0} pcs</strong>
+          </div>
+        </div>
+
         {/* MAIN DATA TABLE */}
         <div style={{ marginTop: '20px', border: '1px solid #ccc', backgroundColor: '#fff', overflowX: 'auto' }}>
           {loading ? (
@@ -405,7 +420,7 @@ export default function CycleTyresDashboard() {
                     <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.prev_closing_second ?? 0}</td>
                     <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.month_prod_first ?? 0}</td>
                     <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.month_prod_second ?? 0}</td>
-                    <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>-</td>
+                    <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.month_prod_rejected ?? 0}</td>
                     <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.month_prod_total ?? 0}</td>
                     <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.month_sale_first ?? 0}</td>
                     <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.rfm_stock ?? 0}</td>
