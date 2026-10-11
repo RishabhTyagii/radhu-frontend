@@ -387,9 +387,13 @@ export default function CycleTyresDashboard() {
             <strong style={{ color: '#dc2626', fontSize: '13px' }}>{totals.month_sale_rejected ?? 0} pcs</strong>
           </div>
           <div style={{ fontSize: '12px' }}>
+            <span style={{ color: '#666', marginRight: '6px' }}>C RFM Sale:</span>
+            <strong style={{ color: '#8b5cf6', fontSize: '13px' }}>{totals.month_sale_rfm ?? 0} pcs</strong>
+          </div>
+          <div style={{ fontSize: '12px' }}>
             <span style={{ color: '#666', marginRight: '6px' }}>Net C Balance:</span>
-            <strong style={{ color: ((totals.month_prod_rejected ?? 0) - (totals.month_sale_rejected ?? 0)) < 0 ? '#c00' : '#2a5f8a', fontSize: '13px' }}>
-              {(totals.month_prod_rejected ?? 0) - (totals.month_sale_rejected ?? 0)} pcs
+            <strong style={{ color: ((totals.month_prod_rejected ?? 0) - (totals.month_sale_rejected ?? 0) + (totals.rfm_stock ?? 0)) < 0 ? '#c00' : '#2a5f8a', fontSize: '13px' }}>
+              {(totals.month_prod_rejected ?? 0) - (totals.month_sale_rejected ?? 0) + (totals.rfm_stock ?? 0)} pcs
             </strong>
           </div>
         </div>
@@ -496,7 +500,7 @@ export default function CycleTyresDashboard() {
                   <td style={{ padding: '8px', borderRight: '1px solid #eee', textAlign: 'right', fontWeight: 'bold', color: '#16a34a' }}>{totals.month_prod_rejected ?? 0}</td>
                   <td style={{ padding: '8px', borderRight: '1px solid #eee', textAlign: 'right', fontWeight: 'bold', color: '#dc2626' }}>{totals.month_sale_rejected ?? 0}</td>
                   <td style={{ padding: '8px', borderRight: '1px solid #eee', textAlign: 'right', fontWeight: 'bold', color: '#8b5cf6' }}>{totals.rfm_stock ?? 0}</td>
-                  <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold', backgroundColor: '#eef3f6' }}>{(totals.month_prod_rejected ?? 0) - (totals.month_sale_rejected ?? 0)}</td>
+                  <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold', backgroundColor: '#eef3f6' }}>{(totals.month_prod_rejected ?? 0) - (totals.month_sale_rejected ?? 0) + (totals.rfm_stock ?? 0)}</td>
                 </tr>
               ) : (
                 cGradeItems.map((cItem) => (
@@ -519,8 +523,8 @@ export default function CycleTyresDashboard() {
                     <td style={{ padding: '8px', borderRight: '1px solid #eee', textAlign: 'right', fontWeight: 'bold', color: '#8b5cf6' }}>
                       {cItem.rfm_stock ?? 0}
                     </td>
-                    <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold', backgroundColor: '#eef3f6', color: ((totals.month_prod_rejected ?? 0) - (totals.month_sale_rejected ?? 0)) < 0 ? '#c00' : '#2a5f8a' }}>
-                      {(totals.month_prod_rejected ?? 0) - (totals.month_sale_rejected ?? 0)}
+                    <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold', backgroundColor: '#eef3f6', color: (((totals.month_prod_rejected ?? 0) - (totals.month_sale_rejected ?? 0) + (cItem.rfm_stock ?? 0)) < 0) ? '#c00' : '#2a5f8a' }}>
+                      {(totals.month_prod_rejected ?? 0) - (totals.month_sale_rejected ?? 0) + (cItem.rfm_stock ?? 0)}
                     </td>
                   </tr>
                 ))
