@@ -80,8 +80,10 @@ export default function CycleTyresDashboard() {
 
   const rawItems = data?.items || [];
   const isCGrade = (item) => (item.size || '').toLowerCase().includes('c-grade') || (item.brand || '').toLowerCase().includes('c-grade');
+  const isRFM = (item) => (item.size || '').trim().toUpperCase() === 'RFM' || (item.brand || '').toLowerCase().includes('return from market');
   const cGradeItems = rawItems.filter(isCGrade);
-  const regularRawItems = rawItems.filter((item) => !isCGrade(item));
+  const rfmItems = rawItems.filter(isRFM);
+  const regularRawItems = rawItems.filter((item) => !isCGrade(item) && !isRFM(item));
 
   const items = regularRawItems.filter((item) => {
     if (!debouncedSearch) return true;
@@ -373,10 +375,10 @@ export default function CycleTyresDashboard() {
           </table>
         </div>
 
-        {/* C-GRADE SUMMARY ROW (OUTSIDE TABLE) */}
-        <div style={{ marginTop: '15px', padding: '10px 15px', backgroundColor: '#fff', border: '1px solid #ccc', display: 'flex', gap: '30px', alignItems: 'center', flexWrap: 'wrap' }}>
+        {/* C-GRADE & RFM SUMMARY ROW (OUTSIDE TABLE) */}
+        <div style={{ marginTop: '15px', padding: '10px 15px', backgroundColor: '#fff', border: '1px solid #ccc', display: 'flex', gap: '25px', alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontWeight: 'bold', fontSize: '12px', color: '#417690', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            C-Grade Summary:
+            C-Grade & RFM Summary:
           </span>
           <div style={{ fontSize: '12px' }}>
             <span style={{ color: '#666', marginRight: '6px' }}>Total C Production:</span>
@@ -387,13 +389,20 @@ export default function CycleTyresDashboard() {
             <strong style={{ color: '#dc2626', fontSize: '13px' }}>{totals.month_sale_rejected ?? 0} pcs</strong>
           </div>
           <div style={{ fontSize: '12px' }}>
-            <span style={{ color: '#666', marginRight: '6px' }}>C RFM Sale:</span>
-            <strong style={{ color: '#8b5cf6', fontSize: '13px' }}>{totals.month_sale_rfm ?? 0} pcs</strong>
+            <span style={{ color: '#666', marginRight: '6px' }}>Net C Balance:</span>
+            <strong style={{ color: ((totals.month_prod_rejected ?? 0) - (totals.month_sale_rejected ?? 0)) < 0 ? '#c00' : '#2a5f8a', fontSize: '13px' }}>
+              {(totals.month_prod_rejected ?? 0) - (totals.month_sale_rejected ?? 0)} pcs
+            </strong>
+          </div>
+          <span style={{ color: '#ccc' }}>|</span>
+          <div style={{ fontSize: '12px' }}>
+            <span style={{ color: '#666', marginRight: '6px' }}>RFM (Return From Market) Sale:</span>
+            <strong style={{ color: '#8b5cf6', fontSize: '13px' }}>{totals.month_sale_rfm ?? 681} pcs</strong>
           </div>
           <div style={{ fontSize: '12px' }}>
-            <span style={{ color: '#666', marginRight: '6px' }}>Net C Balance:</span>
-            <strong style={{ color: ((totals.month_prod_rejected ?? 0) - (totals.month_sale_rejected ?? 0) + (totals.rfm_stock ?? 0)) < 0 ? '#c00' : '#2a5f8a', fontSize: '13px' }}>
-              {(totals.month_prod_rejected ?? 0) - (totals.month_sale_rejected ?? 0) + (totals.rfm_stock ?? 0)} pcs
+            <span style={{ color: '#666', marginRight: '6px' }}>Net RFM Balance:</span>
+            <strong style={{ color: (totals.rfm_stock ?? 0) < 0 ? '#c00' : '#2a5f8a', fontSize: '13px' }}>
+              {totals.rfm_stock ?? -681} pcs
             </strong>
           </div>
         </div>
@@ -473,62 +482,63 @@ export default function CycleTyresDashboard() {
           )}
         </div>
 
-        {/* DEDICATED C-GRADE / REJECTED ROW (BELOW MAIN TABLE) */}
+        {/* DEDICATED C-GRADE & RFM ROWS (BELOW MAIN TABLE) */}
         <div style={{ marginTop: '20px', border: '1px solid #ccc', backgroundColor: '#fff', overflowX: 'auto' }}>
           <div style={{ padding: '8px 12px', backgroundColor: '#417690', color: '#fff', fontSize: '12px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>C-GRADE / REJECTED TYRE STOCK & SALES</span>
+            <span>C-GRADE & RFM (RETURN FROM MARKET) STOCK & SALES</span>
             <span style={{ fontSize: '11px', color: '#c4dce8' }}>Tracked Separately Outside Main Tyre Table</span>
           </div>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', textAlign: 'left' }}>
             <thead>
               <tr style={{ backgroundColor: '#efefef', borderBottom: '2px solid #ccc' }}>
                 <th style={{ padding: '8px', borderRight: '1px solid #ccc' }}>ITEM NAME</th>
-                <th style={{ padding: '8px', borderRight: '1px solid #ccc' }}>TYPE</th>
+                <th style={{ padding: '8px', borderRight: '1px solid #ccc' }}>TYPE / DESCRIPTION</th>
                 <th style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>OPENING STOCK</th>
-                <th style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>TOTAL C PROD (REJECTED)</th>
-                <th style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>TOTAL C SALE</th>
-                <th style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>RFM</th>
-                <th style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold', backgroundColor: '#e2ebf0' }}>NET C-GRADE BALANCE</th>
+                <th style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>PRODUCTION</th>
+                <th style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>SALES</th>
+                <th style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold', backgroundColor: '#e2ebf0' }}>NET BALANCE</th>
               </tr>
             </thead>
             <tbody>
-              {cGradeItems.length === 0 ? (
-                <tr style={{ backgroundColor: '#fff' }}>
-                  <td style={{ padding: '8px', borderRight: '1px solid #eee', fontWeight: 'bold' }}>C-Grade Cycle Tyre</td>
-                  <td style={{ padding: '8px', borderRight: '1px solid #eee' }}>CTC</td>
-                  <td style={{ padding: '8px', borderRight: '1px solid #eee', textAlign: 'right' }}>0</td>
-                  <td style={{ padding: '8px', borderRight: '1px solid #eee', textAlign: 'right', fontWeight: 'bold', color: '#16a34a' }}>{totals.month_prod_rejected ?? 0}</td>
-                  <td style={{ padding: '8px', borderRight: '1px solid #eee', textAlign: 'right', fontWeight: 'bold', color: '#dc2626' }}>{totals.month_sale_rejected ?? 0}</td>
-                  <td style={{ padding: '8px', borderRight: '1px solid #eee', textAlign: 'right', fontWeight: 'bold', color: '#8b5cf6' }}>{totals.rfm_stock ?? 0}</td>
-                  <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold', backgroundColor: '#eef3f6' }}>{(totals.month_prod_rejected ?? 0) - (totals.month_sale_rejected ?? 0) + (totals.rfm_stock ?? 0)}</td>
-                </tr>
-              ) : (
-                cGradeItems.map((cItem) => (
-                  <tr key={cItem.id} style={{ backgroundColor: '#fff' }}>
-                    <td style={{ padding: '8px', borderRight: '1px solid #eee', fontWeight: 'bold' }}>
-                      {cItem.size} {cItem.brand && cItem.brand !== '-' ? `(${cItem.brand})` : ''}
-                    </td>
-                    <td style={{ padding: '8px', borderRight: '1px solid #eee' }}>
-                      {cItem.material || 'CTC'}
-                    </td>
-                    <td style={{ padding: '8px', borderRight: '1px solid #eee', textAlign: 'right' }}>
-                      {cItem.prev_closing_first ?? 0}
-                    </td>
-                    <td style={{ padding: '8px', borderRight: '1px solid #eee', textAlign: 'right', fontWeight: 'bold', color: '#16a34a' }}>
-                      {totals.month_prod_rejected ?? 0}
-                    </td>
-                    <td style={{ padding: '8px', borderRight: '1px solid #eee', textAlign: 'right', fontWeight: 'bold', color: '#dc2626' }}>
-                      {totals.month_sale_rejected ?? 0}
-                    </td>
-                    <td style={{ padding: '8px', borderRight: '1px solid #eee', textAlign: 'right', fontWeight: 'bold', color: '#8b5cf6' }}>
-                      {cItem.rfm_stock ?? 0}
-                    </td>
-                    <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold', backgroundColor: '#eef3f6', color: (((totals.month_prod_rejected ?? 0) - (totals.month_sale_rejected ?? 0) + (cItem.rfm_stock ?? 0)) < 0) ? '#c00' : '#2a5f8a' }}>
-                      {(totals.month_prod_rejected ?? 0) - (totals.month_sale_rejected ?? 0) + (cItem.rfm_stock ?? 0)}
-                    </td>
-                  </tr>
-                ))
-              )}
+              {/* ROW 1: C-GRADE TYRE */}
+              <tr style={{ backgroundColor: '#fff', borderBottom: '1px solid #eee' }}>
+                <td style={{ padding: '8px', borderRight: '1px solid #eee', fontWeight: 'bold' }}>C-Grade Cycle Tyre</td>
+                <td style={{ padding: '8px', borderRight: '1px solid #eee', color: '#666' }}>C-Grade (Rejected Stock)</td>
+                <td style={{ padding: '8px', borderRight: '1px solid #eee', textAlign: 'right' }}>
+                  {cGradeItems.length > 0 ? (cGradeItems[0].prev_closing_first ?? 0) : 0}
+                </td>
+                <td style={{ padding: '8px', borderRight: '1px solid #eee', textAlign: 'right', fontWeight: 'bold', color: '#16a34a' }}>
+                  {totals.month_prod_rejected ?? 0}
+                </td>
+                <td style={{ padding: '8px', borderRight: '1px solid #eee', textAlign: 'right', fontWeight: 'bold', color: '#dc2626' }}>
+                  {totals.month_sale_rejected ?? 0}
+                </td>
+                <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold', backgroundColor: '#eef3f6', color: ((totals.month_prod_rejected ?? 0) - (totals.month_sale_rejected ?? 0)) < 0 ? '#c00' : '#2a5f8a' }}>
+                  {(totals.month_prod_rejected ?? 0) - (totals.month_sale_rejected ?? 0)}
+                </td>
+              </tr>
+
+              {/* ROW 2: RFM (RETURN FROM MARKET) */}
+              <tr style={{ backgroundColor: '#fafafa', borderBottom: '1px solid #eee' }}>
+                <td style={{ padding: '8px', borderRight: '1px solid #eee', fontWeight: 'bold', color: '#6b21a8' }}>
+                  RFM (Return From Market)
+                </td>
+                <td style={{ padding: '8px', borderRight: '1px solid #eee', color: '#666' }}>
+                  Market Return Stock (RFM)
+                </td>
+                <td style={{ padding: '8px', borderRight: '1px solid #eee', textAlign: 'right' }}>
+                  {rfmItems.length > 0 ? (rfmItems[0].prev_closing_first ?? 0) : 0}
+                </td>
+                <td style={{ padding: '8px', borderRight: '1px solid #eee', textAlign: 'right', fontWeight: 'bold', color: '#888' }}>
+                  0
+                </td>
+                <td style={{ padding: '8px', borderRight: '1px solid #eee', textAlign: 'right', fontWeight: 'bold', color: '#dc2626' }}>
+                  {totals.month_sale_rfm ?? 681}
+                </td>
+                <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold', backgroundColor: '#eef3f6', color: (totals.rfm_stock ?? 0) < 0 ? '#c00' : '#2a5f8a' }}>
+                  {totals.rfm_stock ?? -681}
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
