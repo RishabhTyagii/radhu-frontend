@@ -268,6 +268,14 @@ export default function CycleTyresDashboard() {
             <div style={{ fontSize: '0.6rem', color: theme.text2 }}>Sale (1st)</div>
             <div style={{ fontWeight: 800, color: '#ef4444' }}>{item.month_sale_first ?? 0}</div>
           </div>
+          <div style={{ textAlign: 'center', padding: '6px 4px', backgroundColor: theme.bg3, borderRadius: '6px' }}>
+            <div style={{ fontSize: '0.6rem', color: theme.text2 }}>Sale (2nd)</div>
+            <div style={{ fontWeight: 800, color: '#f97316' }}>{item.month_sale_second ?? 0}</div>
+          </div>
+          <div style={{ textAlign: 'center', padding: '6px 4px', backgroundColor: theme.bg3, borderRadius: '6px' }}>
+            <div style={{ fontSize: '0.6rem', color: theme.text2 }}>Total Sale</div>
+            <div style={{ fontWeight: 800, color: '#b91c1c' }}>{item.month_sale_total ?? ((item.month_sale_first ?? 0) + (item.month_sale_second ?? 0))}</div>
+          </div>
 
           <div style={{ textAlign: 'center', padding: '6px 4px', backgroundColor: theme.bg3, borderRadius: '6px' }}>
             <div style={{ fontSize: '0.6rem', color: theme.text2 }}>RFM</div>
@@ -344,6 +352,8 @@ export default function CycleTyresDashboard() {
                 <th style={{ padding: '8px', textAlign: 'left', borderRight: '1px solid #ccc' }}>Last Month Closing (2nd)</th>
                 <th style={{ padding: '8px', textAlign: 'left', borderRight: '1px solid #ccc' }}>Month Production (Total)</th>
                 <th style={{ padding: '8px', textAlign: 'left', borderRight: '1px solid #ccc' }}>Month Sales (1st)</th>
+                <th style={{ padding: '8px', textAlign: 'left', borderRight: '1px solid #ccc' }}>Month Sales (2nd)</th>
+                <th style={{ padding: '8px', textAlign: 'left', borderRight: '1px solid #ccc', backgroundColor: '#e2ebf0' }}>Grand Total Sales</th>
                 <th style={{ padding: '8px', textAlign: 'left', borderRight: '1px solid #ccc' }}>RFM</th>
                 <th style={{ padding: '8px', textAlign: 'left' }}>Total Stock</th>
               </tr>
@@ -354,7 +364,11 @@ export default function CycleTyresDashboard() {
                 <td style={{ padding: '8px', borderRight: '1px solid #ccc', fontWeight: 'bold' }}>{totals.prev_closing_second ?? 0}</td>
                 <td style={{ padding: '8px', borderRight: '1px solid #ccc', fontWeight: 'bold' }}>{totals.month_prod_total ?? 0}</td>
                 <td style={{ padding: '8px', borderRight: '1px solid #ccc', fontWeight: 'bold' }}>{totals.month_sale_first ?? 0}</td>
-                <td style={{ padding: '8px', borderRight: '1px solid #ccc', fontWeight: 'bold' }}>{totals.rfm_stock ?? 0}</td>
+                <td style={{ padding: '8px', borderRight: '1px solid #ccc', fontWeight: 'bold' }}>{totals.month_sale_second ?? 0}</td>
+                <td style={{ padding: '8px', borderRight: '1px solid #ccc', fontWeight: 'bold', color: '#16a34a', backgroundColor: '#f0f9ff' }}>
+                  {totals.grand_total_sale ?? ((totals.month_sale_first ?? 0) + (totals.month_sale_second ?? 0) + (totals.month_sale_rejected ?? 0))}
+                </td>
+                <td style={{ padding: '8px', borderRight: '1px solid #ccc', fontWeight: 'bold' }}>{mainTotals.rfm_stock ?? 0}</td>
                 <td style={{ padding: '8px', fontWeight: 'bold', color: '#417690' }}>{totals.total_stock ?? 0}</td>
               </tr>
             </tbody>
@@ -368,11 +382,17 @@ export default function CycleTyresDashboard() {
           </span>
           <div style={{ fontSize: '12px' }}>
             <span style={{ color: '#666', marginRight: '6px' }}>Total C Production:</span>
-            <strong style={{ color: '#000', fontSize: '13px' }}>{totals.month_prod_rejected ?? 0} pcs</strong>
+            <strong style={{ color: '#16a34a', fontSize: '13px' }}>{totals.month_prod_rejected ?? 0} pcs</strong>
           </div>
           <div style={{ fontSize: '12px' }}>
             <span style={{ color: '#666', marginRight: '6px' }}>Total C Sale:</span>
-            <strong style={{ color: '#000', fontSize: '13px' }}>{totals.month_sale_rejected ?? 0} pcs</strong>
+            <strong style={{ color: '#dc2626', fontSize: '13px' }}>{totals.month_sale_rejected ?? 0} pcs</strong>
+          </div>
+          <div style={{ fontSize: '12px' }}>
+            <span style={{ color: '#666', marginRight: '6px' }}>Net C Balance:</span>
+            <strong style={{ color: ((totals.month_prod_rejected ?? 0) - (totals.month_sale_rejected ?? 0)) < 0 ? '#c00' : '#2a5f8a', fontSize: '13px' }}>
+              {(totals.month_prod_rejected ?? 0) - (totals.month_sale_rejected ?? 0)} pcs
+            </strong>
           </div>
         </div>
 
@@ -395,6 +415,8 @@ export default function CycleTyresDashboard() {
                   <th style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>PROD (C)</th>
                   <th style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right', fontWeight: 'bold' }}>PROD (TOTAL)</th>
                   <th style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>SALE (1ST)</th>
+                  <th style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>SALE (2ND)</th>
+                  <th style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right', fontWeight: 'bold' }}>TOTAL SALE</th>
                   <th style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>RFM</th>
                   <th style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>CLOSING (1ST)</th>
                   <th style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>CLOSING (2ND)</th>
@@ -402,7 +424,7 @@ export default function CycleTyresDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {items.length === 0 && <tr><td colSpan="15" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>No data available.</td></tr>}
+                {items.length === 0 && <tr><td colSpan="17" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>No data available.</td></tr>}
                 {items.map((item, idx) => (
                   <tr key={item.id} style={{ borderBottom: '1px solid #eee', backgroundColor: idx % 2 === 0 ? '#fff' : '#fcfcfc' }}>
                     <td style={{ padding: '6px 8px', borderRight: '1px solid #eee', color: '#888' }}>{idx + 1}</td>
@@ -416,6 +438,8 @@ export default function CycleTyresDashboard() {
                     <td style={{ padding: '6px 8px', borderRight: '1px solid #eee', textAlign: 'right' }}>{item.month_prod_rejected ?? 0}</td>
                     <td style={{ padding: '6px 8px', borderRight: '1px solid #eee', textAlign: 'right', fontWeight: 'bold' }}>{item.month_prod_total ?? 0}</td>
                     <td style={{ padding: '6px 8px', borderRight: '1px solid #eee', textAlign: 'right' }}>{item.month_sale_first ?? 0}</td>
+                    <td style={{ padding: '6px 8px', borderRight: '1px solid #eee', textAlign: 'right' }}>{item.month_sale_second ?? 0}</td>
+                    <td style={{ padding: '6px 8px', borderRight: '1px solid #eee', textAlign: 'right', fontWeight: 'bold' }}>{item.month_sale_total ?? ((item.month_sale_first ?? 0) + (item.month_sale_second ?? 0))}</td>
                     <td style={{ padding: '6px 8px', borderRight: '1px solid #eee', textAlign: 'right' }}>{item.rfm_stock ?? 0}</td>
                     <td style={{ padding: '6px 8px', borderRight: '1px solid #eee', textAlign: 'right', fontWeight: 'bold' }}>{item.closing_first ?? 0}</td>
                     <td style={{ padding: '6px 8px', borderRight: '1px solid #eee', textAlign: 'right' }}>{item.closing_second ?? 0}</td>
@@ -434,6 +458,8 @@ export default function CycleTyresDashboard() {
                     <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.month_prod_rejected ?? 0}</td>
                     <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.month_prod_total ?? 0}</td>
                     <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.month_sale_first ?? 0}</td>
+                    <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.month_sale_second ?? 0}</td>
+                    <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.month_sale_total ?? ((totals.month_sale_first ?? 0) + (totals.month_sale_second ?? 0))}</td>
                     <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{mainTotals.rfm_stock ?? 0}</td>
                     <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.closing_first ?? 0}</td>
                     <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.closing_second ?? 0}</td>
