@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
-import { apiGet } from '@/lib/api';
+import { apiGet, apiFetch } from '@/lib/api';
 import * as XLSX from 'xlsx';
 
 export default function CycleTyreProductionSheet() {
@@ -50,98 +50,29 @@ export default function CycleTyreProductionSheet() {
 
   const handleExportMonthly = async () => {
     setExporting(true);
-    // Always fetch full month data for export regardless of current view
     const exportMonth = month; // current selected month YYYY-MM
-    const res = await apiGet(`/cycletyres/production-sheet/?month=${exportMonth}`);
-    setExporting(false);
-
-    if (!res || !res.data || res.data.length === 0) {
-      alert('Is mahine ka koi data nahi mila!');
-      return;
+    try {
+      const res = await apiFetch(`/cycletyres/export-production-sheet/?month=${exportMonth}`);
+      if (!res || !res.ok) {
+        alert('Export karne mein error aaya ya data nahi mila.');
+        setExporting(false);
+        return;
+      }
+      const blob = await res.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `DATE_WISE_PRODUCTION_${exportMonth}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (err) {
+      console.error('Export error:', err);
+      alert('Export failed. Kripya dobara try karein.');
+    } finally {
+      setExporting(false);
     }
-
-    const itemsList = res.data;
-
-    // Collect all unique dates in this month that have entries
-    let uniqueDates = new Set();
-    itemsList.forEach(item => {
-      Object.keys(item.dates_data || {}).forEach(d => uniqueDates.add(d));
-    });
-    let sortedDates = Array.from(uniqueDates).sort();
-
-    if (sortedDates.length === 0) {
-      alert('Is mahine koi production entries nahi hain!');
-      return;
-    }
-
-    // Format dates as DD.MM.YYYY for display
-    const formatDate = (d) => {
-      const parts = d.split('-');
-      return `${parts[2]}.${parts[1]}.${parts[0]}`;
-    };
-
-    const rows = [];
-
-    // Row 1: Merged date headers
-    const header1 = ['ITEM NAME', 'PLY & BOX TYPE'];
-    sortedDates.forEach(d => {
-      header1.push(formatDate(d), '', '');
-    });
-    header1.push('TOTAL A', 'TOTAL B', 'TOTAL C', 'GRAND TOTAL');
-    rows.push(header1);
-
-    // Row 2: A B C sub-headers
-    const header2 = ['', ''];
-    sortedDates.forEach(() => {
-      header2.push('A (1ST)', 'B (2ND)', 'C (REJ)');
-    });
-    header2.push('', '', '', '');
-    rows.push(header2);
-
-    // Data rows - one row per item
-    let grandTotA = 0, grandTotB = 0, grandTotC = 0;
-    itemsList.forEach(item => {
-      const row = [
-        item.tyre_name || '',
-        `${item.box_type || ''} ${item.material || ''}`.trim(),
-      ];
-
-      let totA = 0, totB = 0, totC = 0;
-      sortedDates.forEach(d => {
-        if (item.dates_data && item.dates_data[d]) {
-          const day = item.dates_data[d];
-          row.push(day.a || 0, day.b || 0, day.c || 0);
-          totA += day.a || 0;
-          totB += day.b || 0;
-          totC += day.c || 0;
-        } else {
-          row.push('', '', '');
-        }
-      });
-
-      row.push(totA, totB, totC, totA + totB + totC);
-      grandTotA += totA; grandTotB += totB; grandTotC += totC;
-      rows.push(row);
-    });
-
-    // Grand Total row
-    const totRow = ['GRAND TOTAL', ''];
-    sortedDates.forEach(() => { totRow.push('', '', ''); });
-    totRow.push(grandTotA, grandTotB, grandTotC, grandTotA + grandTotB + grandTotC);
-    rows.push(totRow);
-
-    const worksheet = XLSX.utils.aoa_to_sheet(rows);
-
-    // Column widths
-    worksheet['!cols'] = [
-      { wch: 30 }, { wch: 18 },
-      ...sortedDates.flatMap(() => [{ wch: 8 }, { wch: 8 }, { wch: 8 }]),
-      { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 12 },
-    ];
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, `Production ${exportMonth}`);
-    XLSX.writeFile(workbook, `Cycle_Tyre_Production_${exportMonth}.xlsx`);
   };
 
   const changeMonth = (months) => {
@@ -293,7 +224,7 @@ export default function CycleTyreProductionSheet() {
                 onMouseEnter={(e) => { if (!exporting) e.currentTarget.style.transform = 'scale(1.05)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
               >
-                {exporting ? '⏳ Exporting...' : '📅 Export Full Month'}
+                {exporting ? '⏳ Generating Excel...' : '📊 Export Date-Wise Excel'}
               </button>
             </div>
 
