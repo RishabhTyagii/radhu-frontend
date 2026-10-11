@@ -79,7 +79,11 @@ export default function CycleTyresDashboard() {
   };
 
   const rawItems = data?.items || [];
-  const items = rawItems.filter((item) => {
+  const isCGrade = (item) => (item.size || '').toLowerCase().includes('c-grade') || (item.brand || '').toLowerCase().includes('c-grade');
+  const cGradeItems = rawItems.filter(isCGrade);
+  const regularRawItems = rawItems.filter((item) => !isCGrade(item));
+
+  const items = regularRawItems.filter((item) => {
     if (!debouncedSearch) return true;
     const term = debouncedSearch.toLowerCase();
     return (
@@ -91,6 +95,13 @@ export default function CycleTyresDashboard() {
   });
 
   const totals = data?.totals || {};
+  const cRfm = cGradeItems.reduce((acc, it) => acc + (it.rfm_stock || 0), 0);
+  const cTotal = cGradeItems.reduce((acc, it) => acc + (it.total_stock || 0), 0);
+  const mainTotals = {
+    ...totals,
+    rfm_stock: (totals.rfm_stock ?? 0) - cRfm,
+    total_stock: (totals.total_stock ?? 0) - cTotal,
+  };
   const availableMonths = data?.available_months || [
     { label: 'August 2026', value: '2026-08' },
     { label: 'July 2026', value: '2026-07' },
@@ -423,15 +434,70 @@ export default function CycleTyresDashboard() {
                     <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.month_prod_rejected ?? 0}</td>
                     <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.month_prod_total ?? 0}</td>
                     <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.month_sale_first ?? 0}</td>
-                    <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.rfm_stock ?? 0}</td>
+                    <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{mainTotals.rfm_stock ?? 0}</td>
                     <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.closing_first ?? 0}</td>
                     <td style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>{totals.closing_second ?? 0}</td>
-                    <td style={{ padding: '8px', textAlign: 'right' }}>{totals.total_stock ?? 0}</td>
+                    <td style={{ padding: '8px', textAlign: 'right' }}>{mainTotals.total_stock ?? 0}</td>
                   </tr>
                 </tfoot>
               )}
             </table>
           )}
+        </div>
+
+        {/* DEDICATED C-GRADE / REJECTED ROW (BELOW MAIN TABLE) */}
+        <div style={{ marginTop: '20px', border: '1px solid #ccc', backgroundColor: '#fff', overflowX: 'auto' }}>
+          <div style={{ padding: '8px 12px', backgroundColor: '#417690', color: '#fff', fontSize: '12px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>C-GRADE / REJECTED TYRE STOCK & SALES</span>
+            <span style={{ fontSize: '11px', color: '#c4dce8' }}>Tracked Separately Outside Main Tyre Table</span>
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', textAlign: 'left' }}>
+            <thead>
+              <tr style={{ backgroundColor: '#efefef', borderBottom: '2px solid #ccc' }}>
+                <th style={{ padding: '8px', borderRight: '1px solid #ccc' }}>ITEM NAME</th>
+                <th style={{ padding: '8px', borderRight: '1px solid #ccc' }}>TYPE</th>
+                <th style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>OPENING STOCK</th>
+                <th style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>TOTAL C PROD (REJECTED)</th>
+                <th style={{ padding: '8px', borderRight: '1px solid #ccc', textAlign: 'right' }}>TOTAL C SALE</th>
+                <th style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold', backgroundColor: '#e2ebf0' }}>NET C-GRADE BALANCE</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cGradeItems.length === 0 ? (
+                <tr style={{ backgroundColor: '#fff' }}>
+                  <td style={{ padding: '8px', borderRight: '1px solid #eee', fontWeight: 'bold' }}>C-Grade Cycle Tyre</td>
+                  <td style={{ padding: '8px', borderRight: '1px solid #eee' }}>CTC</td>
+                  <td style={{ padding: '8px', borderRight: '1px solid #eee', textAlign: 'right' }}>0</td>
+                  <td style={{ padding: '8px', borderRight: '1px solid #eee', textAlign: 'right', fontWeight: 'bold', color: '#16a34a' }}>{totals.month_prod_rejected ?? 0}</td>
+                  <td style={{ padding: '8px', borderRight: '1px solid #eee', textAlign: 'right', fontWeight: 'bold', color: '#dc2626' }}>{totals.month_sale_rejected ?? 0}</td>
+                  <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold', backgroundColor: '#eef3f6' }}>{(totals.month_prod_rejected ?? 0) - (totals.month_sale_rejected ?? 0)}</td>
+                </tr>
+              ) : (
+                cGradeItems.map((cItem) => (
+                  <tr key={cItem.id} style={{ backgroundColor: '#fff' }}>
+                    <td style={{ padding: '8px', borderRight: '1px solid #eee', fontWeight: 'bold' }}>
+                      {cItem.size} {cItem.brand && cItem.brand !== '-' ? `(${cItem.brand})` : ''}
+                    </td>
+                    <td style={{ padding: '8px', borderRight: '1px solid #eee' }}>
+                      {cItem.material || 'CTC'}
+                    </td>
+                    <td style={{ padding: '8px', borderRight: '1px solid #eee', textAlign: 'right' }}>
+                      {cItem.prev_closing_first ?? 0}
+                    </td>
+                    <td style={{ padding: '8px', borderRight: '1px solid #eee', textAlign: 'right', fontWeight: 'bold', color: '#16a34a' }}>
+                      {totals.month_prod_rejected ?? 0}
+                    </td>
+                    <td style={{ padding: '8px', borderRight: '1px solid #eee', textAlign: 'right', fontWeight: 'bold', color: '#dc2626' }}>
+                      {totals.month_sale_rejected ?? 0}
+                    </td>
+                    <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold', backgroundColor: '#eef3f6', color: ((totals.month_prod_rejected ?? 0) - (totals.month_sale_rejected ?? 0)) < 0 ? '#c00' : '#2a5f8a' }}>
+                      {(totals.month_prod_rejected ?? 0) - (totals.month_sale_rejected ?? 0)}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
