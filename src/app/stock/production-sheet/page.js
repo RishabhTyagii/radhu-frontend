@@ -124,7 +124,7 @@ export default function ProductionSheet() {
                     <th>2nd Grade</th>
                     <th>3rd Grade</th>
                     <th>Lose Tyre</th>
-                    {viewMode === 'date' && <th>RFM Adj</th>}
+                    <th>RFM Adj</th>
                     <th>Packing</th>
                   </tr>
                 </thead>
@@ -139,13 +139,13 @@ export default function ProductionSheet() {
                       <td>{item.second_grade}</td>
                       <td>{item.third_grade}</td>
                       <td>{item.lose_tyre}</td>
-                      {viewMode === 'date' && <td>{item.rfm_adjustment || 0}</td>}
+                      <td>{item.rfm_adjustment || 0}</td>
                       <td style={{ fontWeight: 'bold', color: 'var(--primary)' }}>{item.packing}</td>
                     </tr>
                   ))}
                   {!items.length && (
                     <tr>
-                      <td colSpan={viewMode === 'date' ? 10 : 9} style={{ textAlign: 'center', color: '#64748b' }}>No production entries found</td>
+                      <td colSpan={viewMode === 'date' ? 11 : 10} style={{ textAlign: 'center', color: '#64748b' }}>No production entries found</td>
                     </tr>
                   )}
                 </tbody>
@@ -159,7 +159,7 @@ export default function ProductionSheet() {
                       <td>{data.totals.second_grade}</td>
                       <td>{data.totals.third_grade}</td>
                       <td>{data.totals.lose_tyre}</td>
-                      {viewMode === 'date' && <td>{data.totals.rfm_adjustment}</td>}
+                      <td>{data.totals.rfm_adjustment || 0}</td>
                       <td style={{ color: 'var(--primary)' }}>{data.totals.packing}</td>
                     </tr>
                   </tfoot>
