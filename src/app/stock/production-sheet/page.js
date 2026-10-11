@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
-import { apiGet } from '@/lib/api';
+import { apiGet, apiFetch } from '@/lib/api';
 
 export default function ProductionSheet() {
   const [viewMode, setViewMode] = useState('date'); // 'date' or 'month'
@@ -14,6 +14,7 @@ export default function ProductionSheet() {
   const [page, setPage] = useState(1);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -32,9 +33,32 @@ export default function ProductionSheet() {
     setLoading(false);
   }
 
-  const handleExport = () => {
-    const url = `http://localhost:8000/api/stock/production-sheet/export/?${viewMode === 'date' ? `date=${date}` : `month=${month}`}`;
-    window.open(url, '_blank');
+  const handleExport = async () => {
+    setExporting(true);
+    const exportParam = viewMode === 'date' ? `date=${date}` : `month=${month}`;
+    const filenameMonth = viewMode === 'date' ? date.slice(0, 7) : month;
+    try {
+      const res = await apiFetch(`/stock/export-production-sheet/?${exportParam}`);
+      if (!res || !res.ok) {
+        alert('Export karne mein error aaya ya data nahi mila.');
+        setExporting(false);
+        return;
+      }
+      const blob = await res.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `AUTO_DATE_WISE_PRODUCTION_${filenameMonth}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (err) {
+      console.error('Export error:', err);
+      alert('Export failed. Kripya dobara try karein.');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const changeDate = (days) => {
@@ -78,8 +102,8 @@ export default function ProductionSheet() {
               </div>
             )}
             
-            <button className="btn btn-success" onClick={handleExport}>
-              <i className="fas fa-file-excel"></i> Export
+            <button className="btn btn-success" onClick={handleExport} disabled={exporting}>
+              <i className="fas fa-file-excel"></i> {exporting ? 'Exporting...' : 'Export Date-Wise Excel'}
             </button>
           </div>
         </div>
