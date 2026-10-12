@@ -13,6 +13,7 @@ export default function AutoTyreDashboard() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [isCustomRange, setIsCustomRange] = useState(false);
+  const [showNavbar, setShowNavbar] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -142,17 +143,69 @@ export default function AutoTyreDashboard() {
 
   return (
     <div style={{ backgroundColor: '#f8fafc', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <Navbar />
+      {/* ── AUTO-HIDE HOVER NAVBAR (HOVER TOP TO REVEAL) ── */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '16px',
+          zIndex: 9999,
+          cursor: 'pointer',
+        }}
+        onMouseEnter={() => setShowNavbar(true)}
+      />
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          zIndex: 9998,
+          transform: showNavbar ? 'translateY(0)' : 'translateY(-100%)',
+          transition: 'transform 0.22s cubic-bezier(0.4, 0, 0.2, 1)',
+          boxShadow: showNavbar ? '0 10px 25px -5px rgba(0, 0, 0, 0.35)' : 'none',
+        }}
+        onMouseLeave={() => setShowNavbar(false)}
+      >
+        <Navbar />
+      </div>
 
-      <main style={{ flex: 1, padding: '24px 28px', maxWidth: '100%', margin: 0 }}>
+      {/* Subtle indicator bar for navbar hover */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 2,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 9997,
+          pointerEvents: 'none',
+          backgroundColor: '#0f172a',
+          color: '#38bdf8',
+          padding: '2px 12px',
+          borderRadius: '12px',
+          fontSize: '0.65rem',
+          fontWeight: 700,
+          letterSpacing: '0.04em',
+          opacity: showNavbar ? 0 : 0.75,
+          transition: 'opacity 0.2s',
+          border: '1px solid #1e293b',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+        }}
+      >
+        <i className="fas fa-chevron-down" style={{ marginRight: 5, fontSize: '0.6rem' }} /> Navigation
+      </div>
+
+      <main style={{ flex: 1, padding: '24px 28px', maxWidth: '100%', margin: 0, boxSizing: 'border-box' }}>
         {/* ── TOP HEADER ── */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: 34, height: 34, borderRadius: 8, background: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <i className="fas fa-car-side" style={{ color: '#fff', fontSize: 16 }} />
+              <div style={{ width: 36, height: 36, borderRadius: 8, background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #334155' }}>
+                <i className="fas fa-car-side" style={{ color: '#38bdf8', fontSize: 16 }} />
               </div>
-              <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>
+              <h1 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>
                 Auto Tyre Dashboard
               </h1>
             </div>
@@ -174,7 +227,7 @@ export default function AutoTyreDashboard() {
                 backgroundColor: '#ffffff',
                 color: '#334155',
                 fontSize: '0.82rem',
-                fontWeight: 600,
+                fontWeight: 700,
                 cursor: 'pointer',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                 transition: 'all 0.15s ease',
@@ -193,43 +246,43 @@ export default function AutoTyreDashboard() {
                 padding: '8px 16px',
                 borderRadius: '8px',
                 border: 'none',
-                backgroundColor: '#2563eb',
-                color: '#ffffff',
+                backgroundColor: '#0f172a',
+                color: '#38bdf8',
                 fontSize: '0.82rem',
-                fontWeight: 600,
+                fontWeight: 700,
                 cursor: 'pointer',
-                boxShadow: '0 2px 4px rgba(37,99,235,0.2)',
+                boxShadow: '0 2px 6px rgba(15,23,42,0.25)',
                 transition: 'background-color 0.15s',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#1d4ed8'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#2563eb'; }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#1e293b'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#0f172a'; }}
             >
               <i className="fas fa-sync-alt" /> Refresh
             </button>
           </div>
         </div>
 
-        {/* ── KPI METRICS CARDS ── */}
+        {/* ── KPI METRICS CARDS (NAVBAR PALETTE) ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '16px', marginBottom: '20px' }}>
           {/* Card 1: Total Closing Stock */}
-          <div style={{ backgroundColor: '#ffffff', borderRadius: 12, padding: '16px 20px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div style={{ backgroundColor: '#ffffff', borderRadius: 12, padding: '16px 20px', border: '1px solid #e2e8f0', borderTop: '4px solid #0f172a', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Total Closing Stock
             </div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0f172a', marginTop: '6px' }}>
+            <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#0f172a', marginTop: '6px' }}>
               {(stats.total_closing || filteredTotals.total_closing || 0).toLocaleString()} <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#94a3b8' }}>pcs</span>
             </div>
-            <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '4px', fontWeight: 600 }}>
+            <div style={{ fontSize: '0.75rem', color: '#059669', marginTop: '4px', fontWeight: 700 }}>
               All Grades Combined
             </div>
           </div>
 
           {/* Card 2: Month Production */}
-          <div style={{ backgroundColor: '#ffffff', borderRadius: 12, padding: '16px 20px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div style={{ backgroundColor: '#ffffff', borderRadius: 12, padding: '16px 20px', border: '1px solid #e2e8f0', borderTop: '4px solid #059669', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Month Production
             </div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#059669', marginTop: '6px' }}>
+            <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#059669', marginTop: '6px' }}>
               {(filteredTotals.month_prod_total || stats.month_prod_total || 0).toLocaleString()} <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#94a3b8' }}>pcs</span>
             </div>
             <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
@@ -238,11 +291,11 @@ export default function AutoTyreDashboard() {
           </div>
 
           {/* Card 3: Month Sales / Dispatch */}
-          <div style={{ backgroundColor: '#ffffff', borderRadius: 12, padding: '16px 20px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div style={{ backgroundColor: '#ffffff', borderRadius: 12, padding: '16px 20px', border: '1px solid #e2e8f0', borderTop: '4px solid #2563eb', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Month Total Sales
             </div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#2563eb', marginTop: '6px' }}>
+            <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#2563eb', marginTop: '6px' }}>
               {monthSalesTotal.toLocaleString()} <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#94a3b8' }}>pcs</span>
             </div>
             <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
@@ -251,14 +304,14 @@ export default function AutoTyreDashboard() {
           </div>
 
           {/* Card 4: Today Activity */}
-          <div style={{ backgroundColor: '#ffffff', borderRadius: 12, padding: '16px 20px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div style={{ backgroundColor: '#ffffff', borderRadius: 12, padding: '16px 20px', border: '1px solid #e2e8f0', borderTop: '4px solid #38bdf8', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Today Activity
             </div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', marginTop: '6px' }}>
-              {(stats.today_production || 0).toLocaleString()} <span style={{ fontSize: '0.8rem', color: '#059669', fontWeight: 700 }}>Prod</span>
+            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', marginTop: '6px' }}>
+              {(stats.today_production || 0).toLocaleString()} <span style={{ fontSize: '0.78rem', color: '#059669', fontWeight: 800 }}>Prod</span>
               <span style={{ color: '#cbd5e1', margin: '0 8px' }}>/</span>
-              {(stats.today_dispatch || 0).toLocaleString()} <span style={{ fontSize: '0.8rem', color: '#2563eb', fontWeight: 700 }}>Disp</span>
+              {(stats.today_dispatch || 0).toLocaleString()} <span style={{ fontSize: '0.78rem', color: '#2563eb', fontWeight: 800 }}>Disp</span>
             </div>
             <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
               Daily floor output
@@ -266,11 +319,11 @@ export default function AutoTyreDashboard() {
           </div>
 
           {/* Card 5: Total RFM */}
-          <div style={{ backgroundColor: '#ffffff', borderRadius: 12, padding: '16px 20px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div style={{ backgroundColor: '#ffffff', borderRadius: 12, padding: '16px 20px', border: '1px solid #e2e8f0', borderTop: '4px solid #7c3aed', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Total RFM Stock
             </div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#7c3aed', marginTop: '6px' }}>
+            <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#7c3aed', marginTop: '6px' }}>
               {(filteredTotals.rfm_ok_tyre || 0).toLocaleString()} <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#94a3b8' }}>pcs</span>
             </div>
             <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
@@ -358,7 +411,7 @@ export default function AutoTyreDashboard() {
                 padding: '7px 14px',
                 borderRadius: 8,
                 border: 'none',
-                backgroundColor: '#3b82f6',
+                backgroundColor: '#2563eb',
                 color: '#fff',
                 fontSize: '0.8rem',
                 fontWeight: 700,
@@ -387,13 +440,13 @@ export default function AutoTyreDashboard() {
           </div>
         </div>
 
-        {/* ── MAIN DATA TABLE ── */}
+        {/* ── MAIN DATA TABLE (NAVBAR COHESIVE DARK THEME WITH CRISP WHITE TEXT) ── */}
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: 12,
-          border: '1px solid #e2e8f0',
+          border: '1px solid #cbd5e1',
           overflowX: 'auto',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+          boxShadow: '0 4px 16px rgba(15,23,42,0.06)',
         }}>
           {loading ? (
             <div style={{ padding: '60px', textAlign: 'center', color: '#64748b' }}>
@@ -404,35 +457,56 @@ export default function AutoTyreDashboard() {
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem', textAlign: 'left', minWidth: '1200px' }}>
               <thead>
-                <tr style={{ backgroundColor: '#1e293b', color: '#f8fafc', borderBottom: '1px solid #0f172a' }}>
-                  <th style={{ padding: '10px 8px', borderRight: '1px solid #334155' }} rowSpan="2">#</th>
-                  <th style={{ padding: '10px 12px', borderRight: '1px solid #334155' }} rowSpan="2">TYRE</th>
-                  <th style={{ padding: '10px 10px', borderRight: '1px solid #334155' }} rowSpan="2">PATTERN</th>
-                  <th style={{ padding: '10px 10px', borderRight: '1px solid #334155' }} rowSpan="2">TYPE</th>
-                  <th style={{ padding: '8px', borderRight: '1px solid #334155', textAlign: 'center' }} colSpan="3">LAST CLOSING</th>
-                  <th style={{ padding: '8px', borderRight: '1px solid #334155', textAlign: 'center', backgroundColor: '#0f766e' }} colSpan="4">PRODUCTION</th>
-                  <th style={{ padding: '8px', borderRight: '1px solid #334155', textAlign: 'center', backgroundColor: '#1d4ed8' }} colSpan="3">SALE / DISPATCH</th>
-                  <th style={{ padding: '10px 10px', borderRight: '1px solid #334155', textAlign: 'center', backgroundColor: '#6d28d9' }} rowSpan="2">RFM</th>
-                  <th style={{ padding: '8px', borderRight: '1px solid #334155', textAlign: 'center', backgroundColor: '#0369a1' }} colSpan="3">CLOSING STOCK</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'center', backgroundColor: '#1e3a8a' }} rowSpan="2">TOTAL</th>
+                {/* TIER 1 HEADER: Unified Dark Slate Navy (#0f172a) with Crisp White (#ffffff) text */}
+                <tr style={{ backgroundColor: '#0f172a', color: '#ffffff', borderBottom: '1px solid #1e293b' }}>
+                  <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800, width: 40 }} rowSpan="2">#</th>
+                  <th style={{ padding: '12px 14px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800 }} rowSpan="2">TYRE</th>
+                  <th style={{ padding: '12px 12px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800 }} rowSpan="2">PATTERN</th>
+                  <th style={{ padding: '12px 12px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800 }} rowSpan="2">TYPE</th>
+                  
+                  {/* Category Headers with Crisp White text */}
+                  <th style={{ padding: '10px 8px', borderRight: '1px solid #1e293b', textAlign: 'center', color: '#ffffff', fontWeight: 800, letterSpacing: '0.04em' }} colSpan="3">
+                    LAST CLOSING
+                  </th>
+                  <th style={{ padding: '10px 8px', borderRight: '1px solid #1e293b', textAlign: 'center', color: '#ffffff', fontWeight: 800, letterSpacing: '0.04em', background: '#093a3e' }} colSpan="4">
+                    <span style={{ color: '#5eead4', marginRight: 6 }}>●</span>PRODUCTION
+                  </th>
+                  <th style={{ padding: '10px 8px', borderRight: '1px solid #1e293b', textAlign: 'center', color: '#ffffff', fontWeight: 800, letterSpacing: '0.04em', background: '#1e3a8a' }} colSpan="3">
+                    <span style={{ color: '#93c5fd', marginRight: 6 }}>●</span>SALE / DISPATCH
+                  </th>
+                  <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'center', color: '#ffffff', fontWeight: 800, background: '#4c1d95', letterSpacing: '0.04em' }} rowSpan="2">
+                    RFM
+                  </th>
+                  <th style={{ padding: '10px 8px', borderRight: '1px solid #1e293b', textAlign: 'center', color: '#ffffff', fontWeight: 800, letterSpacing: '0.04em', background: '#0c4a6e' }} colSpan="3">
+                    <span style={{ color: '#7dd3fc', marginRight: 6 }}>●</span>CLOSING STOCK
+                  </th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center', color: '#38bdf8', fontWeight: 900, background: '#0284c7', letterSpacing: '0.05em' }} rowSpan="2">
+                    TOTAL
+                  </th>
                 </tr>
-                <tr style={{ backgroundColor: '#334155', color: '#cbd5e1' }}>
-                  <th style={{ padding: '6px 8px', borderRight: '1px solid #475569', textAlign: 'right' }}>1ST</th>
-                  <th style={{ padding: '6px 8px', borderRight: '1px solid #475569', textAlign: 'right' }}>2ND</th>
-                  <th style={{ padding: '6px 8px', borderRight: '1px solid #475569', textAlign: 'right' }}>3RD</th>
-                  
-                  <th style={{ padding: '6px 8px', borderRight: '1px solid #475569', textAlign: 'right' }}>1ST</th>
-                  <th style={{ padding: '6px 8px', borderRight: '1px solid #475569', textAlign: 'right' }}>2ND</th>
-                  <th style={{ padding: '6px 8px', borderRight: '1px solid #475569', textAlign: 'right' }}>3RD</th>
-                  <th style={{ padding: '6px 8px', borderRight: '1px solid #475569', textAlign: 'right', fontWeight: 800, color: '#6ee7b7' }}>TOT</th>
 
-                  <th style={{ padding: '6px 8px', borderRight: '1px solid #475569', textAlign: 'right' }}>1ST</th>
-                  <th style={{ padding: '6px 8px', borderRight: '1px solid #475569', textAlign: 'right' }}>2ND</th>
-                  <th style={{ padding: '6px 8px', borderRight: '1px solid #475569', textAlign: 'right' }}>3RD</th>
+                {/* TIER 2 SUB-HEADER: Crisp Slate (#1e293b) with 100% Crisp White text */}
+                <tr style={{ backgroundColor: '#1e293b', color: '#ffffff' }}>
+                  {/* Last Closing Sub */}
+                  <th style={{ padding: '7px 8px', borderRight: '1px solid #334155', textAlign: 'right', color: '#ffffff', fontWeight: 700 }}>1ST</th>
+                  <th style={{ padding: '7px 8px', borderRight: '1px solid #334155', textAlign: 'right', color: '#ffffff', fontWeight: 700 }}>2ND</th>
+                  <th style={{ padding: '7px 8px', borderRight: '1px solid #334155', textAlign: 'right', color: '#ffffff', fontWeight: 700 }}>3RD</th>
                   
-                  <th style={{ padding: '6px 8px', borderRight: '1px solid #475569', textAlign: 'right' }}>1ST</th>
-                  <th style={{ padding: '6px 8px', borderRight: '1px solid #475569', textAlign: 'right' }}>2ND</th>
-                  <th style={{ padding: '6px 8px', borderRight: '1px solid #475569', textAlign: 'right' }}>3RD</th>
+                  {/* Production Sub */}
+                  <th style={{ padding: '7px 8px', borderRight: '1px solid #334155', textAlign: 'right', color: '#ffffff', fontWeight: 700, background: '#062d31' }}>1ST</th>
+                  <th style={{ padding: '7px 8px', borderRight: '1px solid #334155', textAlign: 'right', color: '#ffffff', fontWeight: 700, background: '#062d31' }}>2ND</th>
+                  <th style={{ padding: '7px 8px', borderRight: '1px solid #334155', textAlign: 'right', color: '#ffffff', fontWeight: 700, background: '#062d31' }}>3RD</th>
+                  <th style={{ padding: '7px 8px', borderRight: '1px solid #334155', textAlign: 'right', color: '#5eead4', fontWeight: 900, background: '#042225' }}>TOT</th>
+
+                  {/* Sale Sub */}
+                  <th style={{ padding: '7px 8px', borderRight: '1px solid #334155', textAlign: 'right', color: '#ffffff', fontWeight: 700, background: '#172554' }}>1ST</th>
+                  <th style={{ padding: '7px 8px', borderRight: '1px solid #334155', textAlign: 'right', color: '#ffffff', fontWeight: 700, background: '#172554' }}>2ND</th>
+                  <th style={{ padding: '7px 8px', borderRight: '1px solid #334155', textAlign: 'right', color: '#ffffff', fontWeight: 700, background: '#172554' }}>3RD</th>
+                  
+                  {/* Closing Sub */}
+                  <th style={{ padding: '7px 8px', borderRight: '1px solid #334155', textAlign: 'right', color: '#ffffff', fontWeight: 700, background: '#082f49' }}>1ST</th>
+                  <th style={{ padding: '7px 8px', borderRight: '1px solid #334155', textAlign: 'right', color: '#ffffff', fontWeight: 700, background: '#082f49' }}>2ND</th>
+                  <th style={{ padding: '7px 8px', borderRight: '1px solid #334155', textAlign: 'right', color: '#ffffff', fontWeight: 700, background: '#082f49' }}>3RD</th>
                 </tr>
               </thead>
               <tbody>
@@ -442,45 +516,45 @@ export default function AutoTyreDashboard() {
                   return (
                     <tr
                       key={item.id}
-                      style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: rowBg, transition: 'background-color 0.15s' }}
-                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; }}
+                      style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: rowBg, transition: 'background-color 0.12s' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
                       onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = rowBg; }}
                     >
-                      <td style={{ padding: '8px 10px', borderRight: '1px solid #f1f5f9', color: '#94a3b8', fontSize: '0.72rem' }}>
+                      <td style={{ padding: '9px 10px', borderRight: '1px solid #f1f5f9', color: '#94a3b8', fontSize: '0.72rem', fontWeight: 600 }}>
                         {isExp ? '↳' : idx + 1}
                       </td>
-                      <td style={{ padding: '8px 12px', borderRight: '1px solid #f1f5f9', fontWeight: 700, color: '#0f172a' }}>
+                      <td style={{ padding: '9px 14px', borderRight: '1px solid #f1f5f9', fontWeight: 800, color: '#0f172a' }}>
                         {item.tyre}
                       </td>
-                      <td style={{ padding: '8px 10px', borderRight: '1px solid #f1f5f9', color: '#475569' }}>{item.pattern}</td>
-                      <td style={{ padding: '8px 10px', borderRight: '1px solid #f1f5f9', color: '#64748b' }}>{item.type}</td>
+                      <td style={{ padding: '9px 12px', borderRight: '1px solid #f1f5f9', color: '#334155', fontWeight: 500 }}>{item.pattern}</td>
+                      <td style={{ padding: '9px 12px', borderRight: '1px solid #f1f5f9', color: '#475569', fontWeight: 500 }}>{item.type}</td>
                       
                       {/* LAST CLOSING */}
-                      <td style={{ padding: '8px 10px', borderRight: '1px solid #f1f5f9', textAlign: 'right', color: '#334155' }}>{isExp ? '-' : item.prev_closing_first}</td>
-                      <td style={{ padding: '8px 10px', borderRight: '1px solid #f1f5f9', textAlign: 'right', color: '#64748b' }}>{isExp ? '-' : item.prev_closing_second}</td>
-                      <td style={{ padding: '8px 10px', borderRight: '1px solid #f1f5f9', textAlign: 'right', color: '#94a3b8' }}>{isExp ? '-' : item.prev_closing_third}</td>
+                      <td style={{ padding: '9px 10px', borderRight: '1px solid #f1f5f9', textAlign: 'right', color: '#334155' }}>{isExp ? '-' : item.prev_closing_first}</td>
+                      <td style={{ padding: '9px 10px', borderRight: '1px solid #f1f5f9', textAlign: 'right', color: '#64748b' }}>{isExp ? '-' : item.prev_closing_second}</td>
+                      <td style={{ padding: '9px 10px', borderRight: '1px solid #f1f5f9', textAlign: 'right', color: '#94a3b8' }}>{isExp ? '-' : item.prev_closing_third}</td>
                       
                       {/* PRODUCTION */}
-                      <td style={{ padding: '8px 10px', borderRight: '1px solid #f1f5f9', textAlign: 'right', color: '#059669', fontWeight: 600 }}>{isExp ? '-' : item.month_prod_first}</td>
-                      <td style={{ padding: '8px 10px', borderRight: '1px solid #f1f5f9', textAlign: 'right', color: '#10b981' }}>{isExp ? '-' : item.month_prod_second}</td>
-                      <td style={{ padding: '8px 10px', borderRight: '1px solid #f1f5f9', textAlign: 'right', color: '#64748b' }}>{isExp ? '-' : item.month_prod_third}</td>
-                      <td style={{ padding: '8px 10px', borderRight: '1px solid #f1f5f9', textAlign: 'right', fontWeight: 800, color: '#047857', backgroundColor: '#f0fdf4' }}>{isExp ? '-' : item.month_prod_total}</td>
+                      <td style={{ padding: '9px 10px', borderRight: '1px solid #f1f5f9', textAlign: 'right', color: '#047857', fontWeight: 600 }}>{isExp ? '-' : item.month_prod_first}</td>
+                      <td style={{ padding: '9px 10px', borderRight: '1px solid #f1f5f9', textAlign: 'right', color: '#059669' }}>{isExp ? '-' : item.month_prod_second}</td>
+                      <td style={{ padding: '9px 10px', borderRight: '1px solid #f1f5f9', textAlign: 'right', color: '#64748b' }}>{isExp ? '-' : item.month_prod_third}</td>
+                      <td style={{ padding: '9px 10px', borderRight: '1px solid #f1f5f9', textAlign: 'right', fontWeight: 800, color: '#065f46', backgroundColor: '#ecfdf5' }}>{isExp ? '-' : item.month_prod_total}</td>
                       
                       {/* SALE / DISPATCH */}
-                      <td style={{ padding: '8px 10px', borderRight: '1px solid #f1f5f9', textAlign: 'right', color: '#2563eb', fontWeight: 600 }}>{item.month_sale_first}</td>
-                      <td style={{ padding: '8px 10px', borderRight: '1px solid #f1f5f9', textAlign: 'right', color: '#3b82f6' }}>{isExp ? '-' : item.month_sale_second}</td>
-                      <td style={{ padding: '8px 10px', borderRight: '1px solid #f1f5f9', textAlign: 'right', color: '#64748b' }}>{isExp ? '-' : item.month_sale_third}</td>
+                      <td style={{ padding: '9px 10px', borderRight: '1px solid #f1f5f9', textAlign: 'right', color: '#1d4ed8', fontWeight: 600 }}>{item.month_sale_first}</td>
+                      <td style={{ padding: '9px 10px', borderRight: '1px solid #f1f5f9', textAlign: 'right', color: '#2563eb' }}>{isExp ? '-' : item.month_sale_second}</td>
+                      <td style={{ padding: '9px 10px', borderRight: '1px solid #f1f5f9', textAlign: 'right', color: '#64748b' }}>{isExp ? '-' : item.month_sale_third}</td>
                       
                       {/* RFM */}
-                      <td style={{ padding: '8px 10px', borderRight: '1px solid #f1f5f9', textAlign: 'right', color: '#7c3aed', fontWeight: 600 }}>{isExp ? '-' : item.rfm_ok_tyre}</td>
+                      <td style={{ padding: '9px 10px', borderRight: '1px solid #f1f5f9', textAlign: 'right', color: '#6d28d9', fontWeight: 700, backgroundColor: '#faf5ff' }}>{isExp ? '-' : item.rfm_ok_tyre}</td>
                       
                       {/* CLOSING */}
-                      <td style={{ padding: '8px 10px', borderRight: '1px solid #f1f5f9', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>{item.closing_first}</td>
-                      <td style={{ padding: '8px 10px', borderRight: '1px solid #f1f5f9', textAlign: 'right', color: '#475569' }}>{isExp ? '-' : item.closing_second}</td>
-                      <td style={{ padding: '8px 10px', borderRight: '1px solid #f1f5f9', textAlign: 'right', color: '#94a3b8' }}>{isExp ? '-' : item.closing_third}</td>
+                      <td style={{ padding: '9px 10px', borderRight: '1px solid #f1f5f9', textAlign: 'right', fontWeight: 800, color: '#0f172a', backgroundColor: '#f0f9ff' }}>{item.closing_first}</td>
+                      <td style={{ padding: '9px 10px', borderRight: '1px solid #f1f5f9', textAlign: 'right', color: '#334155', backgroundColor: '#f0f9ff' }}>{isExp ? '-' : item.closing_second}</td>
+                      <td style={{ padding: '9px 10px', borderRight: '1px solid #f1f5f9', textAlign: 'right', color: '#64748b', backgroundColor: '#f0f9ff' }}>{isExp ? '-' : item.closing_third}</td>
                       
                       {/* TOTAL */}
-                      <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 900, backgroundColor: '#f1f5f9', color: '#1e3a8a' }}>
+                      <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 900, backgroundColor: '#e0f2fe', color: '#0369a1', fontSize: '0.82rem' }}>
                         {item.total_closing}
                       </td>
                     </tr>
@@ -488,7 +562,7 @@ export default function AutoTyreDashboard() {
                 })}
                 {!items.length && (
                   <tr>
-                    <td colSpan="19" style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+                    <td colSpan="19" style={{ textAlign: 'center', padding: '50px', color: '#94a3b8' }}>
                       No inventory records found for this period.
                     </td>
                   </tr>
@@ -497,41 +571,41 @@ export default function AutoTyreDashboard() {
               {items.length > 0 && (
                 <tfoot>
                   <tr style={{ backgroundColor: '#0f172a', color: '#ffffff', fontWeight: 800 }}>
-                    <td colSpan="4" style={{ padding: '12px 14px', borderRight: '1px solid #334155', letterSpacing: '0.05em' }}>
+                    <td colSpan="4" style={{ padding: '12px 14px', borderRight: '1px solid #1e293b', letterSpacing: '0.05em' }}>
                       TOTALS
                     </td>
-                    <td style={{ padding: '12px 10px', borderRight: '1px solid #334155', textAlign: 'right' }}>{filteredTotals.prev_closing_first}</td>
-                    <td style={{ padding: '12px 10px', borderRight: '1px solid #334155', textAlign: 'right' }}>{filteredTotals.prev_closing_second}</td>
-                    <td style={{ padding: '12px 10px', borderRight: '1px solid #334155', textAlign: 'right' }}>{filteredTotals.prev_closing_third}</td>
+                    <td style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right' }}>{filteredTotals.prev_closing_first}</td>
+                    <td style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right' }}>{filteredTotals.prev_closing_second}</td>
+                    <td style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right' }}>{filteredTotals.prev_closing_third}</td>
                     
-                    <td style={{ padding: '12px 10px', borderRight: '1px solid #334155', textAlign: 'right' }}>{filteredTotals.month_prod_first}</td>
-                    <td style={{ padding: '12px 10px', borderRight: '1px solid #334155', textAlign: 'right' }}>{filteredTotals.month_prod_second}</td>
-                    <td style={{ padding: '12px 10px', borderRight: '1px solid #334155', textAlign: 'right' }}>{filteredTotals.month_prod_third}</td>
-                    <td style={{ padding: '12px 10px', borderRight: '1px solid #334155', textAlign: 'right', color: '#34d399', backgroundColor: '#064e3b' }}>{filteredTotals.month_prod_total}</td>
+                    <td style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right' }}>{filteredTotals.month_prod_first}</td>
+                    <td style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right' }}>{filteredTotals.month_prod_second}</td>
+                    <td style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right' }}>{filteredTotals.month_prod_third}</td>
+                    <td style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right', color: '#5eead4', backgroundColor: '#042225' }}>{filteredTotals.month_prod_total}</td>
                     
-                    <td style={{ padding: '12px 10px', borderRight: '1px solid #334155', textAlign: 'right' }}>{filteredTotals.month_sale_first}</td>
-                    <td style={{ padding: '12px 10px', borderRight: '1px solid #334155', textAlign: 'right' }}>{filteredTotals.month_sale_second}</td>
-                    <td style={{ padding: '12px 10px', borderRight: '1px solid #334155', textAlign: 'right' }}>{filteredTotals.month_sale_third}</td>
+                    <td style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right' }}>{filteredTotals.month_sale_first}</td>
+                    <td style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right' }}>{filteredTotals.month_sale_second}</td>
+                    <td style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right' }}>{filteredTotals.month_sale_third}</td>
                     
-                    <td style={{ padding: '12px 10px', borderRight: '1px solid #334155', textAlign: 'right', color: '#c084fc' }}>{filteredTotals.rfm_ok_tyre}</td>
+                    <td style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right', color: '#e9d5ff', backgroundColor: '#3b0764' }}>{filteredTotals.rfm_ok_tyre}</td>
                     
-                    <td style={{ padding: '12px 10px', borderRight: '1px solid #334155', textAlign: 'right' }}>{filteredTotals.closing_first}</td>
-                    <td style={{ padding: '12px 10px', borderRight: '1px solid #334155', textAlign: 'right' }}>{filteredTotals.closing_second}</td>
-                    <td style={{ padding: '12px 10px', borderRight: '1px solid #334155', textAlign: 'right' }}>{filteredTotals.closing_third}</td>
+                    <td style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right' }}>{filteredTotals.closing_first}</td>
+                    <td style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right' }}>{filteredTotals.closing_second}</td>
+                    <td style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right' }}>{filteredTotals.closing_third}</td>
                     
-                    <td style={{ padding: '12px 14px', textAlign: 'right', color: '#60a5fa', backgroundColor: '#1e3a8a', fontSize: '0.85rem' }}>{filteredTotals.total_closing}</td>
+                    <td style={{ padding: '12px 14px', textAlign: 'right', color: '#ffffff', backgroundColor: '#0284c7', fontSize: '0.88rem', fontWeight: 900 }}>{filteredTotals.total_closing}</td>
                   </tr>
                   {(filteredTotals.export_closing > 0 || filteredTotals.export_sale > 0) && (
-                    <tr style={{ backgroundColor: '#f8fafc', borderTop: '1px solid #e2e8f0', fontWeight: 700 }}>
-                      <td colSpan="4" style={{ padding: '10px 14px', borderRight: '1px solid #e2e8f0', color: '#64748b' }}>EXPORT ON HOLD</td>
-                      <td colSpan="3" style={{ padding: '10px', borderRight: '1px solid #e2e8f0', textAlign: 'center', color: '#94a3b8' }}>-</td>
-                      <td colSpan="4" style={{ padding: '10px', borderRight: '1px solid #e2e8f0', textAlign: 'center', color: '#94a3b8' }}>-</td>
-                      <td style={{ padding: '10px', borderRight: '1px solid #e2e8f0', textAlign: 'right', color: '#2563eb' }}>{filteredTotals.export_sale || 0}</td>
-                      <td colSpan="2" style={{ padding: '10px', borderRight: '1px solid #e2e8f0', textAlign: 'center', color: '#94a3b8' }}>-</td>
-                      <td style={{ padding: '10px', borderRight: '1px solid #e2e8f0', textAlign: 'center', color: '#94a3b8' }}>-</td>
-                      <td style={{ padding: '10px', borderRight: '1px solid #e2e8f0', textAlign: 'right', color: '#0f172a' }}>{filteredTotals.export_closing || 0}</td>
-                      <td colSpan="2" style={{ padding: '10px', borderRight: '1px solid #e2e8f0', textAlign: 'center', color: '#94a3b8' }}>-</td>
-                      <td style={{ padding: '10px', textAlign: 'right', fontWeight: 800, color: '#1e3a8a' }}>{filteredTotals.export_closing || 0}</td>
+                    <tr style={{ backgroundColor: '#f8fafc', borderTop: '1px solid #cbd5e1', fontWeight: 700 }}>
+                      <td colSpan="4" style={{ padding: '10px 14px', borderRight: '1px solid #cbd5e1', color: '#64748b' }}>EXPORT ON HOLD</td>
+                      <td colSpan="3" style={{ padding: '10px', borderRight: '1px solid #cbd5e1', textAlign: 'center', color: '#94a3b8' }}>-</td>
+                      <td colSpan="4" style={{ padding: '10px', borderRight: '1px solid #cbd5e1', textAlign: 'center', color: '#94a3b8' }}>-</td>
+                      <td style={{ padding: '10px', borderRight: '1px solid #cbd5e1', textAlign: 'right', color: '#2563eb' }}>{filteredTotals.export_sale || 0}</td>
+                      <td colSpan="2" style={{ padding: '10px', borderRight: '1px solid #cbd5e1', textAlign: 'center', color: '#94a3b8' }}>-</td>
+                      <td style={{ padding: '10px', borderRight: '1px solid #cbd5e1', textAlign: 'center', color: '#94a3b8' }}>-</td>
+                      <td style={{ padding: '10px', borderRight: '1px solid #cbd5e1', textAlign: 'right', color: '#0f172a' }}>{filteredTotals.export_closing || 0}</td>
+                      <td colSpan="2" style={{ padding: '10px', borderRight: '1px solid #cbd5e1', textAlign: 'center', color: '#94a3b8' }}>-</td>
+                      <td style={{ padding: '10px', textAlign: 'right', fontWeight: 900, color: '#0369a1' }}>{filteredTotals.export_closing || 0}</td>
                     </tr>
                   )}
                 </tfoot>

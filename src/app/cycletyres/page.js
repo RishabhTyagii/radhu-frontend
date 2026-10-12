@@ -415,24 +415,24 @@ export default function CycleTyresDashboard() {
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem', textAlign: 'left', minWidth: '1200px' }}>
               <thead>
-                <tr style={{ backgroundColor: '#1e293b', color: '#f8fafc', borderBottom: '1px solid #0f172a' }}>
-                  <th style={{ padding: '10px 8px', borderRight: '1px solid #334155' }}>#</th>
-                  <th style={{ padding: '10px 12px', borderRight: '1px solid #334155' }}>SIZE</th>
-                  <th style={{ padding: '10px 10px', borderRight: '1px solid #334155' }}>PLY / TYPE</th>
-                  <th style={{ padding: '10px 10px', borderRight: '1px solid #334155' }}>BRAND</th>
-                  <th style={{ padding: '10px 10px', borderRight: '1px solid #334155', textAlign: 'right' }}>LAST CL (1ST)</th>
-                  <th style={{ padding: '10px 10px', borderRight: '1px solid #334155', textAlign: 'right' }}>LAST CL (2ND)</th>
-                  <th style={{ padding: '10px 10px', borderRight: '1px solid #334155', textAlign: 'right' }}>PROD (A)</th>
-                  <th style={{ padding: '10px 10px', borderRight: '1px solid #334155', textAlign: 'right' }}>PROD (B)</th>
-                  <th style={{ padding: '10px 10px', borderRight: '1px solid #334155', textAlign: 'right' }}>PROD (C)</th>
-                  <th style={{ padding: '10px 10px', borderRight: '1px solid #334155', textAlign: 'right', fontWeight: 800, backgroundColor: '#0f766e', color: '#fff' }}>PROD (TOTAL)</th>
-                  <th style={{ padding: '10px 10px', borderRight: '1px solid #334155', textAlign: 'right' }}>SALE (1ST)</th>
-                  <th style={{ padding: '10px 10px', borderRight: '1px solid #334155', textAlign: 'right' }}>SALE (2ND)</th>
-                  <th style={{ padding: '10px 10px', borderRight: '1px solid #334155', textAlign: 'right', fontWeight: 800, backgroundColor: '#1d4ed8', color: '#fff' }}>TOTAL SALE</th>
-                  <th style={{ padding: '10px 10px', borderRight: '1px solid #334155', textAlign: 'right', backgroundColor: '#6d28d9', color: '#fff' }}>RFM</th>
-                  <th style={{ padding: '10px 10px', borderRight: '1px solid #334155', textAlign: 'right' }}>CLOSING (1ST)</th>
-                  <th style={{ padding: '10px 10px', borderRight: '1px solid #334155', textAlign: 'right' }}>CLOSING (2ND)</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 800, backgroundColor: '#1e3a8a', color: '#fff' }}>TOTAL STOCK</th>
+                <tr style={{ backgroundColor: '#0f172a', color: '#ffffff', borderBottom: '1px solid #1e293b' }}>
+                  <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800 }}>#</th>
+                  <th style={{ padding: '12px 14px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800 }}>SIZE</th>
+                  <th style={{ padding: '12px 12px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800 }}>PLY / TYPE</th>
+                  <th style={{ padding: '12px 12px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800 }}>BRAND</th>
+                  <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right', color: '#ffffff', fontWeight: 700 }}>LAST CL (1ST)</th>
+                  <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right', color: '#ffffff', fontWeight: 700 }}>LAST CL (2ND)</th>
+                  <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right', color: '#ffffff', fontWeight: 700 }}>PROD (A)</th>
+                  <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right', color: '#ffffff', fontWeight: 700 }}>PROD (B)</th>
+                  <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right', color: '#ffffff', fontWeight: 700 }}>PROD (C)</th>
+                  <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right', fontWeight: 800, backgroundColor: '#064e3b', color: '#5eead4' }}>PROD (TOTAL)</th>
+                  <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right', color: '#ffffff', fontWeight: 700 }}>SALE (1ST)</th>
+                  <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right', color: '#ffffff', fontWeight: 700 }}>SALE (2ND)</th>
+                  <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right', fontWeight: 800, backgroundColor: '#1e3a8a', color: '#93c5fd' }}>TOTAL SALE</th>
+                  <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right', backgroundColor: '#3b0764', color: '#e9d5ff', fontWeight: 800 }}>RFM</th>
+                  <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right', color: '#ffffff', fontWeight: 700 }}>CLOSING (1ST)</th>
+                  <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right', color: '#ffffff', fontWeight: 700 }}>CLOSING (2ND)</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 900, backgroundColor: '#0284c7', color: '#ffffff' }}>TOTAL STOCK</th>
                 </tr>
               </thead>
               <tbody>

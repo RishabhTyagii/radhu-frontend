@@ -1,11 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import Navbar from '@/components/Navbar';
-import { apiGet } from '@/lib/api';
+import { apiGet, apiPost } from '@/lib/api';
 
-// Module accent colours — each module gets a unique brand colour
 const MODULE_COLORS = {
   'Auto Tyre':          { accent: '#2563eb', light: '#EFF6FF', icon: 'fa-car-side' },
   'Cycle Tyre':         { accent: '#7c3aed', light: '#F5F3FF', icon: 'fa-bicycle' },
@@ -33,6 +30,11 @@ export default function Home() {
     }
     fetchUser();
   }, [router]);
+
+  const handleLogout = async () => {
+    await apiPost('/auth/logout/', {});
+    router.push('/login');
+  };
 
   if (!userData) {
     return (
@@ -119,44 +121,133 @@ export default function Home() {
     (m) => m.alwaysShow || m.keys.some((k) => isAllowed(k))
   );
 
-  const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const today = new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f1f5f9' }}>
-      <Navbar />
-
-      {/* ── Page Header ── */}
-      <div style={{ background: 'white', borderBottom: '1px solid #e2e8f0', padding: '20px 32px' }}>
+    <div style={{ minHeight: '100vh', background: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
+      {/* ── TOP CORPORATE BRANDING BAR (REPLACED NAVBAR) ── */}
+      <header style={{
+        background: '#0f172a',
+        borderBottom: '1px solid #1e293b',
+        padding: '14px 32px',
+        color: '#ffffff',
+      }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: 1400, margin: '0 auto' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <i className="fas fa-th-large" style={{ color: 'white', fontSize: 16 }} />
+          {/* Brand */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(37,99,235,0.4)' }}>
+              <i className="fas fa-industry" style={{ color: '#ffffff', fontSize: 18 }} />
+            </div>
+            <div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 900, letterSpacing: '0.04em', lineHeight: 1.1 }}>
+                RADHU <span style={{ color: '#38bdf8', fontSize: '0.9em', fontWeight: 700 }}>ERP</span>
               </div>
-              <h1 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                Workspace
+              <div style={{ fontSize: '0.7rem', color: '#94a3b8', letterSpacing: '0.02em', marginTop: 2 }}>
+                Radhu Rubber Industries &middot; Enterprise Portal
+              </div>
+            </div>
+          </div>
+
+          {/* User Profile & Actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            {userData.is_superuser && (
+              <a
+                href="https://api.radhuerp.site/admin/"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  background: '#1e293b',
+                  border: '1px solid #334155',
+                  color: '#94a3b8',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  textDecoration: 'none',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#ffffff'; e.currentTarget.style.borderColor = '#475569'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.borderColor = '#334155'; }}
+              >
+                <i className="fas fa-database" style={{ fontSize: '0.75rem' }} />
+                <span>Django Admin</span>
+                <i className="fas fa-external-link-alt" style={{ fontSize: '0.6rem', opacity: 0.6 }} />
+              </a>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingLeft: 12, borderLeft: '1px solid #334155' }}>
+              <div style={{
+                width: 34, height: 34, borderRadius: '50%',
+                background: '#2563eb', color: '#ffffff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontWeight: 800, fontSize: '0.85rem',
+              }}>
+                {userData.username?.charAt(0).toUpperCase()}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#f8fafc', lineHeight: 1.2 }}>
+                  {userData.username}
+                </span>
+                <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+                  {userData.is_superuser ? 'Super Admin' : 'Staff User'}
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={handleLogout}
+              style={{
+                background: 'rgba(239, 68, 68, 0.15)',
+                color: '#f87171',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#dc2626'; e.currentTarget.style.color = '#ffffff'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)'; e.currentTarget.style.color = '#f87171'; }}
+              title="Logout from ERP"
+            >
+              <i className="fas fa-sign-out-alt" />
+              <span>Logout</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* ── WORKSPACE SUB-HEADER ── */}
+      <div style={{ background: '#ffffff', borderBottom: '1px solid #e2e8f0', padding: '16px 32px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: 1400, margin: '0 auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 28, height: 28, borderRadius: 6, background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <i className="fas fa-th-large" style={{ color: '#2563eb', fontSize: 13 }} />
+            </div>
+            <div>
+              <h1 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>
+                Main System Modules
               </h1>
             </div>
-            <p style={{ margin: 0, color: '#64748b', fontSize: '0.875rem' }}>
-              Welcome back, <strong style={{ color: '#0f172a' }}>{userData.username}</strong>
-              {userData.is_superuser && (
-                <span style={{ marginLeft: 8, background: '#eff6ff', color: '#1d4ed8', padding: '2px 8px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 700 }}>
-                  Super Admin
-                </span>
-              )}
-            </p>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 500 }}>{today}</div>
-            <div style={{ fontSize: '0.75rem', color: '#cbd5e1', marginTop: 2 }}>
-              {visibleModules.length} modules accessible
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>{today}</span>
+            <span style={{ background: '#f1f5f9', color: '#475569', padding: '3px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700 }}>
+              {visibleModules.length} Modules Available
+            </span>
           </div>
         </div>
       </div>
 
-      {/* ── Module Grid ── */}
-      <main style={{ maxWidth: 1400, margin: '0 auto', padding: '28px 32px' }}>
+      {/* ── MODULE CARDS GRID ── */}
+      <main style={{ flex: 1, maxWidth: 1400, margin: '0 auto', width: '100%', padding: '28px 32px', boxSizing: 'border-box' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
           {visibleModules.map((mod) => {
             const c = MODULE_COLORS[mod.title] || { accent: '#2563eb', light: '#EFF6FF', icon: 'fa-cube' };
@@ -166,67 +257,73 @@ export default function Home() {
                 onClick={() => router.push(mod.path)}
                 style={{
                   background: 'white',
-                  borderRadius: 16,
+                  borderRadius: 14,
                   border: '1px solid #e2e8f0',
                   padding: '24px',
                   cursor: 'pointer',
                   transition: 'box-shadow 0.18s, transform 0.18s, border-color 0.18s',
                   position: 'relative',
                   overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = `0 8px 32px rgba(0,0,0,0.10)`;
+                  e.currentTarget.style.boxShadow = `0 10px 28px rgba(15,23,42,0.08)`;
                   e.currentTarget.style.transform = 'translateY(-2px)';
                   e.currentTarget.style.borderColor = c.accent;
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = 'none';
+                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.03)';
                   e.currentTarget.style.transform = 'translateY(0)';
                   e.currentTarget.style.borderColor = '#e2e8f0';
                 }}
               >
                 {/* Accent bar */}
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: c.accent, borderRadius: '16px 16px 0 0' }} />
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: c.accent }} />
 
-                {/* Icon + Title */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 14 }}>
-                  <div style={{
-                    width: 48, height: 48, borderRadius: 12,
-                    background: c.light,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0,
-                  }}>
-                    <i className={`fas ${c.icon}`} style={{ fontSize: 20, color: c.accent }} />
+                <div>
+                  {/* Icon + Title */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 12 }}>
+                    <div style={{
+                      width: 44, height: 44, borderRadius: 10,
+                      background: c.light,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0,
+                    }}>
+                      <i className={`fas ${c.icon}`} style={{ fontSize: 18, color: c.accent }} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <h3 style={{ margin: '0 0 4px', fontSize: '1rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.01em' }}>
+                        {mod.title}
+                      </h3>
+                      <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', lineHeight: 1.4 }}>
+                        {mod.description}
+                      </p>
+                    </div>
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <h3 style={{ margin: '0 0 4px', fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>
-                      {mod.title}
-                    </h3>
-                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', lineHeight: 1.4 }}>
-                      {mod.description}
-                    </p>
-                  </div>
-                </div>
 
-                {/* Feature tags */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 18 }}>
-                  {mod.features.map((f) => (
-                    <span
-                      key={f}
-                      style={{
-                        background: c.light,
-                        color: c.accent,
-                        border: `1px solid ${c.accent}22`,
-                        padding: '3px 10px',
-                        borderRadius: 20,
-                        fontSize: '0.72rem',
-                        fontWeight: 600,
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {f}
-                    </span>
-                  ))}
+                  {/* Feature tags */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 18, marginTop: 14 }}>
+                    {mod.features.map((f) => (
+                      <span
+                        key={f}
+                        style={{
+                          background: '#f8fafc',
+                          color: '#334155',
+                          border: '1px solid #e2e8f0',
+                          padding: '3px 9px',
+                          borderRadius: 6,
+                          fontSize: '0.72rem',
+                          fontWeight: 600,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {f}
+                      </span>
+                    ))}
+                  </div>
                 </div>
 
                 {/* CTA */}
@@ -234,15 +331,15 @@ export default function Home() {
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   paddingTop: 14, borderTop: '1px solid #f1f5f9',
                 }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: c.accent }}>
-                    Open Module
+                  <span style={{ fontSize: '0.8rem', fontWeight: 800, color: c.accent, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    Access Module
                   </span>
                   <div style={{
-                    width: 28, height: 28, borderRadius: '50%',
+                    width: 26, height: 26, borderRadius: '50%',
                     background: c.light,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <i className="fas fa-arrow-right" style={{ fontSize: 11, color: c.accent }} />
+                    <i className="fas fa-arrow-right" style={{ fontSize: 10, color: c.accent }} />
                   </div>
                 </div>
               </div>
@@ -253,15 +350,15 @@ export default function Home() {
         {visibleModules.length === 0 && (
           <div style={{ textAlign: 'center', padding: '80px 20px', color: '#94a3b8' }}>
             <i className="fas fa-lock" style={{ fontSize: 40, marginBottom: 16, display: 'block' }} />
-            <p style={{ fontSize: '1rem', fontWeight: 600 }}>No modules available for your access level.</p>
+            <p style={{ fontSize: '1rem', fontWeight: 700 }}>No modules available for your access level.</p>
             <p style={{ fontSize: '0.85rem' }}>Contact your administrator to request access.</p>
           </div>
         )}
       </main>
 
-      {/* ── Footer ── */}
-      <footer style={{ textAlign: 'center', padding: '24px', borderTop: '1px solid #e2e8f0', color: '#94a3b8', fontSize: '0.75rem', background: 'white' }}>
-        Radhu Industries ERP &nbsp;·&nbsp; All rights reserved
+      {/* ── FOOTER ── */}
+      <footer style={{ textAlign: 'center', padding: '20px', borderTop: '1px solid #e2e8f0', color: '#94a3b8', fontSize: '0.75rem', background: '#ffffff' }}>
+        Radhu Rubber Industries ERP &nbsp;&middot;&nbsp; All rights reserved
       </footer>
     </div>
   );
