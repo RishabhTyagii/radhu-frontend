@@ -189,35 +189,33 @@ export default function CycleTubeDashboard() {
             flexWrap: 'wrap',
             backgroundColor: theme.bg2,
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: '#0891b2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <i className="fas fa-life-ring" style={{ color: '#fff', fontSize: 16 }} />
+              </div>
               <span style={{
                 fontSize: isMobile ? '1.05rem' : '1.3rem',
-                fontWeight: 900,
+                fontWeight: 800,
                 color: theme.text,
-                background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
               }}>
-                🚲 Cycle Tube Dashboard
+                Cycle Tube Dashboard
               </span>
 
               {/* Dark Mode Toggle */}
               <button
                 onClick={() => setDarkMode(!darkMode)}
                 style={{
-                  padding: '3px 8px',
+                  padding: '4px 10px',
                   borderRadius: '16px',
                   border: `1px solid ${theme.border}`,
                   backgroundColor: darkMode ? '#334155' : '#f1f5f9',
                   color: theme.text,
                   cursor: 'pointer',
-                  fontSize: '0.7rem',
+                  fontSize: '0.72rem',
                   fontWeight: 600,
                 }}
               >
-                {darkMode ? '🌙 Dark' : '☀️ Light'}
+                {darkMode ? 'Dark Mode' : 'Light Mode'}
               </button>
-            </div>
 
             <div style={{
               display: 'flex',
@@ -246,10 +244,10 @@ export default function CycleTubeDashboard() {
               >
                 {availableMonths.map((m) => (
                   <option key={m.value} value={m.value}>
-                    📅 {m.label}
+                    {m.label}
                   </option>
                 ))}
-                {isCustomRange && <option value="custom">📅 Custom Range</option>}
+                {isCustomRange && <option value="custom">Custom Range</option>}
               </select>
 
               {/* Custom Date Range Filter */}
@@ -351,7 +349,7 @@ export default function CycleTubeDashboard() {
                     height: '34px',
                     outline: 'none',
                   }}
-                  placeholder="🔍 Search..."
+                  placeholder="Search size, type, brand..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
@@ -451,7 +449,7 @@ export default function CycleTubeDashboard() {
               borderLeft: '4px solid #ef4444',
             }}>
               <div style={{ fontSize: '0.68rem', fontWeight: 700, color: theme.text2, textTransform: 'uppercase' }}>
-                🏷️ This Month Sale
+                This Month Sale
               </div>
               <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ef4444', marginTop: '2px' }}>
                 {(totals.month_sale || 0).toLocaleString()}
@@ -467,7 +465,7 @@ export default function CycleTubeDashboard() {
               borderLeft: '4px solid #10b981',
             }}>
               <div style={{ fontSize: '0.68rem', fontWeight: 700, color: theme.text2, textTransform: 'uppercase' }}>
-                📦 Closing Stock
+                Closing Stock
               </div>
               <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981', marginTop: '2px' }}>
                 {(totals.closing_stock || 0).toLocaleString()}
@@ -483,7 +481,7 @@ export default function CycleTubeDashboard() {
               gridColumn: isMobile ? 'span 2' : 'auto',
             }}>
               <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#2563eb', textTransform: 'uppercase' }}>
-                🌟 Total Stock (+ RFM: {(totals.rfm_stock || 0).toLocaleString()})
+                Total Stock (+ RFM: {(totals.rfm_stock || 0).toLocaleString()})
               </div>
               <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#1d4ed8', marginTop: '2px' }}>
                 {(totals.total_stock || 0).toLocaleString()} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: theme.text2 }}>PCS</span>

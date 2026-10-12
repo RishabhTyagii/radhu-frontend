@@ -1,13 +1,26 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { apiGet } from '@/lib/api';
+
+// Module accent colours — each module gets a unique brand colour
+const MODULE_COLORS = {
+  'Auto Tyre':          { accent: '#2563eb', light: '#EFF6FF', icon: 'fa-car-side' },
+  'Cycle Tyre':         { accent: '#7c3aed', light: '#F5F3FF', icon: 'fa-bicycle' },
+  'Cycle Tube':         { accent: '#0891b2', light: '#ECFEFF', icon: 'fa-life-ring' },
+  'Tally Sync':         { accent: '#059669', light: '#ECFDF5', icon: 'fa-file-invoice-dollar' },
+  'HRMS & Payroll':     { accent: '#d97706', light: '#FFFBEB', icon: 'fa-users' },
+  'Order Booking':      { accent: '#dc2626', light: '#FEF2F2', icon: 'fa-box' },
+  'Admin Orders & Sales':{ accent: '#9333ea', light: '#FAF5FF', icon: 'fa-tasks' },
+  'User Management':    { accent: '#475569', light: '#F8FAFC', icon: 'fa-cog' },
+  'RADHU AI':           { accent: '#0ea5e9', light: '#F0F9FF', icon: 'fa-robot' },
+};
 
 export default function Home() {
   const router = useRouter();
   const [userData, setUserData] = useState(null);
-  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     async function fetchUser() {
@@ -19,193 +32,237 @@ export default function Home() {
       }
     }
     fetchUser();
-    
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
   }, [router]);
 
   if (!userData) {
     return (
-      <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
-        <div style={{ padding: '24px', background: 'white', borderRadius: '8px', border: '1px solid #e2e8f0', color: '#64748b' }}>
-          Loading system resources...
+      <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+          <div style={{ width: 44, height: 44, borderRadius: '50%', border: '4px solid #e2e8f0', borderTopColor: '#2563eb', animation: 'spin 0.8s linear infinite' }} />
+          <span style={{ color: '#64748b', fontSize: '0.9rem', fontWeight: 500 }}>Loading workspace...</span>
         </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
-  // Check permissions (Superusers see everything, standard users see based on their roles)
   const isAllowed = (key) => userData.is_superuser || userData.permissions?.includes(key);
 
   const modulesList = [
     {
       title: 'Auto Tyre',
-      icon: <i className="fas fa-car-side"></i>,
-      description: 'Auto tyre stock management — production, dispatch, adjustments, reports & daily summary',
+      description: 'Production, dispatch, adjustments, monthly reports & daily summary',
       path: '/stock',
-      color: '#0f172a',
       features: ['Stock Dashboard', 'Production Entry', 'Dispatch / Sale', 'Monthly Report', 'Production Sheet', 'Daily Summary'],
       keys: ['dashboard', 'add_tyre', 'add_production', 'add_dispatch', 'add_adjustment', 'entries_log', 'monthly_report', 'production_sheet', 'daily_summary'],
     },
     {
-      title: 'Cycle Tube',
-      icon: <i className="fas fa-life-ring"></i>,
-      description: 'Cycle tube inventory — production with quality grades, sales, adjustments & daily summary',
-      path: '/cycletube',
-      color: '#0f172a',
-      features: ['Tube Dashboard', 'Production (Quality)', 'Sale Entry', 'Monthly Report', 'Daily Summary', 'Stock Adjustment'],
-      keys: ['tube_dashboard', 'tube_add_item', 'tube_add_production', 'tube_add_sale', 'tube_add_adjustment', 'tube_entries_log', 'tube_monthly_report', 'tube_production_summary'],
-    },
-    {
       title: 'Cycle Tyre',
-      icon: <i className="fas fa-bicycle"></i>,
-      description: 'Cycle tyre stock — 1st/2nd/RFM grade production, bucket-wise sales & compound summary',
+      description: '1st/2nd/RFM grade production, bucket-wise sales & compound summary',
       path: '/cycletyres',
-      color: '#0f172a',
       features: ['Tyre Dashboard', 'Production (Curing)', '2nd Grade Stock', 'Bucket-wise Sale', 'Monthly Report', 'Daily Summary'],
       keys: ['cycletyre_dashboard', 'cycletyre_add_item', 'cycletyre_add_production', 'cycletyre_add_sale', 'cycletyre_add_adjustment', 'cycletyre_entries_log', 'cycletyre_monthly_report', 'cycletyre_daily_summary'],
     },
     {
+      title: 'Cycle Tube',
+      description: 'Quality-grade production, sales, adjustments & inventory summary',
+      path: '/cycletube',
+      features: ['Tube Dashboard', 'Production (Quality)', 'Sale Entry', 'Monthly Report', 'Daily Summary', 'Stock Adjustment'],
+      keys: ['tube_dashboard', 'tube_add_item', 'tube_add_production', 'tube_add_sale', 'tube_add_adjustment', 'tube_entries_log', 'tube_monthly_report', 'tube_production_summary'],
+    },
+    {
       title: 'Tally Sync',
-      icon: <i className="fas fa-file-invoice-dollar"></i>,
-      description: 'Automated Tally Prime sales & GST integration — auto stock deduction, item mappings & sync logs',
+      description: 'Automated Tally Prime integration — auto stock deduction & GST sync',
       path: '/tallysync',
-      color: '#0f172a',
-      features: ['Sales & GST Summary', 'Party/GST Breakup', 'Item Mappings', 'Automatic Stock Deduction', 'Print Tax Invoice', 'Sync Logs'],
+      features: ['Sales & GST Summary', 'Party/GST Breakup', 'Item Mappings', 'Auto Stock Deduction', 'Print Tax Invoice', 'Sync Logs'],
       keys: ['tally_sales_summary', 'tally_mapping_list', 'tally_sync_log', 'tally_map_pending_item'],
     },
     {
       title: 'HRMS & Payroll',
-      icon: <i className="fas fa-users"></i>,
-      description: 'Human resource & payroll management — employee directory, attendance, piece-rate production & salary engine',
+      description: 'Employee directory, attendance, piece-rate production & salary engine',
       path: '/hrms',
-      color: '#0f172a',
-      features: ['Employee Directory', 'Daily Attendance Sheet', 'Worker Piece Production', 'Automated Salary Engine', 'Print Payslips', 'Departments'],
+      features: ['Employee Directory', 'Daily Attendance', 'Worker Piece Production', 'Salary Engine', 'Print Payslips', 'Departments'],
       keys: ['hr_dashboard', 'employee_list', 'attendance_list', 'bulk_attendance', 'production_list', 'salary_list'],
     },
     {
       title: 'Order Booking',
-      icon: <i className="fas fa-box"></i>,
-      description: 'Multi-item customer order booking across Auto Tyre, Cycle Tube & Cycle Tyre with live stock availability',
+      description: 'Multi-item customer orders across Auto Tyre, Cycle Tube & Cycle Tyre',
       path: '/orders',
-      color: '#0f172a',
       features: ['Book Multi-Item Orders', 'Live Stock Catalog', 'Customer Parties', 'My Orders List'],
       keys: ['my_orders', 'create_order', 'order_detail', 'import_orders'],
     },
     {
       title: 'Admin Orders & Sales',
-      icon: <i className="fas fa-tasks"></i>,
-      description: 'Master control panel — category summaries (Auto Tyre, Cycle Tube, Cycle Tyre) & employee sales performance',
+      description: 'Master control — category summaries & employee sales performance',
       path: '/orders/all',
-      color: '#0f172a',
-      features: ['All Orders Master View', 'Category Breakdown', 'Employee Sales Stats', 'Status Change Control'],
+      features: ['All Orders Master View', 'Category Breakdown', 'Employee Sales Stats', 'Status Control'],
       keys: ['admin_orders'],
     },
     {
       title: 'User Management',
-      icon: <i className="fas fa-cog"></i>,
-      description: 'System user creation, password management & module-level page access permissions control',
+      description: 'User creation, password management & module-level access control',
       path: '/users',
-      color: '#0f172a',
-      features: ['User Directory', 'Role Levels (Superuser / User)', 'Module Access Checkboxes', 'Granular Page Permissions', 'Password Manager', 'Live Search'],
+      features: ['User Directory', 'Role Levels', 'Module Access', 'Page Permissions', 'Password Manager'],
       keys: ['manage_users', 'create_user', 'edit_user'],
     },
     {
       title: 'RADHU AI',
-      icon: <i className="fas fa-robot"></i>,
-      description: 'AI ERP assistant — stock queries, data analysis, and secure workflow automation',
+      description: 'AI ERP assistant — stock queries, data analysis & workflow automation',
       path: '/ai-agent',
-      color: '#0f172a',
       features: ['Data Analysis', 'Stock Status', 'Audit Logs', 'Automated Workflows'],
       keys: ['ai_agent'],
       alwaysShow: true,
-    }
+    },
   ];
 
-  const visibleModules = modulesList.filter((m) => m.alwaysShow || m.keys.some(k => isAllowed(k)));
+  const visibleModules = modulesList.filter(
+    (m) => m.alwaysShow || m.keys.some((k) => isAllowed(k))
+  );
+
+  const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f8f8f8', fontFamily: 'Helvetica, Arial, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: '#f1f5f9' }}>
       <Navbar />
 
-      {/* DJANGO ADMIN HEADER */}
-      <div style={{ backgroundColor: '#417690', padding: '10px 20px', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 'normal' }}>Radhu Industries ERP</h1>
-        <span style={{ fontSize: '12px', color: '#c4dce8' }}>System Status: Online</span>
-      </div>
-
-      {/* BREADCRUMB */}
-      <div style={{ padding: '8px 20px', backgroundColor: '#79aec8', color: '#fff', fontSize: '12px' }}>
-        Home &rsaquo; System Modules
-      </div>
-
-      <main style={{ padding: '20px', maxWidth: '100%', margin: '0' }}>
-
-        <p style={{ fontSize: '12px', color: '#666', marginBottom: '20px' }}>
-          Select a module to access its dashboard and tools.
-        </p>
-
-        {/* MODULE TABLE (BIOS/Admin style) */}
-        <div style={{ border: '1px solid #ccc', backgroundColor: '#fff' }}>
-          <div style={{ backgroundColor: '#417690', padding: '6px 12px', color: '#fff', fontSize: '12px', fontWeight: 'bold', letterSpacing: '0.05em' }}>
-            AVAILABLE MODULES — {visibleModules.length} found
-          </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#efefef', borderBottom: '1px solid #ccc' }}>
-                <th style={{ padding: '8px 12px', textAlign: 'left', borderRight: '1px solid #ccc', width: '32px' }}></th>
-                <th style={{ padding: '8px 12px', textAlign: 'left', borderRight: '1px solid #ccc' }}>Module</th>
-                <th style={{ padding: '8px 12px', textAlign: 'left', borderRight: '1px solid #ccc' }}>Description</th>
-                <th style={{ padding: '8px 12px', textAlign: 'left' }}>Key Features</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibleModules.map((mod, idx) => (
-                <tr
-                  key={mod.path}
-                  onClick={() => router.push(mod.path)}
-                  style={{ borderBottom: '1px solid #eee', backgroundColor: idx % 2 === 0 ? '#fff' : '#fafafa', cursor: 'pointer' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#e8f0f7'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = idx % 2 === 0 ? '#fff' : '#fafafa'; }}
-                >
-                  <td style={{ padding: '10px 12px', borderRight: '1px solid #eee', color: '#417690', fontSize: '16px', textAlign: 'center' }}>
-                    {mod.icon}
-                  </td>
-                  <td style={{ padding: '10px 12px', borderRight: '1px solid #eee', fontWeight: 'bold', color: '#003b5c', whiteSpace: 'nowrap' }}>
-                    {mod.title}
-                  </td>
-                  <td style={{ padding: '10px 12px', borderRight: '1px solid #eee', color: '#555', lineHeight: 1.4 }}>
-                    {mod.description}
-                  </td>
-                  <td style={{ padding: '10px 12px' }}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                      {mod.features.map((f) => (
-                        <span key={f} style={{ display: 'inline-block', backgroundColor: '#e8f0f7', border: '1px solid #c4dce8', color: '#003b5c', padding: '2px 7px', fontSize: '11px', borderRadius: '3px' }}>
-                          {f}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {!visibleModules.length && (
-                <tr>
-                  <td colSpan="4" style={{ padding: '20px', textAlign: 'center', color: '#999' }}>No modules available for your access level.</td>
-                </tr>
+      {/* ── Page Header ── */}
+      <div style={{ background: 'white', borderBottom: '1px solid #e2e8f0', padding: '20px 32px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: 1400, margin: '0 auto' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <i className="fas fa-th-large" style={{ color: 'white', fontSize: 16 }} />
+              </div>
+              <h1 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                Workspace
+              </h1>
+            </div>
+            <p style={{ margin: 0, color: '#64748b', fontSize: '0.875rem' }}>
+              Welcome back, <strong style={{ color: '#0f172a' }}>{userData.username}</strong>
+              {userData.is_superuser && (
+                <span style={{ marginLeft: 8, background: '#eff6ff', color: '#1d4ed8', padding: '2px 8px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 700 }}>
+                  Super Admin
+                </span>
               )}
-            </tbody>
-          </table>
+            </p>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 500 }}>{today}</div>
+            <div style={{ fontSize: '0.75rem', color: '#cbd5e1', marginTop: 2 }}>
+              {visibleModules.length} modules accessible
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Module Grid ── */}
+      <main style={{ maxWidth: 1400, margin: '0 auto', padding: '28px 32px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
+          {visibleModules.map((mod) => {
+            const c = MODULE_COLORS[mod.title] || { accent: '#2563eb', light: '#EFF6FF', icon: 'fa-cube' };
+            return (
+              <div
+                key={mod.path}
+                onClick={() => router.push(mod.path)}
+                style={{
+                  background: 'white',
+                  borderRadius: 16,
+                  border: '1px solid #e2e8f0',
+                  padding: '24px',
+                  cursor: 'pointer',
+                  transition: 'box-shadow 0.18s, transform 0.18s, border-color 0.18s',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = `0 8px 32px rgba(0,0,0,0.10)`;
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.borderColor = c.accent;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = 'none';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.borderColor = '#e2e8f0';
+                }}
+              >
+                {/* Accent bar */}
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: c.accent, borderRadius: '16px 16px 0 0' }} />
+
+                {/* Icon + Title */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 14 }}>
+                  <div style={{
+                    width: 48, height: 48, borderRadius: 12,
+                    background: c.light,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <i className={`fas ${c.icon}`} style={{ fontSize: 20, color: c.accent }} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h3 style={{ margin: '0 0 4px', fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>
+                      {mod.title}
+                    </h3>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', lineHeight: 1.4 }}>
+                      {mod.description}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Feature tags */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 18 }}>
+                  {mod.features.map((f) => (
+                    <span
+                      key={f}
+                      style={{
+                        background: c.light,
+                        color: c.accent,
+                        border: `1px solid ${c.accent}22`,
+                        padding: '3px 10px',
+                        borderRadius: 20,
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {f}
+                    </span>
+                  ))}
+                </div>
+
+                {/* CTA */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  paddingTop: 14, borderTop: '1px solid #f1f5f9',
+                }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: c.accent }}>
+                    Open Module
+                  </span>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: '50%',
+                    background: c.light,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <i className="fas fa-arrow-right" style={{ fontSize: 11, color: c.accent }} />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        <div style={{ marginTop: '20px', fontSize: '11px', color: '#999', textAlign: 'right' }}>
-          &copy; {new Date().getFullYear()} Radhu Industries ERP
-        </div>
+        {visibleModules.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '80px 20px', color: '#94a3b8' }}>
+            <i className="fas fa-lock" style={{ fontSize: 40, marginBottom: 16, display: 'block' }} />
+            <p style={{ fontSize: '1rem', fontWeight: 600 }}>No modules available for your access level.</p>
+            <p style={{ fontSize: '0.85rem' }}>Contact your administrator to request access.</p>
+          </div>
+        )}
       </main>
+
+      {/* ── Footer ── */}
+      <footer style={{ textAlign: 'center', padding: '24px', borderTop: '1px solid #e2e8f0', color: '#94a3b8', fontSize: '0.75rem', background: 'white' }}>
+        Radhu Industries ERP &nbsp;·&nbsp; All rights reserved
+      </footer>
     </div>
   );
 }
-
-
-
