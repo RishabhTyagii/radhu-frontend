@@ -39,7 +39,8 @@ export default function MyOrders() {
   const handleTallyPartySelect = (e) => {
     const val = e.target.value;
     setPartyName(val);
-    const tp = tallyParties.find(p => p.name === val);
+    const trimmedVal = val.trim().toLowerCase();
+    const tp = tallyParties.find(p => (p.name || '').trim().toLowerCase() === trimmedVal);
     if (tp) {
       setPartyGstin(tp.gstin || '');
       setPartyAddress(tp.address || '');
