@@ -115,6 +115,7 @@ export default function Navbar() {
     { name: 'Daily Attendance', path: '/hrms/attendance', icon: 'fas fa-calendar-day', color: '#f59e0b', key: 'attendance_list' },
     { name: 'Monthly Register', path: '/hrms/monthly-register', icon: 'fas fa-calendar-alt', color: '#f97316', key: 'attendance_list' },
     { name: 'Piece Production', path: '/hrms/production', icon: 'fas fa-cogs', color: '#8b5cf6', key: 'production_list' },
+    { name: 'Avg Production', path: '/hrms/average/cycle-tyre', icon: 'fas fa-chart-bar', color: '#6366f1', key: 'production_list' },
     { name: 'Salary Engine', path: '/hrms/salary', icon: 'fas fa-calculator', color: '#ef4444', key: 'salary_list' },
     { name: 'Departments', path: '/hrms/departments', icon: 'fas fa-building', color: '#64748b', key: 'hr_dashboard' },
   ];
