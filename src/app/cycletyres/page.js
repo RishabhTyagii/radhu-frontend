@@ -426,12 +426,12 @@ export default function CycleTyresDashboard() {
                   <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right', color: '#ffffff', fontWeight: 700 , backgroundColor: '#0284c7' }}>PROD (B)</th>
                   <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right', color: '#ffffff', fontWeight: 700 , backgroundColor: '#0284c7' }}>PROD (C)</th>
                   <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right', fontWeight: 800, backgroundColor: '#064e3b', color: '#5eead4' }}>PROD (TOTAL)</th>
-                  <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right', color: '#ffffff', fontWeight: 700 }}>SALE (1ST)</th>
-                  <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right', color: '#ffffff', fontWeight: 700 }}>SALE (2ND)</th>
+                  <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right', color: '#ffffff', fontWeight: 700,  backgroundColor: '#0284c7' }}>SALE (1ST)</th>
+                  <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right', color: '#ffffff', fontWeight: 700,  backgroundColor: '#0284c7' }}>SALE (2ND)</th>
                   <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right', fontWeight: 800, backgroundColor: '#1e3a8a', color: '#93c5fd' }}>TOTAL SALE</th>
                   <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right', backgroundColor: '#3b0764', color: '#e9d5ff', fontWeight: 800 }}>RFM</th>
-                  <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right', color: '#ffffff', fontWeight: 700 }}>CLOSING (1ST)</th>
-                  <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right', color: '#ffffff', fontWeight: 700 }}>CLOSING (2ND)</th>
+                  <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right', color: '#ffffff', fontWeight: 700,  backgroundColor: '#0284c7' }}>CLOSING (1ST)</th>
+                  <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right', color: '#ffffff', fontWeight: 700,  backgroundColor: '#0284c7' }}>CLOSING (2ND)</th>
                   <th style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 900, backgroundColor: '#0284c7', color: '#ffffff' }}>TOTAL STOCK</th>
                 </tr>
               </thead>

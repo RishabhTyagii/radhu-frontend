@@ -459,17 +459,17 @@ export default function AutoTyreDashboard() {
               <thead>
                 {/* TIER 1 HEADER: Unified Dark Slate Navy (#0f172a) with Crisp White (#ffffff) text */}
                 <tr style={{ backgroundColor: '#0f172a', color: '#ffffff', borderBottom: '1px solid #1e293b' }}>
-                  <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800, width: 40 }} rowSpan="2">#</th>
-                  <th style={{ padding: '12px 14px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800 }} rowSpan="2">TYRE</th>
-                  <th style={{ padding: '12px 12px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800 }} rowSpan="2">PATTERN</th>
-                  <th style={{ padding: '12px 12px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800 }} rowSpan="2">TYPE</th>
+                  <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800,  backgroundColor: '#0284c7', width: 40 }} rowSpan="2">#</th>
+                  <th style={{ padding: '12px 14px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800,  backgroundColor: '#0284c7' }} rowSpan="2">TYRE</th>
+                  <th style={{ padding: '12px 12px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800,  backgroundColor: '#0284c7' }} rowSpan="2">PATTERN</th>
+                  <th style={{ padding: '12px 12px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800,  backgroundColor: '#0284c7' }} rowSpan="2">TYPE</th>
                   
                   {/* Category Headers with Crisp White text */}
-                  <th style={{ padding: '10px 8px', borderRight: '1px solid #1e293b', textAlign: 'center', color: '#ffffff', fontWeight: 800, letterSpacing: '0.04em' }} colSpan="3">
+                  <th style={{ padding: '10px 8px', borderRight: '1px solid #1e293b', textAlign: 'center', color: '#ffffff', fontWeight: 800, letterSpacing: '0.04em',  backgroundColor: '#0284c7' }} colSpan="3">
                     LAST CLOSING
                   </th>
-                  <th style={{ padding: '10px 8px', borderRight: '1px solid #1e293b', textAlign: 'center', color: '#ffffff', fontWeight: 800, letterSpacing: '0.04em', background: '#093a3e' }} colSpan="4">
-                    <span style={{ color: '#5eead4', marginRight: 6 }}>●</span>PRODUCTION
+                  <th style={{ padding: '10px 8px', borderRight: '1px solid #1e293b', textAlign: 'center', color: '#ffffff', fontWeight: 800, letterSpacing: '0.04em',background: '#093a3e' }} colSpan="4">
+                    <span style={{ color: '#5eead4', marginRight: 6 }}>●</span>PRODUCTION    
                   </th>
                   <th style={{ padding: '10px 8px', borderRight: '1px solid #1e293b', textAlign: 'center', color: '#ffffff', fontWeight: 800, letterSpacing: '0.04em', background: '#1e3a8a' }} colSpan="3">
                     <span style={{ color: '#93c5fd', marginRight: 6 }}>●</span>SALE / DISPATCH
@@ -488,9 +488,9 @@ export default function AutoTyreDashboard() {
                 {/* TIER 2 SUB-HEADER: Crisp Slate (#1e293b) with 100% Crisp White text */}
                 <tr style={{ backgroundColor: '#1e293b', color: '#ffffff' }}>
                   {/* Last Closing Sub */}
-                  <th style={{ padding: '7px 8px', borderRight: '1px solid #334155', textAlign: 'right', color: '#ffffff', fontWeight: 700 }}>1ST</th>
-                  <th style={{ padding: '7px 8px', borderRight: '1px solid #334155', textAlign: 'right', color: '#ffffff', fontWeight: 700 }}>2ND</th>
-                  <th style={{ padding: '7px 8px', borderRight: '1px solid #334155', textAlign: 'right', color: '#ffffff', fontWeight: 700 }}>3RD</th>
+                  <th style={{ padding: '7px 8px', borderRight: '1px solid #334155', textAlign: 'right', color: '#ffffff', fontWeight: 700,  backgroundColor: '#0284c7' }}>1ST</th>
+                  <th style={{ padding: '7px 8px', borderRight: '1px solid #334155', textAlign: 'right', color: '#ffffff', fontWeight: 700,  backgroundColor: '#0284c7' }}>2ND</th>
+                  <th style={{ padding: '7px 8px', borderRight: '1px solid #334155', textAlign: 'right', color: '#ffffff', fontWeight: 700,  backgroundColor: '#0284c7' }}>3RD</th>
                   
                   {/* Production Sub */}
                   <th style={{ padding: '7px 8px', borderRight: '1px solid #334155', textAlign: 'right', color: '#ffffff', fontWeight: 700, background: '#062d31' }}>1ST</th>
