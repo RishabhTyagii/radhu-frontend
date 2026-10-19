@@ -8,13 +8,18 @@ function getCookie(name) {
   return null;
 }
 
+let inMemoryCsrfToken = '';
+
 export async function getCSRFToken() {
-  let token = getCookie('csrftoken');
+  let token = getCookie('csrftoken') || inMemoryCsrfToken;
   if (!token) {
-    // Fetch from backend to initialize CSRF cookie
     try {
-      await fetch(`${API_BASE}/auth/csrf/`, { credentials: 'include' });
-      token = getCookie('csrftoken');
+      const res = await fetch(`${API_BASE}/auth/csrf/`, { credentials: 'include' });
+      const data = await res.json().catch(() => ({}));
+      if (data?.csrfToken) {
+        inMemoryCsrfToken = data.csrfToken;
+      }
+      token = getCookie('csrftoken') || inMemoryCsrfToken;
     } catch (e) {}
   }
   return token || '';
