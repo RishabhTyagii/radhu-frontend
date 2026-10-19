@@ -40,6 +40,8 @@ export default function Navbar() {
       setActiveModule('ai');
     } else if (pathname.startsWith('/stock')) {
       setActiveModule('stock');
+    } else if (pathname.startsWith('/rawmaterial')) {
+      setActiveModule('rawmaterial');
     }
   }, [pathname]);
 
@@ -62,6 +64,7 @@ export default function Navbar() {
     { id: 'tallysync', name: 'Tally Sync', icon: <i className="fas fa-file-invoice-dollar"></i>, path: '/tallysync', color: '#1e293b' },
     { id: 'hrms', name: 'HRMS', icon: <i className="fas fa-users"></i>, path: '/hrms', color: '#1e293b' },
     { id: 'orders', name: 'Orders', icon: <i className="fas fa-box"></i>, path: '/orders', color: '#1e293b' },
+    { id: 'rawmaterial', name: 'Raw Material', icon: <i className="fas fa-layer-group"></i>, path: '/rawmaterial/mixing', color: '#1e293b' },
     { id: 'ai', name: 'RADHU AI', icon: <i className="fas fa-robot"></i>, path: '/ai-agent', color: '#1e293b' },
     ...(userData?.is_superuser ? [{ id: 'users', name: 'Users', icon: <i className="fas fa-cog"></i>, path: '/users', color: '#1e293b' }] : []),
   ];
@@ -136,6 +139,10 @@ export default function Navbar() {
     { name: 'Audit Log', path: '/ai-agent/logs', icon: 'fas fa-clipboard-list', color: '#38bdf8', key: 'ai_audit_log' },
   ];
 
+  const rawMaterialNavItems = [
+    { name: 'Mixing Sheet', path: '/rawmaterial/mixing', icon: 'fas fa-blender', color: '#10b981', key: 'mixing_sheet' },
+  ];
+
   if (!userData) return null;
 
   let currentNavItems = stockNavItems;
@@ -146,9 +153,10 @@ export default function Navbar() {
   if (activeModule === 'orders') currentNavItems = ordersNavItems;
   if (activeModule === 'users') currentNavItems = usersNavItems;
   if (activeModule === 'ai') currentNavItems = aiNavItems;
+  if (activeModule === 'rawmaterial') currentNavItems = rawMaterialNavItems;
 
   const filteredNavItems = currentNavItems.filter((item) => (
-    item.key === 'ai_agent' || item.key === 'ai_audit_log' || isPageAllowed(item.key)
+    item.key === 'ai_agent' || item.key === 'ai_audit_log' || item.key === 'mixing_sheet' || isPageAllowed(item.key)
   ));
 
   return (
