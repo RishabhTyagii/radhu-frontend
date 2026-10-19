@@ -4,9 +4,37 @@ import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { apiGet, apiPost, apiDelete } from '@/lib/api';
 
+// Safe expression evaluator for operations like 26*10, 100+50, 450/3, etc.
+function evaluateExpression(val) {
+  if (typeof val === 'number') return val;
+  if (!val || typeof val !== 'string') return 0;
+  const cleaned = val.trim();
+  if (cleaned === '') return 0;
+
+  // If purely number, parse float
+  if (!isNaN(cleaned)) {
+    return parseFloat(cleaned) || 0;
+  }
+
+  // Only allow digits, decimals, +, -, *, /, (, ), and spaces
+  if (/^[0-9+\-*/().\s]+$/.test(cleaned)) {
+    try {
+      // Use Function instead of eval for safer execution
+      const result = new Function(`'use strict'; return (${cleaned})`)();
+      if (typeof result === 'number' && !isNaN(result) && isFinite(result)) {
+        return parseFloat(result.toFixed(2));
+      }
+    } catch {
+      // If incomplete expression while typing
+      return 0;
+    }
+  }
+  return 0;
+}
+
 export default function MixingPage() {
-  const [selectedMonth, setSelectedMonth] = useState('9');
-  const [selectedYear, setSelectedYear] = useState('2024');
+  const [selectedMonth, setSelectedMonth] = useState('');
+  const [selectedYear, setSelectedYear] = useState('');
   const [data, setData] = useState({ entries: [], totals: {} });
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -33,12 +61,23 @@ export default function MixingPage() {
 
   const [formData, setFormData] = useState(initialForm);
 
-  const fetchSheetData = async () => {
+  const fetchSheetData = async (monthToUse, yearToUse) => {
     setLoading(true);
     try {
-      const res = await apiGet(`/rawmaterial/mixing/?month=${selectedMonth}&year=${selectedYear}`);
+      let query = '';
+      if (monthToUse && yearToUse) {
+        query = `?month=${monthToUse}&year=${yearToUse}`;
+      }
+      const res = await apiGet(`/rawmaterial/mixing/${query}`);
       if (res && res.status === 'success') {
         setData(res);
+        // Automatically sync dropdowns to active month and year returned by backend
+        if (res.active_month && !monthToUse) {
+          setSelectedMonth(String(res.active_month));
+        }
+        if (res.active_year && !yearToUse) {
+          setSelectedYear(String(res.active_year));
+        }
       }
     } catch (err) {
       console.error('Error fetching mixing sheet:', err);
@@ -47,9 +86,20 @@ export default function MixingPage() {
     }
   };
 
+  // Initial load: Fetch without params so backend returns latest month/year automatically
   useEffect(() => {
     fetchSheetData();
-  }, [selectedMonth, selectedYear]);
+  }, []);
+
+  const handleMonthChange = (m) => {
+    setSelectedMonth(m);
+    fetchSheetData(m, selectedYear);
+  };
+
+  const handleYearChange = (y) => {
+    setSelectedYear(y);
+    fetchSheetData(selectedMonth, y);
+  };
 
   const handleInputChange = (section, field, value) => {
     setFormData((prev) => ({
@@ -61,16 +111,53 @@ export default function MixingPage() {
     }));
   };
 
+  const handleBlurEvaluate = (section, field) => {
+    const rawVal = formData[section][field];
+    if (rawVal && typeof rawVal === 'string' && /^[0-9+\-*/().\s]+$/.test(rawVal.trim())) {
+      const computed = evaluateExpression(rawVal);
+      if (computed !== 0 || rawVal.trim() === '0') {
+        setFormData((prev) => ({
+          ...prev,
+          [section]: {
+            ...prev[section],
+            [field]: String(computed)
+          }
+        }));
+      }
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (submitting) return;
     setSubmitting(true);
+
+    // Compute evaluated values for submission
+    const evaluatedCompound = {};
+    Object.keys(formData.compound).forEach((k) => {
+      evaluatedCompound[k] = evaluateExpression(formData.compound[k]);
+    });
+
+    const evaluatedRubber = {};
+    Object.keys(formData.rubber).forEach((k) => {
+      evaluatedRubber[k] = evaluateExpression(formData.rubber[k]);
+    });
+
+    const evaluatedPayload = {
+      ...formData,
+      compound: evaluatedCompound,
+      rubber: evaluatedRubber,
+      reconciliation: {
+        rubber_bdls: evaluateExpression(formData.reconciliation.rubber_bdls)
+      }
+    };
+
     try {
-      const res = await apiPost('/rawmaterial/mixing/', formData);
+      const res = await apiPost('/rawmaterial/mixing/', evaluatedPayload);
       if (res && (res.ok || res.status === 'success' || res.data?.status === 'success')) {
         setShowModal(false);
         setFormData(initialForm);
-        fetchSheetData();
+        fetchSheetData(selectedMonth, selectedYear);
       } else {
         const errorMsg = res?.data?.error || res?.error || 'Failed to save entry';
         alert(errorMsg);
@@ -88,7 +175,7 @@ export default function MixingPage() {
     try {
       const res = await apiDelete(`/rawmaterial/mixing/${id}/`);
       if (res && (res.ok || res.status === 'success' || res.data?.status === 'success')) {
-        fetchSheetData();
+        fetchSheetData(selectedMonth, selectedYear);
       }
     } catch (err) {
       console.error(err);
@@ -108,18 +195,18 @@ export default function MixingPage() {
     setShowModal(true);
   };
 
-  // Calculate live modal totals
+  // Calculate live modal totals using expression evaluator
   const modalCompTotal = Object.entries(formData.compound).reduce((acc, [k, v]) => {
     if (k === 'total') return acc;
-    return acc + (parseFloat(v) || 0);
+    return acc + evaluateExpression(v);
   }, 0);
 
   const modalRubTotal = Object.entries(formData.rubber).reduce((acc, [k, v]) => {
     if (k === 'total') return acc;
-    return acc + (parseFloat(v) || 0);
+    return acc + evaluateExpression(v);
   }, 0);
 
-  const modalRubKgs = (parseFloat(formData.reconciliation.rubber_bdls) || 0) * 50;
+  const modalRubKgs = evaluateExpression(formData.reconciliation.rubber_bdls) * 50;
   const modalDiff = modalRubTotal - modalRubKgs;
 
   const handleExport = () => {
@@ -153,7 +240,7 @@ export default function MixingPage() {
             <div style={{ display: 'flex', gap: '6px', background: '#fff', padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
               <select
                 value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
+                onChange={(e) => handleMonthChange(e.target.value)}
                 style={{ border: 'none', outline: 'none', fontWeight: '600', color: '#334155', background: 'transparent' }}
               >
                 <option value="1">January</option>
@@ -172,7 +259,7 @@ export default function MixingPage() {
 
               <select
                 value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
+                onChange={(e) => handleYearChange(e.target.value)}
                 style={{ border: 'none', outline: 'none', fontWeight: '600', color: '#334155', background: 'transparent' }}
               >
                 <option value="2024">2024</option>
@@ -532,10 +619,15 @@ export default function MixingPage() {
               padding: '24px'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
-                <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a', margin: 0 }}>
-                  <i className="fas fa-blender" style={{ color: '#0284c7', marginRight: '8px' }}></i>
-                  Daily Mixing &amp; Rubber Consumption Entry
-                </h2>
+                <div>
+                  <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a', margin: '0 0 2px 0' }}>
+                    <i className="fas fa-blender" style={{ color: '#0284c7', marginRight: '8px' }}></i>
+                    Daily Mixing &amp; Rubber Consumption Entry
+                  </h2>
+                  <span style={{ fontSize: '11px', color: '#059669', fontWeight: '600' }}>
+                    💡 Supports direct calculations in any field (e.g. 26*10, 150+120, 260)
+                  </span>
+                </div>
                 <button
                   onClick={() => setShowModal(false)}
                   style={{ background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#64748b' }}
@@ -590,11 +682,11 @@ export default function MixingPage() {
                           {label}
                         </label>
                         <input
-                          type="number"
-                          step="any"
+                          type="text"
                           value={formData.compound[key] || ''}
                           onChange={(e) => handleInputChange('compound', key, e.target.value)}
-                          placeholder="0"
+                          onBlur={() => handleBlurEvaluate('compound', key)}
+                          placeholder="e.g. 26*10"
                           style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
                         />
                       </div>
@@ -633,11 +725,11 @@ export default function MixingPage() {
                           {label}
                         </label>
                         <input
-                          type="number"
-                          step="any"
+                          type="text"
                           value={formData.rubber[key] || ''}
                           onChange={(e) => handleInputChange('rubber', key, e.target.value)}
-                          placeholder="0"
+                          onBlur={() => handleBlurEvaluate('rubber', key)}
+                          placeholder="e.g. 26*10"
                           style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
                         />
                       </div>
@@ -656,11 +748,11 @@ export default function MixingPage() {
                         Rubber Bundles Issued
                       </label>
                       <input
-                        type="number"
-                        step="any"
+                        type="text"
                         value={formData.reconciliation.rubber_bdls || ''}
                         onChange={(e) => handleInputChange('reconciliation', 'rubber_bdls', e.target.value)}
-                        placeholder="e.g. 21"
+                        onBlur={() => handleBlurEvaluate('reconciliation', 'rubber_bdls')}
+                        placeholder="e.g. 28 or 14+14"
                         style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
                       />
                     </div>
