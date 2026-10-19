@@ -67,12 +67,13 @@ export default function MixingPage() {
     setSubmitting(true);
     try {
       const res = await apiPost('/rawmaterial/mixing/', formData);
-      if (res && res.status === 'success') {
+      if (res && (res.ok || res.status === 'success' || res.data?.status === 'success')) {
         setShowModal(false);
         setFormData(initialForm);
         fetchSheetData();
       } else {
-        alert(res?.error || 'Failed to save entry');
+        const errorMsg = res?.data?.error || res?.error || 'Failed to save entry';
+        alert(errorMsg);
       }
     } catch (err) {
       console.error(err);
@@ -86,7 +87,7 @@ export default function MixingPage() {
     if (!confirm('Are you sure you want to delete this date entry?')) return;
     try {
       const res = await apiDelete(`/rawmaterial/mixing/${id}/`);
-      if (res && res.status === 'success') {
+      if (res && (res.ok || res.status === 'success' || res.data?.status === 'success')) {
         fetchSheetData();
       }
     } catch (err) {
