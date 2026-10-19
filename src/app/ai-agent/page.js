@@ -1,44 +1,62 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
-import { apiGet, apiPost, apiUpload } from '@/lib/api';
+import { apiGet, apiPost, apiUpload, apiDelete } from '@/lib/api';
 
-const QUICK_PROMPTS = [
-  'Sabse jyada stock wala cycle tyre kaunsa hai?',
-  'Cycle tyre add karo: 26x1.75 BOX Nylon RADHU',
-  'Is mahine ka Tally billing kitna hai?',
-  'Kaunse items ka stock low hai?',
-  'Pending aur overdue orders dikhao',
-  'Excel se items import karne ke liye sheet upload karo',
-];
+// ────────────────────────────────────────────────────────────
+// HELPERS
+// ────────────────────────────────────────────────────────────
+function nowTime() {
+  return new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+}
 
-function escapeHtml(text) {
-  return String(text)
+function escapeHtml(t) {
+  return String(t || '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 }
 
 function formatMessage(text) {
-  let html = escapeHtml(text || '');
-  html = html.replace(/```([\s\S]*?)```/g, '<pre class="ai-pre">$1</pre>');
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/`([^`]+)`/g, '<code class="ai-code">$1</code>');
-  html = html.replace(/^### (.+)$/gm, '<div class="ai-h">$1</div>');
-  html = html.replace(/^[-*] (.+)$/gm, '<div class="ai-li">• $1</div>');
-  html = html.replace(/\n/g, '<br/>');
-  return html;
+  let h = escapeHtml(text || '');
+  // code blocks
+  h = h.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) =>
+    `<pre class="r-pre"><code>${code.trim()}</code></pre>`
+  );
+  // inline code
+  h = h.replace(/`([^`]+)`/g, '<code class="r-code">$1</code>');
+  // bold
+  h = h.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // italic
+  h = h.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // headings
+  h = h.replace(/^#### (.+)$/gm, '<div class="r-h4">$1</div>');
+  h = h.replace(/^### (.+)$/gm, '<div class="r-h3">$1</div>');
+  h = h.replace(/^## (.+)$/gm, '<div class="r-h2">$1</div>');
+  // table rows (GFM)
+  h = h.replace(/\|(.+)\|/g, (match) => {
+    const cells = match.split('|').filter(c => c.trim() !== '');
+    return '<div class="r-tr">' + cells.map(c => `<span class="r-td">${c.trim()}</span>`).join('') + '</div>';
+  });
+  // horizontal rule
+  h = h.replace(/^---+$/gm, '<hr class="r-hr"/>');
+  // bullets
+  h = h.replace(/^[*\-] (.+)$/gm, '<div class="r-li">$1</div>');
+  // numbered list
+  h = h.replace(/^\d+\. (.+)$/gm, '<div class="r-li r-li-num">$1</div>');
+  // newlines
+  h = h.replace(/\n/g, '<br/>');
+  return h;
 }
 
 function payloadPreview(action) {
   const p = action.payload || {};
   if (Array.isArray(p.rows) && p.rows.length) {
-    const lines = p.rows.slice(0, 6).map((row) => (
-      Object.values(row).filter((v) => v !== '' && v != null).slice(0, 5).join(' · ')
-    ));
-    return `${p.rows.length} rows\n${lines.join('\n')}${p.rows.length > 6 ? '\n…' : ''}`;
+    const lines = p.rows.slice(0, 5).map(r =>
+      Object.values(r).filter(v => v !== '' && v != null).slice(0, 4).join(' · ')
+    );
+    return `${p.rows.length} rows\n${lines.join('\n')}${p.rows.length > 5 ? '\n…' : ''}`;
   }
   return Object.entries(p)
     .filter(([k]) => k !== 'module' && k !== 'clear_existing')
@@ -46,16 +64,45 @@ function payloadPreview(action) {
     .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
     .join('\n');
 }
-function nowTime() {
-  return new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-}
 
 const WELCOME = {
   role: 'ai',
-  text: 'Namaste! Main **RADHU AI** hoon.\n\nPooch sakte ho stock, orders, Tally, employees.\nItem **add / delete / Excel import** bhi kar sakta hoon — pehle preview, phir Confirm. Delete pe **DELETE** type karna padega. Har change **Audit Log** mein save hota hai.',
+  text: `Namaste! Main **RADHU AI** hoon — Radhu Industries ERP ka Master Assistant.
+
+Mujhse pooch sakte ho:
+- **Stock** (Auto Tyre, Cycle Tyre, Cycle Tube)
+- **Mixing Sheet** (Compound / Rubber / Auto-sync formulas)
+- **Tally** (invoices, parties, billing, GST)
+- **HRMS** (employees, attendance, salary)
+- **Orders, Models, Views, Frontend pages** — kuch bhi
+
+Main **live database** directly query karta hoon aur exact answers deta hoon.`,
   time: nowTime(),
 };
 
+const QUICK_PROMPTS = [
+  'Aaj ka mixing compound total kitna hai?',
+  'Sabse low stock wale cycle tyre dikhao',
+  'Is mahine ka Auto Tyre production kitna hai?',
+  'Tally mein is mahine ki billing kitni hai?',
+  'Employee list dikhao with salary type',
+  'rawmaterial_mixing table ka schema batao',
+  'Cycle Tube mixing formula kya hai?',
+  'Pending orders dikhao',
+];
+
+const CATEGORIES = [
+  { value: 'general', label: 'General' },
+  { value: 'rule', label: 'Business Rule' },
+  { value: 'formula', label: 'Formula' },
+  { value: 'correction', label: 'Correction' },
+  { value: 'preference', label: 'Preference' },
+  { value: 'party_note', label: 'Party Note' },
+];
+
+// ────────────────────────────────────────────────────────────
+// MAIN COMPONENT
+// ────────────────────────────────────────────────────────────
 export default function AIAgentPage() {
   const router = useRouter();
   const [messages, setMessages] = useState([WELCOME]);
@@ -65,500 +112,622 @@ export default function AIAgentPage() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [aiReady, setAiReady] = useState(null);
   const [apiKeyMsg, setApiKeyMsg] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [activeTab, setActiveTab] = useState('chat'); // 'chat' | 'memory' | 'prompts'
+  const [memories, setMemories] = useState([]);
+  const [memLoading, setMemLoading] = useState(false);
+  const [newMemKey, setNewMemKey] = useState('');
+  const [newMemContent, setNewMemContent] = useState('');
+  const [newMemCat, setNewMemCat] = useState('general');
+  const [memSaving, setMemSaving] = useState(false);
+  const [modelName, setModelName] = useState('');
   const bottomRef = useRef(null);
   const fileRef = useRef(null);
-  const inputRef = useRef(null);
+  const textareaRef = useRef(null);
 
-  useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth < 900);
-    onResize();
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
-
+  // scroll to bottom on new messages
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
+  // textarea auto-height
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 180) + 'px';
+  }, [input]);
+
+  // fetch AI status
   useEffect(() => {
     apiGet('/ai/status/').then((d) => {
-      if (!d) {
-        setAiReady(false);
-        setApiKeyMsg('Could not reach AI status endpoint.');
-        return;
-      }
+      if (!d) { setAiReady(false); setApiKeyMsg('Could not reach AI.'); return; }
       setAiReady(!!d.ready);
-      if (!d.ready) setApiKeyMsg(d.message || 'GEMINI_API_KEY not configured.');
+      setModelName(d.model || '');
+      if (!d.ready) setApiKeyMsg(d.message || 'API key missing.');
     });
   }, []);
 
-  const sendMessage = async (msg, file) => {
-    const text = (msg || input).trim();
-    const upload = file || selectedFile;
+  // fetch memories when tab opens
+  useEffect(() => {
+    if (activeTab === 'memory') loadMemories();
+  }, [activeTab]);
+
+  const loadMemories = async () => {
+    setMemLoading(true);
+    const d = await apiGet('/ai/memories/');
+    setMemLoading(false);
+    if (d?.memories) setMemories(d.memories);
+  };
+
+  // ── patch action in a message ──────────────────────────────
+  const patchAction = useCallback((msgIdx, actionId, patch) => {
+    setMessages(prev => prev.map((m, i) => {
+      if (i !== msgIdx) return m;
+      return { ...m, proposed_actions: m.proposed_actions.map(a => a.id === actionId ? { ...a, ...patch } : a) };
+    }));
+  }, []);
+
+  // ── confirm single action ──────────────────────────────────
+  const confirmAction = useCallback(async (msgIdx, action) => {
+    if (action.requires_typed_delete && action.deleteTyped !== 'DELETE') {
+      patchAction(msgIdx, action.id, { uiError: 'Type DELETE to confirm deletion.' }); return;
+    }
+    patchAction(msgIdx, action.id, { uiStatus: 'loading', uiError: '' });
+    const res = await apiPost('/ai/actions/confirm/', { id: action.id, token: action.confirm_token });
+    if (res?.ok && res.data?.ok) {
+      patchAction(msgIdx, action.id, { uiStatus: 'executed' });
+    } else {
+      patchAction(msgIdx, action.id, { uiStatus: 'failed', uiError: res?.data?.error || 'Failed.' });
+    }
+  }, [patchAction]);
+
+  // ── reject action ──────────────────────────────────────────
+  const rejectAction = useCallback(async (msgIdx, action) => {
+    patchAction(msgIdx, action.id, { uiStatus: 'loading' });
+    await apiPost('/ai/actions/reject/', { id: action.id, token: action.confirm_token });
+    patchAction(msgIdx, action.id, { uiStatus: 'rejected' });
+  }, [patchAction]);
+
+  // ── confirm all non-delete ─────────────────────────────────
+  const confirmAll = useCallback(async (msgIdx, actions) => {
+    for (const a of actions) {
+      if (!a.requires_typed_delete && (!a.uiStatus || a.uiStatus === 'proposed' || a.uiStatus === 'failed')) {
+        await confirmAction(msgIdx, a);
+      }
+    }
+  }, [confirmAction]);
+
+  // ── clear chat ─────────────────────────────────────────────
+  const handleClear = async () => {
+    await apiPost('/ai/chat/', { reset: 'true', session_id: sessionId });
+    setMessages([WELCOME]);
+  };
+
+  // ── send message ───────────────────────────────────────────
+  const sendMessage = async (override) => {
+    const text = (override || input).trim();
+    const upload = selectedFile;
     if (!text && !upload) return;
     if (loading) return;
 
-    setMessages((prev) => [
-      ...prev,
-      {
-        role: 'user',
-        text: text || `File uploaded: ${upload?.name}`,
-        time: nowTime(),
-        fileName: upload?.name,
-      },
-    ]);
+    const userMsg = { role: 'user', text: text || `[File: ${upload?.name}]`, time: nowTime(), fileName: upload?.name };
+    setMessages(prev => [...prev, userMsg]);
     setInput('');
     setSelectedFile(null);
-    setSidebarOpen(false);
     setLoading(true);
 
-    const formData = new FormData();
-    if (text) formData.append('message', text);
-    formData.append('session_id', sessionId);
-    if (upload) formData.append('file', upload);
-
     try {
+      const formData = new FormData();
+      if (text) formData.append('message', text);
+      formData.append('session_id', sessionId);
+      if (upload) formData.append('file', upload);
+
       const res = await apiUpload('/ai/chat/', formData);
-      if (!res) {
-        setMessages((prev) => [...prev, {
-          role: 'ai',
-          text: 'Network error. Please try again.',
-          time: nowTime(),
-          isError: true,
-        }]);
-      } else {
-        const data = res.data || {};
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: 'ai',
-            text: data.reply || data.error || 'Something went wrong.',
-            time: nowTime(),
-            isError: !res.ok || !!data.error,
-            proposed_actions: (data.proposed_actions || []).map((a) => ({ ...a, uiStatus: 'proposed' })),
-          },
-        ]);
-      }
-    } catch (e) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'ai',
-          text: `Network error: ${e.message || 'Please try again.'}`,
-          time: nowTime(),
-          isError: true,
-        },
-      ]);
+      const d = res?.data || res || {};
+      const reply = d.reply || d.error || 'No response.';
+      const actions = d.proposed_actions || [];
+      setMessages(prev => [...prev, {
+        role: 'ai',
+        text: reply,
+        time: nowTime(),
+        proposed_actions: actions,
+        isError: !!d.error,
+      }]);
+      if (d.model_used) setModelName(d.model_used);
+    } catch (err) {
+      setMessages(prev => [...prev, { role: 'ai', text: 'Network error. Backend se connect nahi ho pa raha.', time: nowTime(), isError: true }]);
     }
     setLoading(false);
-    inputRef.current?.focus();
+    textareaRef.current?.focus();
   };
 
-  const handleClear = async () => {
-    const formData = new FormData();
-    formData.append('session_id', sessionId);
-    formData.append('reset', 'true');
-    formData.append('message', '');
-    await apiUpload('/ai/chat/', formData);
-    setMessages([{ ...WELCOME, time: nowTime(), text: 'Conversation cleared. Kaise help kar sakta hoon?' }]);
-  };
-
-  const patchAction = (messageIndex, actionId, patch) => {
-    setMessages((prev) => prev.map((msg, i) => {
-      if (i !== messageIndex || !msg.proposed_actions) return msg;
-      return {
-        ...msg,
-        proposed_actions: msg.proposed_actions.map((a) => (
-          a.id === actionId ? { ...a, ...patch } : a
-        )),
-      };
-    }));
-  };
-
-  const confirmAction = async (messageIndex, action) => {
-    if (action.uiStatus && action.uiStatus !== 'proposed') return;
-    if (action.requires_typed_delete && (action.deleteTyped || '').trim().toUpperCase() !== 'DELETE') {
-      patchAction(messageIndex, action.id, { uiError: 'Delete ke liye DELETE type karo.' });
-      return;
-    }
-    patchAction(messageIndex, action.id, { uiStatus: 'loading', uiError: '' });
-    const res = await apiPost('/ai/actions/confirm/', {
-      id: action.id,
-      token: action.token,
-      confirm_text: action.deleteTyped || '',
-    });
-    if (res?.ok && res.data?.ok) {
-      patchAction(messageIndex, action.id, {
-        uiStatus: 'executed',
-        uiResult: res.data.result,
-        uiError: '',
-      });
-    } else {
-      patchAction(messageIndex, action.id, {
-        uiStatus: 'failed',
-        uiError: res?.data?.error || 'Confirm failed.',
-      });
+  // ── save memory ────────────────────────────────────────────
+  const saveMemory = async () => {
+    if (!newMemKey.trim() || !newMemContent.trim()) return;
+    setMemSaving(true);
+    const res = await apiPost('/ai/memories/', { key: newMemKey, content: newMemContent, category: newMemCat });
+    setMemSaving(false);
+    if (res?.data?.status === 'success' || res?.ok) {
+      setNewMemKey(''); setNewMemContent(''); setNewMemCat('general');
+      await loadMemories();
     }
   };
 
-  const rejectAction = async (messageIndex, action) => {
-    if (action.uiStatus && action.uiStatus !== 'proposed' && action.uiStatus !== 'failed') return;
-    patchAction(messageIndex, action.id, { uiStatus: 'loading' });
-    const res = await apiPost('/ai/actions/reject/', { id: action.id, token: action.token });
-    if (res?.ok) {
-      patchAction(messageIndex, action.id, { uiStatus: 'rejected' });
-    } else {
-      patchAction(messageIndex, action.id, {
-        uiStatus: 'failed',
-        uiError: res?.data?.error || 'Reject failed.',
-      });
-    }
+  const deleteMemory = async (id) => {
+    await apiDelete(`/ai/memories/${id}/delete/`);
+    setMemories(prev => prev.filter(m => m.id !== id));
   };
 
-  const confirmAll = async (messageIndex, actions) => {
-    for (const action of actions) {
-      if (action.requires_typed_delete) continue;
-      if (action.uiStatus && action.uiStatus !== 'proposed' && action.uiStatus !== 'failed') continue;
-      await confirmAction(messageIndex, action);
-    }
-  };
-
+  // ────────────────────────────────────────────────────────────
+  // RENDER
+  // ────────────────────────────────────────────────────────────
   return (
-    <div className="ai-shell">
-      <Navbar />
-
-      <div className="ai-header">
-        <div className="ai-header-left">
-          <div className="ai-avatar">🤖</div>
+    <div style={S.shell}>
+      {/* ── TOP HEADER ────────────────────────────────────── */}
+      <header style={S.header}>
+        <div style={S.headerLeft}>
+          <div style={S.logo}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" fill="#6366f1"/>
+              <path d="M8 12h8M12 8v8" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </div>
           <div>
-            <h1>RADHU AI</h1>
-            <p>
-              {aiReady === null && 'Connecting...'}
-              {aiReady === true && 'Online — Gemini ERP assistant'}
-              {aiReady === false && (apiKeyMsg || 'Not configured')}
-            </p>
+            <div style={S.appName}>RADHU AI</div>
+            <div style={S.appSub}>
+              {aiReady === null && 'Connecting…'}
+              {aiReady === true && <>&#x2022; {modelName || 'Gemini'} &nbsp;·&nbsp; Live database access</>}
+              {aiReady === false && <span style={{ color: '#f87171' }}>&#x26A0; {apiKeyMsg}</span>}
+            </div>
           </div>
         </div>
-        <div className="ai-header-actions">
-          {isMobile && (
-            <button type="button" className="ai-btn" onClick={() => setSidebarOpen((v) => !v)}>
-              Prompts
-            </button>
-          )}
-          <button type="button" className="ai-btn" onClick={handleClear}>Clear</button>
-          <button type="button" className="ai-btn" onClick={() => router.push('/ai-agent/logs')}>Audit Log</button>
-          <button type="button" className="ai-btn" onClick={() => router.push('/')}>Home</button>
+        <div style={S.headerRight}>
+          <button style={S.hBtn} onClick={() => router.push('/ai-agent/logs')}>Audit Log</button>
+          <button style={S.hBtn} onClick={handleClear}>New Chat</button>
+          <button style={{ ...S.hBtn, background: '#6366f1', color: '#fff', borderColor: '#6366f1' }} onClick={() => router.push('/')}>← Home</button>
         </div>
-      </div>
+      </header>
 
-      {aiReady === false && (
-        <div className="ai-banner">
-          <strong>Gemini API key required.</strong>
-          {' '}Get a key at{' '}
-          <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer">
-            Google AI Studio
-          </a>
-          {' '}and set <code>GEMINI_API_KEY</code> on the server.
-        </div>
-      )}
-
-      <div className="ai-body">
-        {(!isMobile || sidebarOpen) && (
-          <aside className="ai-sidebar">
-            <div className="ai-side-label">Quick questions</div>
-            {QUICK_PROMPTS.map((prompt) => (
-              <button
-                key={prompt}
-                type="button"
-                className="ai-prompt"
-                disabled={loading}
-                onClick={() => sendMessage(prompt)}
-              >
-                {prompt}
+      {/* ── BODY ──────────────────────────────────────────── */}
+      <div style={S.body}>
+        {/* LEFT SIDEBAR */}
+        <aside style={S.sidebar}>
+          {/* Tab switcher */}
+          <div style={S.tabs}>
+            {[['chat', 'Chat'], ['prompts', 'Prompts'], ['memory', 'Memory']].map(([k, label]) => (
+              <button key={k} style={{ ...S.tab, ...(activeTab === k ? S.tabActive : {}) }} onClick={() => setActiveTab(k)}>
+                {label}
               </button>
             ))}
-            <div className="ai-file-card">
-              <div className="ai-side-label">Uploads</div>
-              <p>Excel/CSV import: sheet upload karo + “ye items add karo”. Confirm ke baad save. Audit Log mein record.</p>
-            </div>
-          </aside>
-        )}
+          </div>
 
-        <section className="ai-chat">
-          <div className="ai-messages">
+          {activeTab === 'chat' && (
+            <div style={S.sideSection}>
+              <div style={S.sideLabel}>Recent</div>
+              {messages.filter(m => m.role === 'user').slice(-8).reverse().map((m, i) => (
+                <button key={i} style={S.sideItem} onClick={() => sendMessage(m.text)}>
+                  {m.text.slice(0, 52)}{m.text.length > 52 ? '…' : ''}
+                </button>
+              ))}
+              {messages.filter(m => m.role === 'user').length === 0 && (
+                <div style={S.sideEmpty}>Abhi koi chat nahi.</div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'prompts' && (
+            <div style={S.sideSection}>
+              <div style={S.sideLabel}>Quick Questions</div>
+              {QUICK_PROMPTS.map((p) => (
+                <button key={p} style={S.sideItem} disabled={loading} onClick={() => sendMessage(p)}>
+                  {p}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {activeTab === 'memory' && (
+            <div style={{ ...S.sideSection, gap: 8 }}>
+              <div style={S.sideLabel}>AI ki Trained Memory &nbsp;<span style={{ color: '#94a3b8', fontWeight: 400 }}>({memories.length})</span></div>
+
+              {/* Add new memory */}
+              <input
+                style={S.memInput}
+                placeholder="Title (e.g. Auto Tyre formula)"
+                value={newMemKey}
+                onChange={e => setNewMemKey(e.target.value)}
+              />
+              <textarea
+                style={{ ...S.memInput, minHeight: 64, resize: 'vertical', fontFamily: 'inherit' }}
+                placeholder="Content / Rule / Formula..."
+                value={newMemContent}
+                onChange={e => setNewMemContent(e.target.value)}
+              />
+              <select style={S.memInput} value={newMemCat} onChange={e => setNewMemCat(e.target.value)}>
+                {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+              </select>
+              <button style={S.memSaveBtn} disabled={memSaving || !newMemKey.trim() || !newMemContent.trim()} onClick={saveMemory}>
+                {memSaving ? 'Saving…' : '+ Save to AI Memory'}
+              </button>
+
+              <div style={S.memDivider} />
+
+              {memLoading && <div style={S.sideEmpty}>Loading…</div>}
+              {!memLoading && memories.length === 0 && <div style={S.sideEmpty}>Abhi koi saved memory nahi. AI sikhne ke liye usse kuch batao.</div>}
+              {memories.map(m => (
+                <div key={m.id} style={S.memCard}>
+                  <div style={S.memCardHeader}>
+                    <span style={{ ...S.memBadge, ...(badgeColor(m.category)) }}>{m.category}</span>
+                    <button style={S.memDel} onClick={() => deleteMemory(m.id)} title="Remove">✕</button>
+                  </div>
+                  <div style={S.memKey}>{m.key}</div>
+                  <div style={S.memContent}>{m.content}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </aside>
+
+        {/* CHAT AREA */}
+        <main style={S.chatArea}>
+          <div style={S.messages}>
             {messages.map((msg, i) => (
-              <div key={`${msg.time}-${i}`} className={`ai-row ${msg.role}`}>
-                <div className="ai-face">{msg.role === 'ai' ? '🤖' : '👤'}</div>
-                <div className="ai-col">
+              <div key={`${i}-${msg.time}`} style={{ ...S.row, ...(msg.role === 'user' ? S.rowUser : {}) }}>
+                {/* Avatar */}
+                {msg.role === 'ai' && (
+                  <div style={S.aiAvatar}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" fill="#6366f1"/>
+                      <path d="M8 12h8M12 8v8" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                  </div>
+                )}
+
+                <div style={{ maxWidth: '72%', minWidth: 0 }}>
+                  {/* sender label */}
+                  <div style={S.senderLabel}>{msg.role === 'ai' ? 'RADHU AI' : 'You'}</div>
+
+                  {/* bubble */}
                   <div
-                    className={`ai-bubble ${msg.role} ${msg.isError ? 'error' : ''}`}
+                    style={{ ...S.bubble, ...(msg.role === 'user' ? S.bubbleUser : S.bubbleAi), ...(msg.isError ? S.bubbleErr : {}) }}
                     dangerouslySetInnerHTML={{ __html: formatMessage(msg.text) }}
                   />
-                  {msg.fileName && <div className="ai-meta">📎 {msg.fileName}</div>}
+
+                  {msg.fileName && <div style={S.meta}>📎 {msg.fileName}</div>}
+
+                  {/* proposed actions */}
                   {!!msg.proposed_actions?.length && (
-                    <div className="ai-actions">
-                      {msg.proposed_actions.filter((a) => !a.uiStatus || a.uiStatus === 'proposed' || a.uiStatus === 'failed').length > 1 && (
-                        <button
-                          type="button"
-                          className="ai-confirm"
-                          onClick={() => confirmAll(i, msg.proposed_actions)}
-                        >
+                    <div style={S.actionsWrap}>
+                      {msg.proposed_actions.filter(a => !a.uiStatus || a.uiStatus === 'proposed' || a.uiStatus === 'failed').length > 1 && (
+                        <button style={S.confirmAllBtn} onClick={() => confirmAll(i, msg.proposed_actions)}>
                           Confirm all (except delete)
                         </button>
                       )}
-                      {msg.proposed_actions.map((action) => (
-                        <div key={action.id} className={`ai-action ${action.risk_level} ${action.uiStatus || ''}`}>
-                          <div className="ai-action-title">{action.summary}</div>
-                          <div className="ai-action-meta">{action.module} · {action.action}</div>
-                          <pre className="ai-payload">{payloadPreview(action)}</pre>
+                      {msg.proposed_actions.map(action => (
+                        <div key={action.id} style={{ ...S.actionCard, ...(action.risk_level === 'high' ? S.actionHigh : {}) }}>
+                          <div style={S.actionTitle}>{action.summary}</div>
+                          <div style={S.actionMeta}>{action.module} · {action.action}</div>
+                          <pre style={S.actionPayload}>{payloadPreview(action)}</pre>
                           {action.requires_typed_delete && action.uiStatus !== 'executed' && action.uiStatus !== 'rejected' && (
                             <input
-                              className="ai-delete-input"
-                              placeholder='Type DELETE to confirm'
+                              style={S.deleteInput}
+                              placeholder="Type DELETE to confirm"
                               value={action.deleteTyped || ''}
-                              onChange={(e) => patchAction(i, action.id, { deleteTyped: e.target.value, uiError: '' })}
+                              onChange={e => patchAction(i, action.id, { deleteTyped: e.target.value, uiError: '' })}
                             />
                           )}
-                          {action.uiError && <div className="ai-action-err">{action.uiError}</div>}
-                          {action.uiStatus === 'executed' && <div className="ai-action-ok">Saved in ERP. Audit log updated.</div>}
-                          {action.uiStatus === 'rejected' && <div className="ai-action-err">Cancelled. Kuch save nahi hua.</div>}
+                          {action.uiError && <div style={S.actionErr}>{action.uiError}</div>}
+                          {action.uiStatus === 'executed' && <div style={S.actionOk}>✓ Saved in ERP. Audit log updated.</div>}
+                          {action.uiStatus === 'rejected' && <div style={S.actionErr}>Cancelled.</div>}
                           {(!action.uiStatus || action.uiStatus === 'proposed' || action.uiStatus === 'failed') && (
-                            <div className="ai-action-btns">
-                              <button type="button" className="ai-confirm" onClick={() => confirmAction(i, action)}>Confirm & save</button>
-                              <button type="button" className="ai-reject" onClick={() => rejectAction(i, action)}>Cancel</button>
+                            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                              <button style={S.confirmBtn} onClick={() => confirmAction(i, action)}>Confirm & Save</button>
+                              <button style={S.rejectBtn} onClick={() => rejectAction(i, action)}>Cancel</button>
                             </div>
                           )}
-                          {action.uiStatus === 'loading' && <div className="ai-meta">Saving...</div>}
+                          {action.uiStatus === 'loading' && <div style={S.meta}>Saving…</div>}
                         </div>
                       ))}
                     </div>
                   )}
-                  <div className="ai-meta">{msg.time}</div>
+
+                  <div style={S.meta}>{msg.time}</div>
                 </div>
+
+                {msg.role === 'user' && (
+                  <div style={S.userAvatar}>U</div>
+                )}
               </div>
             ))}
+
+            {/* typing indicator */}
             {loading && (
-              <div className="ai-row ai">
-                <div className="ai-face">🤖</div>
-                <div className="ai-bubble ai typing">
-                  <span /><span /><span />
+              <div style={S.row}>
+                <div style={S.aiAvatar}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" fill="#6366f1"/>
+                    <path d="M8 12h8M12 8v8" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                </div>
+                <div>
+                  <div style={S.senderLabel}>RADHU AI</div>
+                  <div style={{ ...S.bubble, ...S.bubbleAi, display: 'flex', gap: 5, alignItems: 'center', padding: '14px 18px' }}>
+                    <TypingDot delay={0} />
+                    <TypingDot delay={0.15} />
+                    <TypingDot delay={0.3} />
+                  </div>
                 </div>
               </div>
             )}
             <div ref={bottomRef} />
           </div>
 
-          <div className="ai-composer">
+          {/* ── COMPOSER ──────────────────────────────────── */}
+          <div style={S.composer}>
             {selectedFile && (
-              <div className="ai-file-preview">
-                <span>{selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)</span>
-                <button type="button" onClick={() => setSelectedFile(null)}>✕</button>
+              <div style={S.filePreview}>
+                <span>📎 {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)</span>
+                <button style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', fontSize: 16 }} onClick={() => setSelectedFile(null)}>✕</button>
               </div>
             )}
-            <div className="ai-input-row">
-              <button
-                type="button"
-                className="ai-icon-btn"
-                title="Upload file"
-                onClick={() => fileRef.current?.click()}
-              >
-                📎
+            <div style={S.inputRow}>
+              <button style={S.iconBtn} title="Upload file" onClick={() => fileRef.current?.click()}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </button>
-              <input
-                ref={fileRef}
-                type="file"
-                accept=".xlsx,.xls,.csv,.txt,.json,.jpg,.jpeg,.png,.webp"
-                hidden
-                onChange={(e) => {
-                  setSelectedFile(e.target.files?.[0] || null);
-                  e.target.value = '';
-                }}
-              />
+              <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv,.txt,.json,.jpg,.jpeg,.png,.webp" hidden onChange={e => { setSelectedFile(e.target.files?.[0] || null); e.target.value = ''; }} />
+
               <textarea
-                ref={inputRef}
+                ref={textareaRef}
                 value={input}
                 rows={1}
-                placeholder="Stock, party, orders, billing... Enter to send"
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                  }
-                }}
+                style={S.textarea}
+                placeholder="Kuch bhi pooch lo — stock, mixing, salary, formula, model, page…  (Enter to send)"
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
               />
+
               <button
-                type="button"
-                className="ai-send"
+                style={{ ...S.sendBtn, opacity: (loading || (!input.trim() && !selectedFile)) ? 0.45 : 1 }}
                 disabled={loading || (!input.trim() && !selectedFile)}
                 onClick={() => sendMessage()}
               >
-                {loading ? '...' : 'Send'}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M22 2L15 22 11 13 2 9l20-7z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </button>
             </div>
+            <div style={S.composerHint}>
+              Shift+Enter for new line &nbsp;·&nbsp; Excel upload supported &nbsp;·&nbsp; All data is factory-confidential
+            </div>
           </div>
-        </section>
+        </main>
       </div>
-
-      <style jsx global>{`
-        .ai-shell {
-          min-height: 100vh;
-          background: #070f1c;
-          color: #e2e8f0;
-          display: flex;
-          flex-direction: column;
-        }
-        .ai-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 12px;
-          padding: 14px 20px;
-          background: #0f172a;
-          border-bottom: 1px solid #1e293b;
-          flex-wrap: wrap;
-        }
-        .ai-header-left { display: flex; align-items: center; gap: 12px; }
-        .ai-avatar {
-          width: 44px; height: 44px; border-radius: 50%;
-          background: #1e293b;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 1.25rem;
-        }
-        .ai-header h1 { margin: 0; font-size: 1.15rem; font-weight: 800; color: #fff; }
-        .ai-header p { margin: 0; font-size: 0.75rem; color: #94a3b8; }
-        .ai-header-actions { display: flex; gap: 8px; }
-        .ai-btn {
-          padding: 7px 12px; border-radius: 8px;
-          background: rgba(255,255,255,0.08); color: #fff;
-          border: 1px solid rgba(255,255,255,0.15); cursor: pointer;
-          font-size: 0.78rem; font-weight: 600;
-        }
-        .ai-banner {
-          background: #7f1d1d; color: #fecaca; padding: 12px 20px; font-size: 0.85rem;
-        }
-        .ai-banner a { color: #fca5a5; font-weight: 700; }
-        .ai-body { display: flex; flex: 1; min-height: 0; }
-        .ai-sidebar {
-          width: 280px; min-width: 280px; padding: 16px;
-          background: #0f172a; border-right: 1px solid #1e293b;
-          display: flex; flex-direction: column; gap: 8px; overflow-y: auto;
-        }
-        .ai-side-label {
-          font-size: 0.68rem; font-weight: 700; color: #94a3b8;
-          text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px;
-        }
-        .ai-prompt {
-          text-align: left; padding: 10px 12px; border-radius: 10px;
-          background: #1e293b; border: 1px solid #334155; color: #e2e8f0;
-          cursor: pointer; font-size: 0.8rem; line-height: 1.4;
-        }
-        .ai-prompt:hover { background: #334155; }
-        .ai-file-card {
-          margin-top: 12px; padding: 12px; border-radius: 12px;
-          background: #1e293b; border: 1px solid #334155; font-size: 0.75rem; color: #94a3b8;
-        }
-        .ai-chat { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-        .ai-messages {
-          flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px;
-        }
-        .ai-row { display: flex; gap: 10px; align-items: flex-start; }
-        .ai-row.user { flex-direction: row-reverse; }
-        .ai-face {
-          width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
-          background: #1e293b;
-          display: flex; align-items: center; justify-content: center;
-        }
-        .ai-col { max-width: 75%; }
-        .ai-row.user .ai-col { text-align: right; }
-        .ai-bubble {
-          padding: 12px 16px; border-radius: 16px; font-size: 0.9rem; line-height: 1.65;
-          word-break: break-word;
-        }
-        .ai-bubble.user {
-          background: #1e293b; color: #fff;
-          border-radius: 16px 16px 4px 16px;
-        }
-        .ai-bubble.ai {
-          background: #1e293b; border: 1px solid #334155; color: #f1f5f9;
-          border-radius: 4px 16px 16px 16px;
-        }
-        .ai-bubble.error { color: #fca5a5; }
-        .ai-meta { font-size: 0.68rem; color: #64748b; margin-top: 4px; }
-        .ai-pre {
-          background: #020617; padding: 10px; border-radius: 8px;
-          overflow-x: auto; font-size: 0.8rem; margin: 8px 0;
-        }
-        .ai-code { background: #0f172a; padding: 1px 6px; border-radius: 4px; font-size: 0.85em; }
-        .ai-h { font-weight: 800; margin: 8px 0 4px; }
-        .ai-actions { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; text-align: left; }
-        .ai-action {
-          padding: 12px; border-radius: 12px; background: #0b1220;
-          border: 1px solid #334155;
-        }
-        .ai-action.high { border-color: #ef4444; }
-        .ai-action-title { font-weight: 700; font-size: 0.85rem; color: #f8fafc; }
-        .ai-action-meta { font-size: 0.72rem; color: #94a3b8; margin: 4px 0 8px; }
-        .ai-payload {
-          background: #020617; color: #cbd5e1; font-size: 0.72rem;
-          padding: 8px; border-radius: 8px; margin: 0 0 8px; white-space: pre-wrap;
-          max-height: 140px; overflow: auto;
-        }
-        .ai-delete-input {
-          width: 100%; margin-bottom: 8px; padding: 8px 10px; border-radius: 8px;
-          border: 1px solid #7f1d1d; background: #1e293b; color: #fecaca; font: inherit;
-        }
-        .ai-action-btns { display: flex; gap: 8px; }
-        .ai-confirm, .ai-reject {
-          border: none; cursor: pointer; border-radius: 8px; padding: 8px 12px;
-          font-weight: 700; font-size: 0.78rem;
-        }
-        .ai-confirm { background: #059669; color: #fff; }
-        .ai-reject { background: #334155; color: #e2e8f0; }
-        .ai-action-ok { color: #6ee7b7; font-size: 0.78rem; }
-        .ai-action-err { color: #fca5a5; font-size: 0.78rem; margin-bottom: 6px; }
-        .ai-composer {
-          padding: 14px 18px; background: #0f172a; border-top: 1px solid #1e293b;
-        }
-        .ai-file-preview {
-          display: flex; justify-content: space-between; align-items: center;
-          margin-bottom: 8px; padding: 8px 12px; border-radius: 8px;
-          background: rgba(124,58,237,0.15); color: #c4b5fd; font-size: 0.8rem;
-        }
-        .ai-file-preview button { background: none; border: none; color: #f87171; cursor: pointer; }
-        .ai-input-row { display: flex; gap: 8px; align-items: flex-end; }
-        .ai-icon-btn, .ai-send {
-          border: none; cursor: pointer; border-radius: 12px; padding: 12px 14px;
-        }
-        .ai-icon-btn { background: #1e293b; color: #cbd5e1; }
-        .ai-input-row textarea {
-          flex: 1; min-height: 44px; max-height: 120px; resize: none;
-          border-radius: 12px; border: 1px solid #334155; background: #1e293b;
-          color: #f1f5f9; padding: 12px 14px; font: inherit;
-        }
-        .ai-send {
-          background: #1e293b; color: #fff; font-weight: 700;
-        }
-        .ai-send:disabled { opacity: 0.45; cursor: not-allowed; }
-        .ai-bubble.typing { display: flex; gap: 6px; align-items: center; }
-        .ai-bubble.typing span {
-          width: 8px; height: 8px; border-radius: 50%; background: #a78bfa;
-          
-        }
-        .ai-bubble.typing span:nth-child(2) { animation-delay: 0.15s; }
-        .ai-bubble.typing span:nth-child(3) { animation-delay: 0.3s; }
-        @keyframes aiBounce {
-          0%, 80%, 100% { transform: scale(0.5); opacity: 0.4; }
-          40% { transform: scale(1); opacity: 1; }
-        }
-        @media (max-width: 900px) {
-          .ai-sidebar { width: 100%; min-width: 0; border-right: none; border-bottom: 1px solid #1e293b; max-height: 240px; }
-          .ai-body { flex-direction: column; }
-          .ai-col { max-width: 90%; }
-        }
-      `}</style>
     </div>
   );
+}
+
+// ── Typing dot sub-component ───────────────────────────────
+function TypingDot({ delay }) {
+  return (
+    <span style={{
+      width: 7, height: 7, borderRadius: '50%', background: '#6366f1', display: 'inline-block',
+      animation: `radhuBounce 1.2s ${delay}s ease-in-out infinite`,
+    }} />
+  );
+}
+
+// ── Badge color helper ─────────────────────────────────────
+function badgeColor(cat) {
+  const map = {
+    rule: { background: 'rgba(239,68,68,0.15)', color: '#f87171' },
+    formula: { background: 'rgba(99,102,241,0.15)', color: '#a5b4fc' },
+    correction: { background: 'rgba(234,179,8,0.15)', color: '#fde047' },
+    preference: { background: 'rgba(20,184,166,0.15)', color: '#5eead4' },
+    party_note: { background: 'rgba(249,115,22,0.15)', color: '#fb923c' },
+    general: { background: 'rgba(148,163,184,0.15)', color: '#94a3b8' },
+  };
+  return map[cat] || map.general;
+}
+
+// ────────────────────────────────────────────────────────────
+// STYLES (plain JS objects — no CSS-in-JS library needed)
+// ────────────────────────────────────────────────────────────
+const S = {
+  shell: {
+    minHeight: '100vh', height: '100vh', background: '#0a0f1e',
+    color: '#e2e8f0', display: 'flex', flexDirection: 'column', fontFamily: "'Inter', 'Segoe UI', sans-serif",
+    overflow: 'hidden',
+  },
+  header: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    padding: '12px 20px', background: 'rgba(15,23,42,0.95)',
+    borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0,
+    backdropFilter: 'blur(10px)', zIndex: 100,
+  },
+  headerLeft: { display: 'flex', alignItems: 'center', gap: 12 },
+  logo: {
+    width: 36, height: 36, borderRadius: 10, background: 'rgba(99,102,241,0.15)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    border: '1px solid rgba(99,102,241,0.3)',
+  },
+  appName: { fontSize: '0.95rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' },
+  appSub: { fontSize: '0.72rem', color: '#64748b', marginTop: 1 },
+  headerRight: { display: 'flex', gap: 8 },
+  hBtn: {
+    padding: '7px 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600,
+    background: 'rgba(255,255,255,0.05)', color: '#cbd5e1',
+    border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer',
+  },
+  body: { display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' },
+
+  // Sidebar
+  sidebar: {
+    width: 280, minWidth: 280, background: 'rgba(15,23,42,0.7)',
+    borderRight: '1px solid rgba(255,255,255,0.06)',
+    display: 'flex', flexDirection: 'column', overflow: 'hidden',
+  },
+  tabs: { display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 },
+  tab: {
+    flex: 1, padding: '10px 4px', fontSize: '0.75rem', fontWeight: 600,
+    background: 'none', border: 'none', color: '#64748b', cursor: 'pointer',
+    borderBottom: '2px solid transparent', transition: 'all 0.15s',
+  },
+  tabActive: { color: '#a5b4fc', borderBottomColor: '#6366f1' },
+  sideSection: {
+    flex: 1, overflowY: 'auto', padding: '12px 10px',
+    display: 'flex', flexDirection: 'column', gap: 6,
+  },
+  sideLabel: { fontSize: '0.66rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '4px 2px' },
+  sideItem: {
+    textAlign: 'left', padding: '9px 10px', borderRadius: 8,
+    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)',
+    color: '#cbd5e1', cursor: 'pointer', fontSize: '0.77rem', lineHeight: 1.45,
+    transition: 'background 0.15s',
+  },
+  sideEmpty: { fontSize: '0.75rem', color: '#475569', padding: '8px 4px', lineHeight: 1.6 },
+
+  // Memory
+  memInput: {
+    width: '100%', padding: '8px 10px', borderRadius: 8, fontSize: '0.78rem',
+    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+    color: '#e2e8f0', outline: 'none', boxSizing: 'border-box',
+  },
+  memSaveBtn: {
+    padding: '9px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
+    background: '#6366f1', color: '#fff', border: 'none', cursor: 'pointer', width: '100%',
+  },
+  memDivider: { borderTop: '1px solid rgba(255,255,255,0.06)', margin: '4px 0' },
+  memCard: {
+    padding: '10px', borderRadius: 10, background: 'rgba(255,255,255,0.03)',
+    border: '1px solid rgba(255,255,255,0.07)',
+  },
+  memCardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  memBadge: { fontSize: '0.66rem', fontWeight: 700, padding: '2px 7px', borderRadius: 100, textTransform: 'uppercase' },
+  memDel: { background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: 12, padding: 2 },
+  memKey: { fontSize: '0.78rem', fontWeight: 700, color: '#e2e8f0', marginBottom: 4 },
+  memContent: { fontSize: '0.72rem', color: '#94a3b8', lineHeight: 1.55 },
+
+  // Chat
+  chatArea: { flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' },
+  messages: { flex: 1, overflowY: 'auto', padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: 24 },
+  row: { display: 'flex', gap: 14, alignItems: 'flex-start' },
+  rowUser: { flexDirection: 'row-reverse' },
+  aiAvatar: {
+    width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+    background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
+  userAvatar: {
+    width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+    background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8',
+  },
+  senderLabel: { fontSize: '0.7rem', fontWeight: 700, color: '#475569', marginBottom: 5 },
+  bubble: { padding: '12px 16px', borderRadius: 14, fontSize: '0.88rem', lineHeight: 1.7, wordBreak: 'break-word' },
+  bubbleAi: {
+    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+    color: '#e2e8f0', borderRadius: '2px 14px 14px 14px',
+  },
+  bubbleUser: {
+    background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.25)',
+    color: '#e2e8f0', borderRadius: '14px 2px 14px 14px',
+  },
+  bubbleErr: { borderColor: 'rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.05)' },
+  meta: { fontSize: '0.67rem', color: '#334155', marginTop: 6 },
+
+  // Actions
+  actionsWrap: { marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 },
+  confirmAllBtn: {
+    padding: '8px 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
+    background: 'rgba(5,150,105,0.15)', color: '#6ee7b7', border: '1px solid rgba(5,150,105,0.3)', cursor: 'pointer',
+  },
+  actionCard: {
+    padding: '12px', borderRadius: 12,
+    background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)',
+  },
+  actionHigh: { borderColor: 'rgba(239,68,68,0.35)' },
+  actionTitle: { fontSize: '0.82rem', fontWeight: 700, color: '#f8fafc', marginBottom: 2 },
+  actionMeta: { fontSize: '0.7rem', color: '#64748b', marginBottom: 8 },
+  actionPayload: {
+    background: 'rgba(0,0,0,0.25)', color: '#94a3b8', fontSize: '0.7rem',
+    padding: 8, borderRadius: 8, margin: '0 0 8px', whiteSpace: 'pre-wrap', maxHeight: 120, overflow: 'auto',
+    border: '1px solid rgba(255,255,255,0.05)',
+  },
+  deleteInput: {
+    width: '100%', marginBottom: 8, padding: '8px 10px', borderRadius: 8,
+    border: '1px solid rgba(239,68,68,0.4)', background: 'rgba(239,68,68,0.05)',
+    color: '#fca5a5', fontSize: '0.82rem', boxSizing: 'border-box',
+  },
+  confirmBtn: {
+    padding: '7px 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
+    background: '#059669', color: '#fff', border: 'none', cursor: 'pointer',
+  },
+  rejectBtn: {
+    padding: '7px 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
+    background: 'rgba(255,255,255,0.06)', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer',
+  },
+  actionOk: { color: '#6ee7b7', fontSize: '0.75rem', marginTop: 4 },
+  actionErr: { color: '#f87171', fontSize: '0.75rem', marginTop: 4 },
+
+  // Composer
+  composer: {
+    padding: '14px 24px 16px', background: 'rgba(10,15,30,0.95)',
+    borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0,
+  },
+  filePreview: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    marginBottom: 10, padding: '8px 12px', borderRadius: 10,
+    background: 'rgba(99,102,241,0.1)', color: '#a5b4fc', fontSize: '0.78rem',
+    border: '1px solid rgba(99,102,241,0.2)',
+  },
+  inputRow: { display: 'flex', gap: 10, alignItems: 'flex-end' },
+  iconBtn: {
+    padding: '11px', borderRadius: 10, background: 'rgba(255,255,255,0.05)',
+    border: '1px solid rgba(255,255,255,0.1)', color: '#64748b', cursor: 'pointer',
+    display: 'flex', alignItems: 'center', flexShrink: 0,
+  },
+  textarea: {
+    flex: 1, minHeight: 44, maxHeight: 180, resize: 'none', borderRadius: 12,
+    border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)',
+    color: '#f1f5f9', padding: '12px 16px', fontSize: '0.88rem', lineHeight: 1.6,
+    outline: 'none', fontFamily: 'inherit',
+  },
+  sendBtn: {
+    padding: '11px 14px', borderRadius: 12, background: '#6366f1', color: '#fff',
+    border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0,
+    transition: 'opacity 0.15s',
+  },
+  composerHint: { fontSize: '0.67rem', color: '#334155', marginTop: 8, textAlign: 'center' },
+};
+
+// ── Global animation (injected once) ──────────────────────
+if (typeof window !== 'undefined' && !document.getElementById('radhu-ai-anim')) {
+  const style = document.createElement('style');
+  style.id = 'radhu-ai-anim';
+  style.textContent = `
+    @keyframes radhuBounce {
+      0%,80%,100% { transform: scale(0.4); opacity: 0.4; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+    .r-h2 { font-size:1.05em; font-weight:800; margin:10px 0 4px; color:#f8fafc; }
+    .r-h3 { font-size:0.95em; font-weight:700; margin:8px 0 4px; color:#f1f5f9; }
+    .r-h4 { font-size:0.88em; font-weight:700; margin:6px 0 2px; color:#e2e8f0; }
+    .r-pre { background:rgba(0,0,0,0.35); padding:12px 14px; border-radius:10px; overflow-x:auto;
+              font-size:0.8em; margin:10px 0; border:1px solid rgba(255,255,255,0.06); }
+    .r-code { background:rgba(99,102,241,0.12); padding:1px 6px; border-radius:5px; font-size:0.85em; color:#a5b4fc; }
+    .r-li { padding:2px 0 2px 14px; position:relative; }
+    .r-li::before { content:"•"; position:absolute; left:2px; color:#6366f1; }
+    .r-li-num::before { content:counter(li) "."; counter-increment:li; }
+    .r-tr { display:flex; gap:0; border-bottom:1px solid rgba(255,255,255,0.06); }
+    .r-td { flex:1; padding:4px 8px; font-size:0.82em; color:#cbd5e1; border-right:1px solid rgba(255,255,255,0.06); }
+    .r-hr { border:none; border-top:1px solid rgba(255,255,255,0.07); margin:12px 0; }
+    * { scrollbar-width: thin; scrollbar-color: rgba(99,102,241,0.3) transparent; }
+    *::-webkit-scrollbar { width:5px; height:5px; }
+    *::-webkit-scrollbar-thumb { background:rgba(99,102,241,0.3); border-radius:10px; }
+  `;
+  document.head.appendChild(style);
 }
