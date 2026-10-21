@@ -100,7 +100,7 @@ export default function Navbar() {
     { name: 'Sale', path: '/cycletyres/sale', icon: 'fas fa-shopping-cart', color: '#ef4444', key: 'cycletyre_add_sale' },
     { name: 'Adjustment', path: '/cycletyres/adjustment', icon: 'fas fa-sliders-h', color: '#8b5cf6', key: 'cycletyre_add_adjustment' },
     { name: 'Entries', path: '/cycletyres/entries', icon: 'fas fa-history', key: 'cycletyre_entries_log' },
-    { name: 'Passbook 📖', path: '/cycletyres/passbook', icon: 'fas fa-book', color: '#6366f1', key: 'cycletyre_dashboard' },
+    { name: 'Passbook', path: '/cycletyres/passbook', icon: 'fas fa-book', color: '#6366f1', key: 'cycletyre_dashboard' },
     { name: 'Report', path: '/cycletyres/report', icon: 'fas fa-chart-bar', key: 'cycletyre_monthly_report' },
     { name: 'Summary', path: '/cycletyres/summary', icon: 'fas fa-list-alt', color: '#14b8a6', key: 'cycletyre_daily_summary' },
     { name: 'Sheet', path: '/cycletyres/production-sheet', icon: 'fas fa-file-alt', key: 'cycletyre_production_sheet' },
