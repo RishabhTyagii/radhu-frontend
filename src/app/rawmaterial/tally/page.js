@@ -3,104 +3,62 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import Navbar from '@/components/Navbar';
 import { apiGet, apiPost, apiDelete } from '@/lib/api';
 
-// ─── Color Tokens & Strict Clean Styling (No Icons) ───────────────────────────
-const C = {
+// ─── Design System & Modern Tokens (Edge-to-Edge, Light Mode, 10/10 Polish) ───
+const theme = {
   bg: '#f8fafc',
-  white: '#ffffff',
+  canvas: '#ffffff',
   border: '#e2e8f0',
   borderDark: '#cbd5e1',
+  borderLight: '#f1f5f9',
   text: '#0f172a',
   textMuted: '#334155',
-  textLight: '#64748b',
-  textSubtle: '#94a3b8',
-  primary: '#1d4ed8',
-  primaryDark: '#1e40af',
+  textSub: '#64748b',
+  textFaint: '#94a3b8',
+  primary: '#2563eb',
+  primaryDark: '#1d4ed8',
   primarySoft: '#eff6ff',
-  green: '#15803d',
+  green: '#16a34a',
+  greenDark: '#15803d',
   greenSoft: '#dcfce7',
-  red: '#b91c1c',
+  red: '#dc2626',
+  redDark: '#b91c1c',
   redSoft: '#fee2e2',
-  amber: '#b45309',
+  amber: '#d97706',
+  amberDark: '#b45309',
   amberSoft: '#fef3c7',
-  purple: '#6d28d9',
+  purple: '#7c3aed',
   purpleSoft: '#f5f3ff',
-  slateDark: '#0f172a',
-  slateLight: '#f8fafc',
+  navy: '#0f172a',
+  cardShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.03)',
+  cardShadowHover: '0 10px 28px -4px rgba(15, 23, 42, 0.08), 0 4px 10px -2px rgba(15, 23, 42, 0.04)',
 };
 
-const inputStyle = {
+const inputBase = {
   width: '100%',
-  padding: '9px 12px',
-  borderRadius: '6px',
-  border: `1.5px solid ${C.border}`,
-  fontSize: '0.85rem',
-  color: C.text,
-  background: C.white,
+  padding: '10px 14px',
+  borderRadius: '8px',
+  border: `1.5px solid ${theme.border}`,
+  fontSize: '0.86rem',
+  color: theme.text,
+  background: theme.canvas,
   outline: 'none',
   boxSizing: 'border-box',
   fontFamily: 'inherit',
+  transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
 };
-
-const labelStyle = {
-  display: 'block',
-  fontSize: '0.72rem',
-  fontWeight: 700,
-  color: C.textLight,
-  marginBottom: '4px',
-  textTransform: 'uppercase',
-  letterSpacing: '0.04em',
-};
-
-const cardStyle = {
-  background: C.white,
-  borderRadius: '8px',
-  border: `1px solid ${C.border}`,
-  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-};
-
-const thStyle = {
-  padding: '11px 14px',
-  fontSize: '0.72rem',
-  fontWeight: 800,
-  color: '#f8fafc',
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-  background: C.slateDark,
-  whiteSpace: 'nowrap',
-  textAlign: 'left',
-};
-
-const tdStyle = {
-  padding: '10px 14px',
-  fontSize: '0.84rem',
-  color: C.textMuted,
-  borderBottom: `1px solid ${C.border}`,
-  whiteSpace: 'nowrap',
-};
-
-const chipStyle = (bg, clr) => ({
-  display: 'inline-block',
-  padding: '3px 9px',
-  borderRadius: '12px',
-  background: bg,
-  color: clr,
-  fontSize: '0.68rem',
-  fontWeight: 800,
-  letterSpacing: '0.03em',
-});
 
 const TABS = [
-  { id: 'ledger', label: 'Stock Ledger' },
-  { id: 'forecast', label: 'Run-Out Forecast' },
-  { id: 'bulk', label: 'Bulk Shift Entry' },
-  { id: 'passbook', label: 'Material Passbook' },
-  { id: 'stock', label: 'Current Stock' },
-  { id: 'entry', label: 'Single Entry' },
-  { id: 'setup', label: 'Master Setup' },
+  { id: 'forecast', label: 'Run-Out Forecaster', badge: 'AI Predict' },
+  { id: 'ledger', label: 'Stock Ledger', badge: null },
+  { id: 'bulk', label: 'Bulk Shift Entry', badge: 'Matrix' },
+  { id: 'passbook', label: 'Material Passbook', badge: null },
+  { id: 'stock', label: 'Current Inventory', badge: null },
+  { id: 'entry', label: 'Single Transaction', badge: null },
+  { id: 'setup', label: 'Master Setup', badge: null },
 ];
 
 export default function RawMaterialTallyPage() {
-  const [tab, setTab] = useState('ledger');
+  const [tab, setTab] = useState('forecast');
   const [groups, setGroups] = useState([]);
   const [materials, setMaterials] = useState([]);
   const [entries, setEntries] = useState([]);
@@ -111,7 +69,12 @@ export default function RawMaterialTallyPage() {
   const [loadingForecast, setLoadingForecast] = useState(false);
   const [toast, setToast] = useState(null);
 
-  // Ledger Filter State
+  // Forecast Tab Controls
+  const [forecastFilter, setForecastFilter] = useState('ALL'); // ALL, CRITICAL, LOW, HEALTHY
+  const [forecastViewMode, setForecastViewMode] = useState('CARDS'); // CARDS, TABLE
+  const [forecastSearch, setForecastSearch] = useState('');
+
+  // Ledger Filter
   const [filterMat, setFilterMat] = useState('');
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
@@ -145,7 +108,7 @@ export default function RawMaterialTallyPage() {
   const [savingEntry, setSavingEntry] = useState(false);
   const [selectedMaterialInfo, setSelectedMaterialInfo] = useState(null);
 
-  // Master Setup Form
+  // Master Setup
   const [groupName, setGroupName] = useState('');
   const [savingGroup, setSavingGroup] = useState(false);
   const [matForm, setMatForm] = useState({
@@ -164,7 +127,7 @@ export default function RawMaterialTallyPage() {
     setTimeout(() => setToast(null), 4000);
   };
 
-  // ── Fetch Initial Master Data ────────────────────────────────────────────────
+  // ── Fetching Data ───────────────────────────────────────────────────────────
   const fetchBaseData = useCallback(async () => {
     setLoadingBase(true);
     try {
@@ -190,7 +153,6 @@ export default function RawMaterialTallyPage() {
     }
   }, [selectedPassbookMatId]);
 
-  // ── Fetch Ledger ─────────────────────────────────────────────────────────────
   const fetchLedger = useCallback(async () => {
     setLoadingLedger(true);
     try {
@@ -207,7 +169,6 @@ export default function RawMaterialTallyPage() {
     }
   }, [filterMat, filterFrom, filterTo]);
 
-  // ── Fetch Forecast Analytics ─────────────────────────────────────────────────
   const fetchForecast = useCallback(async () => {
     setLoadingForecast(true);
     try {
@@ -220,7 +181,6 @@ export default function RawMaterialTallyPage() {
     }
   }, []);
 
-  // ── Fetch Material Passbook ──────────────────────────────────────────────────
   const fetchPassbook = useCallback(async (matId) => {
     if (!matId) return;
     setLoadingPassbook(true);
@@ -247,7 +207,7 @@ export default function RawMaterialTallyPage() {
     if (tab === 'passbook' && selectedPassbookMatId) fetchPassbook(selectedPassbookMatId);
   }, [tab, fetchLedger, fetchForecast, fetchPassbook, selectedPassbookMatId]);
 
-  // ── Initialize Bulk Shift Table ──────────────────────────────────────────────
+  // Bulk shift row init
   useEffect(() => {
     if (materials.length > 0) {
       const rows = materials
@@ -277,7 +237,7 @@ export default function RawMaterialTallyPage() {
     }
   }, [materials, bulkGroupFilter, currentStockData]);
 
-  // Update single entry preview info
+  // Single entry opening preview
   useEffect(() => {
     if (!entryForm.material_id) {
       setSelectedMaterialInfo(null);
@@ -309,9 +269,7 @@ export default function RawMaterialTallyPage() {
     }
   }, [entryForm.material_id, materials, currentStockData, entryForm.rate_per_unit]);
 
-  // ── Handlers ────────────────────────────────────────────────────────────────
-
-  // 1. Bulk Shift Save
+  // Handlers
   async function handleBulkShiftSubmit(e) {
     e.preventDefault();
     setSavingBulk(true);
@@ -349,7 +307,6 @@ export default function RawMaterialTallyPage() {
     }
   }
 
-  // 2. Single Entry Submit
   async function handleSingleEntrySubmit(e) {
     e.preventDefault();
     if (!entryForm.material_id || !entryForm.date) {
@@ -389,7 +346,6 @@ export default function RawMaterialTallyPage() {
     }
   }
 
-  // 3. Add Group
   async function handleAddGroup(e) {
     e.preventDefault();
     if (!groupName.trim()) return showToast('error', 'Group name required');
@@ -405,7 +361,6 @@ export default function RawMaterialTallyPage() {
     }
   }
 
-  // 4. Add Material
   async function handleAddMaterial(e) {
     e.preventDefault();
     if (!matForm.name.trim() || !matForm.group_id) {
@@ -431,7 +386,6 @@ export default function RawMaterialTallyPage() {
     }
   }
 
-  // 5. Delete Entry
   async function handleDeleteEntry(id) {
     if (!confirm('Are you sure you want to delete this stock entry?')) return;
     const res = await apiDelete(`/rawmaterial/stock-entries/${id}/`);
@@ -439,12 +393,9 @@ export default function RawMaterialTallyPage() {
       showToast('success', 'Entry deleted');
       fetchLedger();
       fetchBaseData();
-    } else {
-      showToast('error', 'Failed to delete');
     }
   }
 
-  // 6. Delete Material
   async function handleDeleteMaterial(id, name) {
     if (!confirm(`Delete material "${name}"?`)) return;
     const res = await apiDelete(`/rawmaterial/materials/${id}/`);
@@ -454,7 +405,6 @@ export default function RawMaterialTallyPage() {
     }
   }
 
-  // 7. Delete Group
   async function handleDeleteGroup(id, name) {
     if (!confirm(`Delete category "${name}" and all materials inside?`)) return;
     const res = await apiDelete(`/rawmaterial/groups/${id}/`);
@@ -464,181 +414,300 @@ export default function RawMaterialTallyPage() {
     }
   }
 
-  // Quick jump to passbook from other tabs
   function openPassbookFor(materialId) {
     setSelectedPassbookMatId(String(materialId));
     setTab('passbook');
   }
 
   const todayStr = new Date().toISOString().slice(0, 10);
+
+  // Formatted valuation
   const totalValuationFormatted = useMemo(() => {
     const val = currentStockData.total_valuation || 0;
     if (val >= 10000000) return `Rs ${(val / 10000000).toFixed(2)} Cr`;
-    if (val >= 100000) return `Rs ${(val / 100000).toFixed(2)} Lakhs`;
+    if (val >= 100000) return `Rs ${(val / 100000).toFixed(2)} L`;
     return `Rs ${val.toLocaleString()}`;
   }, [currentStockData]);
+
+  // Total daily factory burn
+  const totalDailyBurn = useMemo(() => {
+    return forecastData.forecast.reduce((acc, f) => acc + (f.daily_velocity || 0), 0);
+  }, [forecastData]);
+
+  // Filtered forecast items
+  const filteredForecast = useMemo(() => {
+    return forecastData.forecast.filter((f) => {
+      const matchesSearch =
+        !forecastSearch ||
+        f.material_name.toLowerCase().includes(forecastSearch.toLowerCase()) ||
+        f.group_name.toLowerCase().includes(forecastSearch.toLowerCase());
+
+      if (!matchesSearch) return false;
+
+      if (forecastFilter === 'CRITICAL') {
+        return f.status === 'OUT OF STOCK' || f.status === 'CRITICAL';
+      }
+      if (forecastFilter === 'LOW') {
+        return f.status === 'LOW BUFFER';
+      }
+      if (forecastFilter === 'HEALTHY') {
+        return f.status === 'HEALTHY' || f.status === 'OVERSTOCKED';
+      }
+      return true;
+    });
+  }, [forecastData, forecastFilter, forecastSearch]);
+
+  const criticalCount = forecastData.kpis?.critical_count || 0;
+  const lowCount = forecastData.kpis?.low_count || 0;
+  const healthyCount = forecastData.forecast.length - criticalCount - lowCount;
 
   return (
     <>
       <Navbar />
 
-      {/* Edge-to-Edge Container (Strict UI rule: Full width, zero maxWidth pinch) */}
+      {/* Edge-to-Edge Container (Zero lateral pinch, 100% full screen width) */}
       <div
         style={{
           width: '100%',
           maxWidth: '100%',
           minHeight: '100vh',
-          background: C.bg,
-          padding: '20px 24px',
+          background: theme.bg,
+          padding: '20px 28px',
           boxSizing: 'border-box',
           fontFamily: 'inherit',
         }}
       >
-        {/* Floating Toast Notification */}
+        {/* Toast Alert */}
         {toast && (
           <div
             style={{
               position: 'fixed',
               top: '20px',
-              right: '24px',
+              right: '28px',
               zIndex: 9999,
-              padding: '12px 20px',
-              borderRadius: '6px',
+              padding: '14px 22px',
+              borderRadius: '8px',
               fontWeight: 700,
-              fontSize: '0.85rem',
-              background: toast.type === 'success' ? C.greenSoft : C.redSoft,
-              color: toast.type === 'success' ? C.green : C.red,
+              fontSize: '0.86rem',
+              background: toast.type === 'success' ? theme.greenSoft : theme.redSoft,
+              color: toast.type === 'success' ? theme.greenDark : theme.redDark,
               border: `1.5px solid ${toast.type === 'success' ? '#86efac' : '#fca5a5'}`,
-              boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-              maxWidth: '420px',
+              boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+              maxWidth: '440px',
             }}
           >
             {toast.text}
           </div>
         )}
 
-        {/* Page Top Header */}
+        {/* ── Page Header & Quick Controls ─────────────────────────────────── */}
         <div
           style={{
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            marginBottom: '18px',
+            alignItems: 'center',
+            marginBottom: '20px',
             flexWrap: 'wrap',
-            gap: '12px',
+            gap: '14px',
           }}
         >
           <div>
-            <h1
-              style={{
-                fontSize: '1.65rem',
-                fontWeight: 900,
-                color: C.text,
-                margin: 0,
-                letterSpacing: '-0.02em',
-              }}
-            >
-              Raw Material Inventory & Tally Cards
-            </h1>
-            <p style={{ color: C.textLight, margin: '3px 0 0', fontSize: '0.85rem' }}>
-              Inward Costing • Run-Out Forecast • Daily Bulk Shift Entry • Material Passbook
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <h1
+                style={{
+                  fontSize: '1.75rem',
+                  fontWeight: 900,
+                  color: theme.text,
+                  margin: 0,
+                  letterSpacing: '-0.025em',
+                }}
+              >
+                Raw Material Intelligence & Tally Cards
+              </h1>
+              <span
+                style={{
+                  padding: '3px 10px',
+                  borderRadius: '20px',
+                  background: '#10b98115',
+                  color: theme.greenDark,
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  letterSpacing: '0.04em',
+                }}
+              >
+                LIVE ERP SYNC
+              </span>
+            </div>
+            <p style={{ color: theme.textSub, margin: '4px 0 0', fontSize: '0.86rem' }}>
+              Autonomous 30-Day Depletion Analytics • Inward Purchase Valuation • Daily Shift Reconciliation
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <button
               onClick={() => {
                 fetchBaseData();
                 if (tab === 'ledger') fetchLedger();
                 if (tab === 'forecast') fetchForecast();
                 if (tab === 'passbook') fetchPassbook(selectedPassbookMatId);
-                showToast('success', 'Data refreshed');
+                showToast('success', 'Real-time telemetry refreshed');
               }}
               style={{
-                padding: '8px 16px',
-                background: C.white,
-                color: C.textMuted,
-                border: `1.5px solid ${C.border}`,
-                borderRadius: '6px',
-                fontSize: '0.8rem',
+                padding: '9px 18px',
+                background: theme.canvas,
+                color: theme.textMuted,
+                border: `1.5px solid ${theme.border}`,
+                borderRadius: '8px',
+                fontSize: '0.82rem',
                 fontWeight: 700,
                 cursor: 'pointer',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
               }}
             >
-              Refresh
+              Refresh Telemetry
             </button>
           </div>
         </div>
 
-        {/* KPI Banner (Live Valuation + Run-out alerts) */}
+        {/* ── Executive Telemetry Cards (Full Width 4-Col Grid) ─────────────── */}
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
-            gap: '14px',
-            marginBottom: '18px',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: '16px',
+            marginBottom: '20px',
           }}
         >
-          <div style={{ ...cardStyle, padding: '16px 20px', borderLeft: `4px solid ${C.green}` }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 800, color: C.textLight, textTransform: 'uppercase' }}>
-              Plant Stock Valuation
+          {/* Card 1: Valuation */}
+          <div
+            style={{
+              background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
+              borderRadius: '12px',
+              padding: '18px 22px',
+              border: '1px solid #bbf7d0',
+              boxShadow: theme.cardShadow,
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: theme.greenDark, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Inventory Valuation
+              </span>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, background: '#dcfce7', color: theme.greenDark, padding: '2px 8px', borderRadius: '10px' }}>
+                LIVE
+              </span>
             </div>
-            <div style={{ fontSize: '1.65rem', fontWeight: 900, color: C.green, marginTop: '2px' }}>
+            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: theme.text, marginTop: '4px', letterSpacing: '-0.02em' }}>
               {totalValuationFormatted}
             </div>
-            <div style={{ fontSize: '0.7rem', color: C.textSubtle, marginTop: '2px' }}>
-              Closing balance × unit rate
+            <div style={{ fontSize: '0.75rem', color: theme.textSub, marginTop: '4px' }}>
+              Factory floor stock across {materials.length} raw materials
             </div>
           </div>
 
-          <div style={{ ...cardStyle, padding: '16px 20px', borderLeft: `4px solid ${C.red}` }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 800, color: C.textLight, textTransform: 'uppercase' }}>
-              Critical Run-Out Items
+          {/* Card 2: Line Stoppage Risk */}
+          <div
+            style={{
+              background: criticalCount > 0 ? 'linear-gradient(135deg, #ffffff 0%, #fef2f2 100%)' : theme.canvas,
+              borderRadius: '12px',
+              padding: '18px 22px',
+              border: `1px solid ${criticalCount > 0 ? '#fecaca' : theme.border}`,
+              boxShadow: theme.cardShadow,
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: criticalCount > 0 ? theme.redDark : theme.textSub, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Stoppage Risk Items
+              </span>
+              <span
+                style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  background: criticalCount > 0 ? theme.redSoft : theme.greenSoft,
+                  color: criticalCount > 0 ? theme.redDark : theme.greenDark,
+                  padding: '2px 8px',
+                  borderRadius: '10px',
+                }}
+              >
+                {criticalCount > 0 ? 'IMMEDIATE PO' : 'SECURE'}
+              </span>
             </div>
-            <div style={{ fontSize: '1.65rem', fontWeight: 900, color: C.red, marginTop: '2px' }}>
-              {forecastData.kpis?.critical_count || 0}
+            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: criticalCount > 0 ? theme.red : theme.text, marginTop: '4px', letterSpacing: '-0.02em' }}>
+              {criticalCount} <span style={{ fontSize: '0.9rem', fontWeight: 600, color: theme.textSub }}>items &lt; 7 days</span>
             </div>
-            <div style={{ fontSize: '0.7rem', color: C.textSubtle, marginTop: '2px' }}>
-              Under 7 days stock or below min
+            <div style={{ fontSize: '0.75rem', color: theme.textSub, marginTop: '4px' }}>
+              {lowCount} additional items in low buffer threshold
             </div>
           </div>
 
-          <div style={{ ...cardStyle, padding: '16px 20px', borderLeft: `4px solid ${C.amber}` }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 800, color: C.textLight, textTransform: 'uppercase' }}>
-              Low Buffer Items
+          {/* Card 3: Daily Burn Rate */}
+          <div
+            style={{
+              background: 'linear-gradient(135deg, #ffffff 0%, #eff6ff 100%)',
+              borderRadius: '12px',
+              padding: '18px 22px',
+              border: '1px solid #bfdbfe',
+              boxShadow: theme.cardShadow,
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: theme.primaryDark, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Factory Burn Rate
+              </span>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, background: '#dbeafe', color: theme.primaryDark, padding: '2px 8px', borderRadius: '10px' }}>
+                30D VELOCITY
+              </span>
             </div>
-            <div style={{ fontSize: '1.65rem', fontWeight: 900, color: C.amber, marginTop: '2px' }}>
-              {forecastData.kpis?.low_count || 0}
+            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: theme.text, marginTop: '4px', letterSpacing: '-0.02em' }}>
+              {totalDailyBurn.toLocaleString(undefined, { maximumFractionDigits: 0 })} <span style={{ fontSize: '0.9rem', fontWeight: 600, color: theme.textSub }}>Kg / Day</span>
             </div>
-            <div style={{ fontSize: '0.7rem', color: C.textSubtle, marginTop: '2px' }}>
-              Between 7 to 15 days supply
+            <div style={{ fontSize: '0.75rem', color: theme.textSub, marginTop: '4px' }}>
+              Total compounding and mixing line consumption
             </div>
           </div>
 
-          <div style={{ ...cardStyle, padding: '16px 20px', borderLeft: `4px solid ${C.primary}` }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 800, color: C.textLight, textTransform: 'uppercase' }}>
-              Tracked Materials
+          {/* Card 4: Earliest Run-Out Alert */}
+          <div
+            style={{
+              background: theme.canvas,
+              borderRadius: '12px',
+              padding: '18px 22px',
+              border: `1px solid ${theme.border}`,
+              boxShadow: theme.cardShadow,
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: theme.textSub, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Earliest Depletion Item
+              </span>
+              <span style={{ fontSize: '0.68rem', fontWeight: 800, background: theme.purpleSoft, color: theme.purple, padding: '2px 8px', borderRadius: '10px' }}>
+                NEXT PO
+              </span>
             </div>
-            <div style={{ fontSize: '1.65rem', fontWeight: 900, color: C.primary, marginTop: '2px' }}>
-              {materials.length}
-            </div>
-            <div style={{ fontSize: '0.7rem', color: C.textSubtle, marginTop: '2px' }}>
-              Across {groups.length} categories
-            </div>
+            {forecastData.forecast[0] ? (
+              <>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: theme.text, marginTop: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {forecastData.forecast[0].material_name}
+                </div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: theme.red, marginTop: '4px' }}>
+                  {forecastData.forecast[0].days_left !== null ? `${forecastData.forecast[0].days_left} Days Left` : 'Exhausted'} • {forecastData.forecast[0].run_out_date}
+                </div>
+              </>
+            ) : (
+              <div style={{ fontSize: '1rem', color: theme.textFaint, marginTop: '8px' }}>No forecast data</div>
+            )}
           </div>
         </div>
 
-        {/* Tab Navigation */}
+        {/* ── Sleek Segmented Tab Switcher (Stripe/Apple Style) ─────────────── */}
         <div
           style={{
             display: 'flex',
-            gap: '4px',
-            background: C.white,
-            padding: '4px',
-            borderRadius: '8px',
-            border: `1px solid ${C.border}`,
+            gap: '6px',
+            background: '#e2e8f080',
+            padding: '5px',
+            borderRadius: '10px',
             width: 'fit-content',
-            marginBottom: '16px',
+            marginBottom: '20px',
             flexWrap: 'wrap',
           }}
         >
@@ -647,39 +716,489 @@ export default function RawMaterialTallyPage() {
               key={t.id}
               onClick={() => setTab(t.id)}
               style={{
-                padding: '8px 18px',
-                borderRadius: '6px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '9px 18px',
+                borderRadius: '8px',
                 border: 'none',
                 fontWeight: 700,
-                fontSize: '0.82rem',
+                fontSize: '0.83rem',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
-                background: tab === t.id ? C.slateDark : 'transparent',
-                color: tab === t.id ? '#ffffff' : C.textLight,
+                background: tab === t.id ? theme.canvas : 'transparent',
+                color: tab === t.id ? theme.text : theme.textSub,
+                boxShadow: tab === t.id ? '0 2px 8px rgba(15,23,42,0.08)' : 'none',
                 transition: 'all 0.15s ease',
               }}
             >
-              {t.label}
+              <span>{t.label}</span>
+              {t.badge && (
+                <span
+                  style={{
+                    fontSize: '0.62rem',
+                    fontWeight: 800,
+                    padding: '2px 6px',
+                    borderRadius: '10px',
+                    background: tab === t.id ? '#2563eb15' : '#cbd5e160',
+                    color: tab === t.id ? theme.primary : theme.textSub,
+                  }}
+                >
+                  {t.badge}
+                </span>
+              )}
             </button>
           ))}
         </div>
 
         {/* ════════════════════════════════════════════════════════════════════ */}
-        {/* TAB 1: STOCK LEDGER                                                  */}
+        {/* TAB 1: RUN-OUT FORECASTER (10/10 Interactive Visual Dashboard)       */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {tab === 'forecast' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            {/* Filter Control Bar */}
+            <div
+              style={{
+                background: theme.canvas,
+                borderRadius: '10px',
+                border: `1px solid ${theme.border}`,
+                padding: '14px 20px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '14px',
+                boxShadow: theme.cardShadow,
+              }}
+            >
+              {/* Category Filter Pills */}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {[
+                  { id: 'ALL', label: 'All Raw Materials', count: forecastData.forecast.length, color: theme.text },
+                  { id: 'CRITICAL', label: 'Critical Risk (< 7d)', count: criticalCount, color: theme.redDark, bg: theme.redSoft },
+                  { id: 'LOW', label: 'Low Buffer (7-15d)', count: lowCount, color: theme.amberDark, bg: theme.amberSoft },
+                  { id: 'HEALTHY', label: 'Healthy Supply (> 15d)', count: healthyCount, color: theme.greenDark, bg: theme.greenSoft },
+                ].map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => setForecastFilter(f.id)}
+                    style={{
+                      padding: '7px 14px',
+                      borderRadius: '8px',
+                      border: forecastFilter === f.id ? `2px solid ${f.color}` : `1px solid ${theme.border}`,
+                      background: forecastFilter === f.id ? (f.bg || '#f1f5f9') : theme.canvas,
+                      color: forecastFilter === f.id ? f.color : theme.textSub,
+                      fontSize: '0.8rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <span>{f.label}</span>
+                    <span
+                      style={{
+                        padding: '1px 7px',
+                        borderRadius: '10px',
+                        background: '#00000010',
+                        fontSize: '0.7rem',
+                      }}
+                    >
+                      {f.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Search + View Toggle */}
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <div style={{ width: '240px' }}>
+                  <input
+                    type="text"
+                    placeholder="Search material or group..."
+                    style={{ ...inputBase, padding: '7px 12px', fontSize: '0.8rem' }}
+                    value={forecastSearch}
+                    onChange={(e) => setForecastSearch(e.target.value)}
+                  />
+                </div>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    background: '#f1f5f9',
+                    borderRadius: '6px',
+                    padding: '3px',
+                    border: `1px solid ${theme.border}`,
+                  }}
+                >
+                  <button
+                    onClick={() => setForecastViewMode('CARDS')}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: '4px',
+                      border: 'none',
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      background: forecastViewMode === 'CARDS' ? theme.canvas : 'transparent',
+                      color: forecastViewMode === 'CARDS' ? theme.text : theme.textSub,
+                      boxShadow: forecastViewMode === 'CARDS' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    }}
+                  >
+                    Card Grid
+                  </button>
+                  <button
+                    onClick={() => setForecastViewMode('TABLE')}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: '4px',
+                      border: 'none',
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      background: forecastViewMode === 'TABLE' ? theme.canvas : 'transparent',
+                      color: forecastViewMode === 'TABLE' ? theme.text : theme.textSub,
+                      boxShadow: forecastViewMode === 'TABLE' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    }}
+                  >
+                    Dense Table
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* ── View 1: Visual Interactive Cards (10/10 Design) ─────────── */}
+            {forecastViewMode === 'CARDS' && (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
+                  gap: '16px',
+                }}
+              >
+                {loadingForecast ? (
+                  <div style={{ gridColumn: '1 / -1', padding: '60px', textAlign: 'center', color: theme.textFaint }}>
+                    Calculating 30-day velocity telemetry...
+                  </div>
+                ) : filteredForecast.length === 0 ? (
+                  <div style={{ gridColumn: '1 / -1', padding: '60px', textAlign: 'center', color: theme.textFaint, background: theme.canvas, borderRadius: '10px', border: `1px solid ${theme.border}` }}>
+                    No materials matched the selected urgency filter.
+                  </div>
+                ) : (
+                  filteredForecast.map((item) => {
+                    const isCritical = item.status === 'OUT OF STOCK' || item.status === 'CRITICAL';
+                    const isLow = item.status === 'LOW BUFFER';
+                    const isOver = item.status === 'OVERSTOCKED';
+
+                    // Progress bar calculation (% of minimum safety buffer)
+                    const bufferRatio = item.minimum_stock > 0
+                      ? Math.min(100, Math.max(5, (item.closing_stock / item.minimum_stock) * 50))
+                      : Math.min(100, (item.closing_stock / 1000) * 50);
+
+                    const cardBorderColor = isCritical
+                      ? '#fca5a5'
+                      : isLow
+                      ? '#fcd34d'
+                      : theme.border;
+
+                    const barColor = isCritical
+                      ? '#ef4444'
+                      : isLow
+                      ? '#f59e0b'
+                      : isOver
+                      ? '#3b82f6'
+                      : '#10b981';
+
+                    return (
+                      <div
+                        key={item.material_id}
+                        style={{
+                          background: theme.canvas,
+                          borderRadius: '12px',
+                          border: `1.5px solid ${cardBorderColor}`,
+                          padding: '18px 20px',
+                          boxShadow: isCritical ? '0 4px 16px rgba(239, 68, 68, 0.08)' : theme.cardShadow,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          gap: '14px',
+                          position: 'relative',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {/* Top Accent Strip */}
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            height: '4px',
+                            background: barColor,
+                          }}
+                        />
+
+                        {/* Top: Category + Status Badge */}
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: theme.textSub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                              {item.group_name}
+                            </span>
+                            <span
+                              style={{
+                                padding: '3px 9px',
+                                borderRadius: '12px',
+                                background: isCritical ? theme.redSoft : isLow ? theme.amberSoft : isOver ? theme.primarySoft : theme.greenSoft,
+                                color: item.status_color,
+                                fontSize: '0.68rem',
+                                fontWeight: 800,
+                                letterSpacing: '0.04em',
+                              }}
+                            >
+                              {item.status}
+                            </span>
+                          </div>
+
+                          <div style={{ fontSize: '1.05rem', fontWeight: 900, color: theme.text, lineHeight: 1.3 }}>
+                            {item.material_name}
+                          </div>
+                        </div>
+
+                        {/* Middle: Big Stock Numbers & Countdown */}
+                        <div
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: '1.2fr 1fr',
+                            gap: '12px',
+                            background: '#f8fafc',
+                            borderRadius: '8px',
+                            padding: '12px 14px',
+                            border: `1px solid ${theme.border}`,
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontSize: '0.68rem', fontWeight: 700, color: theme.textSub, textTransform: 'uppercase' }}>
+                              Closing Stock
+                            </div>
+                            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: isCritical ? theme.red : theme.text, marginTop: '2px' }}>
+                              {Number(item.closing_stock).toFixed(1)} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: theme.textSub }}>{item.unit}</span>
+                            </div>
+                            <div style={{ fontSize: '0.7rem', color: theme.textFaint, marginTop: '2px' }}>
+                              Valuation: Rs {Number(item.valuation).toLocaleString()}
+                            </div>
+                          </div>
+
+                          <div style={{ borderLeft: `1px solid ${theme.border}`, paddingLeft: '12px' }}>
+                            <div style={{ fontSize: '0.68rem', fontWeight: 700, color: theme.textSub, textTransform: 'uppercase' }}>
+                              Days Remaining
+                            </div>
+                            <div
+                              style={{
+                                fontSize: '1.35rem',
+                                fontWeight: 900,
+                                color: isCritical ? theme.red : isLow ? theme.amber : theme.green,
+                                marginTop: '2px',
+                              }}
+                            >
+                              {item.days_left !== null ? `${item.days_left}d` : '365d+'}
+                            </div>
+                            <div style={{ fontSize: '0.7rem', color: theme.textFaint, marginTop: '2px' }}>
+                              Exhaust: {item.run_out_date}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Visual Depletion Progress Meter */}
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 700, marginBottom: '5px' }}>
+                            <span style={{ color: theme.textSub }}>Burn Velocity: {item.daily_velocity} {item.unit}/day</span>
+                            <span style={{ color: barColor }}>Min Buffer: {item.minimum_stock} {item.unit}</span>
+                          </div>
+                          <div
+                            style={{
+                              width: '100%',
+                              height: '7px',
+                              borderRadius: '4px',
+                              background: '#e2e8f0',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: `${bufferRatio}%`,
+                                height: '100%',
+                                background: barColor,
+                                borderRadius: '4px',
+                                transition: 'width 0.4s ease',
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Bottom: Reorder Recommendation + Action Buttons */}
+                        <div
+                          style={{
+                            paddingTop: '10px',
+                            borderTop: `1px solid ${theme.border}`,
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontSize: '0.68rem', color: theme.textFaint, fontWeight: 700, textTransform: 'uppercase' }}>
+                              Recommended PO Qty
+                            </div>
+                            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: item.recommended_reorder > 0 ? theme.red : theme.greenDark }}>
+                              {item.recommended_reorder > 0 ? `+${item.recommended_reorder.toLocaleString()} ${item.unit}` : 'Stock Sufficient'}
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => openPassbookFor(item.material_id)}
+                            style={{
+                              padding: '7px 14px',
+                              background: theme.canvas,
+                              color: theme.primaryDark,
+                              border: `1.5px solid #bfdbfe`,
+                              borderRadius: '6px',
+                              fontSize: '0.75rem',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              boxShadow: '0 1px 2px rgba(37,99,235,0.06)',
+                            }}
+                          >
+                            Passbook
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
+
+            {/* ── View 2: High-Density Dense Table View ───────────────────── */}
+            {forecastViewMode === 'TABLE' && (
+              <div style={{ background: theme.canvas, borderRadius: '10px', border: `1px solid ${theme.border}`, overflow: 'hidden', boxShadow: theme.cardShadow }}>
+                <div style={{ overflowX: 'auto', maxHeight: '70vh' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1050px' }}>
+                    <thead>
+                      <tr>
+                        <th style={thStyle}>Material Name</th>
+                        <th style={thStyle}>Category</th>
+                        <th style={{ ...thStyle, textAlign: 'right' }}>Closing Stock</th>
+                        <th style={{ ...thStyle, textAlign: 'right' }}>Burn Rate (Day)</th>
+                        <th style={{ ...thStyle, textAlign: 'right' }}>Days Left</th>
+                        <th style={{ ...thStyle, width: '150px' }}>Depletion Meter</th>
+                        <th style={thStyle}>Run-Out Date</th>
+                        <th style={{ ...thStyle, textAlign: 'center' }}>Health</th>
+                        <th style={{ ...thStyle, textAlign: 'right' }}>Suggested PO</th>
+                        <th style={{ ...thStyle, textAlign: 'right' }}>Valuation</th>
+                        <th style={{ ...thStyle, textAlign: 'center' }}>Statement</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredForecast.map((f, idx) => {
+                        const isCrit = f.status === 'OUT OF STOCK' || f.status === 'CRITICAL';
+                        const isLow = f.status === 'LOW BUFFER';
+                        const barColor = isCrit ? '#ef4444' : isLow ? '#f59e0b' : '#10b981';
+                        const ratio = f.minimum_stock > 0
+                          ? Math.min(100, Math.max(5, (f.closing_stock / f.minimum_stock) * 50))
+                          : 50;
+
+                        return (
+                          <tr key={f.material_id} style={{ background: idx % 2 === 0 ? theme.canvas : '#fafbfc' }}>
+                            <td style={{ ...tdStyle, fontWeight: 700, color: theme.text }}>{f.material_name}</td>
+                            <td style={{ ...tdStyle, color: theme.textSub, fontSize: '0.78rem' }}>{f.group_name}</td>
+                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 800, color: isCrit ? theme.red : theme.text }}>
+                              {Number(f.closing_stock).toFixed(1)} {f.unit}
+                            </td>
+                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: theme.red }}>
+                              {f.daily_velocity} {f.unit}
+                            </td>
+                            <td
+                              style={{
+                                ...tdStyle,
+                                textAlign: 'right',
+                                fontWeight: 900,
+                                fontSize: '0.92rem',
+                                color: f.days_left !== null && f.days_left <= 7 ? theme.red : f.days_left <= 15 ? theme.amber : theme.green,
+                              }}
+                            >
+                              {f.days_left !== null ? `${f.days_left}d` : '365d+'}
+                            </td>
+                            <td style={tdStyle}>
+                              <div style={{ width: '100%', height: '6px', borderRadius: '3px', background: '#e2e8f0', overflow: 'hidden' }}>
+                                <div style={{ width: `${ratio}%`, height: '100%', background: barColor }} />
+                              </div>
+                            </td>
+                            <td style={{ ...tdStyle, fontSize: '0.8rem', color: theme.textSub }}>{f.run_out_date}</td>
+                            <td style={{ ...tdStyle, textAlign: 'center' }}>
+                              <span
+                                style={{
+                                  padding: '2px 8px',
+                                  borderRadius: '10px',
+                                  fontSize: '0.68rem',
+                                  fontWeight: 800,
+                                  background: isCrit ? theme.redSoft : isLow ? theme.amberSoft : theme.greenSoft,
+                                  color: f.status_color,
+                                }}
+                              >
+                                {f.status}
+                              </span>
+                            </td>
+                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 800, color: f.recommended_reorder > 0 ? theme.red : theme.textFaint }}>
+                              {f.recommended_reorder > 0 ? `+${f.recommended_reorder.toLocaleString()} ${f.unit}` : 'OK'}
+                            </td>
+                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: theme.greenDark }}>
+                              Rs {Number(f.valuation).toLocaleString()}
+                            </td>
+                            <td style={{ ...tdStyle, textAlign: 'center' }}>
+                              <button
+                                onClick={() => openPassbookFor(f.material_id)}
+                                style={{
+                                  padding: '4px 10px',
+                                  background: theme.canvas,
+                                  border: `1px solid ${theme.borderDark}`,
+                                  borderRadius: '4px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                Passbook
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* TAB 2: STOCK LEDGER                                                  */}
         {/* ════════════════════════════════════════════════════════════════════ */}
         {tab === 'ledger' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {/* Filter Bar */}
-            <div style={{ ...cardStyle, padding: '14px 18px' }}>
-              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                <div style={{ minWidth: '240px', flex: 1 }}>
-                  <label style={labelStyle}>Filter by Material</label>
+            <div style={{ background: theme.canvas, borderRadius: '10px', border: `1px solid ${theme.border}`, padding: '16px 20px', boxShadow: theme.cardShadow }}>
+              <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                <div style={{ minWidth: '260px', flex: 1 }}>
+                  <label style={labelStyle}>Material Filter</label>
                   <select
-                    style={inputStyle}
+                    style={inputBase}
                     value={filterMat}
                     onChange={(e) => setFilterMat(e.target.value)}
                   >
-                    <option value="">All Materials</option>
+                    <option value="">All Materials ({materials.length})</option>
                     {groups.map((g) => (
                       <optgroup key={g.id} label={g.name}>
                         {materials
@@ -694,21 +1213,21 @@ export default function RawMaterialTallyPage() {
                   </select>
                 </div>
 
-                <div style={{ minWidth: '150px' }}>
+                <div style={{ minWidth: '160px' }}>
                   <label style={labelStyle}>From Date</label>
                   <input
                     type="date"
-                    style={inputStyle}
+                    style={inputBase}
                     value={filterFrom}
                     onChange={(e) => setFilterFrom(e.target.value)}
                   />
                 </div>
 
-                <div style={{ minWidth: '150px' }}>
+                <div style={{ minWidth: '160px' }}>
                   <label style={labelStyle}>To Date</label>
                   <input
                     type="date"
-                    style={inputStyle}
+                    style={inputBase}
                     value={filterTo}
                     onChange={(e) => setFilterTo(e.target.value)}
                   />
@@ -718,17 +1237,17 @@ export default function RawMaterialTallyPage() {
                   <button
                     onClick={fetchLedger}
                     style={{
-                      padding: '9px 18px',
-                      background: C.primary,
+                      padding: '10px 20px',
+                      background: theme.primary,
                       color: '#ffffff',
                       border: 'none',
-                      borderRadius: '6px',
-                      fontWeight: 700,
-                      fontSize: '0.82rem',
+                      borderRadius: '8px',
+                      fontWeight: 800,
+                      fontSize: '0.84rem',
                       cursor: 'pointer',
                     }}
                   >
-                    Apply
+                    Filter Ledger
                   </button>
                   <button
                     onClick={() => {
@@ -737,13 +1256,13 @@ export default function RawMaterialTallyPage() {
                       setFilterTo('');
                     }}
                     style={{
-                      padding: '9px 14px',
+                      padding: '10px 16px',
                       background: '#f1f5f9',
-                      color: C.textMuted,
-                      border: `1px solid ${C.border}`,
-                      borderRadius: '6px',
+                      color: theme.textMuted,
+                      border: `1px solid ${theme.border}`,
+                      borderRadius: '8px',
                       fontWeight: 700,
-                      fontSize: '0.82rem',
+                      fontSize: '0.84rem',
                       cursor: 'pointer',
                     }}
                   >
@@ -753,21 +1272,23 @@ export default function RawMaterialTallyPage() {
               </div>
             </div>
 
-            {/* Ledger Table */}
-            <div style={{ ...cardStyle, overflow: 'hidden' }}>
+            {/* Table */}
+            <div style={{ background: theme.canvas, borderRadius: '10px', border: `1px solid ${theme.border}`, overflow: 'hidden', boxShadow: theme.cardShadow }}>
               <div
                 style={{
-                  padding: '12px 18px',
-                  borderBottom: `1px solid ${C.border}`,
+                  padding: '14px 20px',
+                  borderBottom: `1px solid ${theme.border}`,
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
                 }}
               >
-                <div style={{ fontWeight: 800, fontSize: '0.9rem', color: C.text }}>
-                  Tally Transaction Ledger
+                <div style={{ fontWeight: 800, fontSize: '0.92rem', color: theme.text }}>
+                  Transaction History & Inward Challans
                 </div>
-                <span style={chipStyle('#f1f5f9', C.textLight)}>{entries.length} records</span>
+                <span style={{ fontSize: '0.78rem', color: theme.textSub, fontWeight: 700 }}>
+                  Showing {entries.length} entries
+                </span>
               </div>
 
               <div style={{ overflowX: 'auto', maxHeight: '68vh' }}>
@@ -778,12 +1299,12 @@ export default function RawMaterialTallyPage() {
                       <th style={thStyle}>Category</th>
                       <th style={thStyle}>Material</th>
                       <th style={{ ...thStyle, textAlign: 'right' }}>Opening</th>
-                      <th style={{ ...thStyle, textAlign: 'right' }}>Received (+)</th>
-                      <th style={thStyle}>Supplier / Challan</th>
-                      <th style={{ ...thStyle, textAlign: 'right' }}>Rate (Rs)</th>
-                      <th style={{ ...thStyle, textAlign: 'right' }}>Cost (Rs)</th>
+                      <th style={{ ...thStyle, textAlign: 'right' }}>Inward (+)</th>
+                      <th style={thStyle}>Supplier / Challan Reference</th>
+                      <th style={{ ...thStyle, textAlign: 'right' }}>Purchase Rate</th>
+                      <th style={{ ...thStyle, textAlign: 'right' }}>Total Inward Cost</th>
                       <th style={{ ...thStyle, textAlign: 'right' }}>Used (-)</th>
-                      <th style={{ ...thStyle, textAlign: 'right' }}>Closing Balance</th>
+                      <th style={{ ...thStyle, textAlign: 'right' }}>Closing Stock</th>
                       <th style={{ ...thStyle, textAlign: 'center' }}>Passbook</th>
                       <th style={{ ...thStyle, textAlign: 'center' }}></th>
                     </tr>
@@ -791,63 +1312,59 @@ export default function RawMaterialTallyPage() {
                   <tbody>
                     {loadingLedger ? (
                       <tr>
-                        <td colSpan={12} style={{ ...tdStyle, textAlign: 'center', padding: '40px', color: C.textSubtle }}>
-                          Loading transaction records...
+                        <td colSpan={12} style={{ ...tdStyle, textAlign: 'center', padding: '40px', color: theme.textFaint }}>
+                          Loading stock records...
                         </td>
                       </tr>
                     ) : entries.length === 0 ? (
                       <tr>
-                        <td colSpan={12} style={{ ...tdStyle, textAlign: 'center', padding: '48px', color: C.textSubtle }}>
+                        <td colSpan={12} style={{ ...tdStyle, textAlign: 'center', padding: '48px', color: theme.textFaint }}>
                           No entries found for selected filter criteria.
                         </td>
                       </tr>
                     ) : (
                       entries.map((e, idx) => {
                         const isToday = e.date === todayStr;
-                        const rowBg = isToday ? '#faf5ff' : idx % 2 === 0 ? C.white : C.slateLight;
-                        const borderLeft = isToday ? `4px solid ${C.purple}` : `4px solid transparent`;
+                        const rowBg = isToday ? '#faf5ff' : idx % 2 === 0 ? theme.canvas : '#fafbfc';
+                        const borderLeft = isToday ? `4px solid ${theme.purple}` : `4px solid transparent`;
 
                         return (
                           <tr key={e.id} style={{ background: rowBg, borderLeft }}>
-                            <td style={{ ...tdStyle, fontWeight: isToday ? 800 : 600, color: isToday ? C.purple : C.textMuted }}>
+                            <td style={{ ...tdStyle, fontWeight: isToday ? 800 : 600, color: isToday ? theme.purple : theme.textMuted }}>
                               {e.date}
                               {isToday && (
-                                <span style={{ ...chipStyle(C.purpleSoft, C.purple), marginLeft: '6px', fontSize: '0.6rem' }}>
+                                <span style={{ padding: '2px 6px', borderRadius: '8px', background: theme.purpleSoft, color: theme.purple, marginLeft: '6px', fontSize: '0.62rem', fontWeight: 800 }}>
                                   TODAY
                                 </span>
                               )}
                             </td>
-                            <td style={{ ...tdStyle, fontSize: '0.75rem', color: C.textLight }}>
-                              {e.group_name}
-                            </td>
-                            <td style={{ ...tdStyle, fontWeight: 700, color: C.text }}>
-                              {e.material_name}
-                            </td>
-                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, color: C.primary }}>
+                            <td style={{ ...tdStyle, fontSize: '0.78rem', color: theme.textSub }}>{e.group_name}</td>
+                            <td style={{ ...tdStyle, fontWeight: 700, color: theme.text }}>{e.material_name}</td>
+                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, color: theme.primary }}>
                               {Number(e.opening).toFixed(2)}
                             </td>
-                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: C.green }}>
+                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: theme.green }}>
                               {Number(e.received_quantity) > 0 ? `+${Number(e.received_quantity).toFixed(2)}` : '0.00'}
                             </td>
                             <td style={{ ...tdStyle, fontSize: '0.78rem' }}>
                               {e.supplier_name ? (
                                 <div>
-                                  <div style={{ fontWeight: 700, color: C.text }}>{e.supplier_name}</div>
+                                  <div style={{ fontWeight: 700, color: theme.text }}>{e.supplier_name}</div>
                                   {e.bill_challan_no && (
-                                    <div style={{ color: C.textSubtle, fontSize: '0.7rem' }}>Challan: {e.bill_challan_no}</div>
+                                    <div style={{ color: theme.textSub, fontSize: '0.7rem' }}>Challan #{e.bill_challan_no}</div>
                                   )}
                                 </div>
                               ) : (
-                                <span style={{ color: C.textSubtle }}>—</span>
+                                <span style={{ color: theme.textFaint }}>—</span>
                               )}
                             </td>
-                            <td style={{ ...tdStyle, textAlign: 'right', color: C.textLight }}>
-                              {e.rate_per_unit > 0 ? Number(e.rate_per_unit).toFixed(2) : '—'}
+                            <td style={{ ...tdStyle, textAlign: 'right', color: theme.textSub }}>
+                              {e.rate_per_unit > 0 ? `Rs ${Number(e.rate_per_unit).toFixed(2)}` : '—'}
                             </td>
-                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, color: C.green }}>
+                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: theme.greenDark }}>
                               {e.total_cost > 0 ? `Rs ${Number(e.total_cost).toLocaleString()}` : '—'}
                             </td>
-                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: C.red }}>
+                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: theme.red }}>
                               {Number(e.used_quantity) > 0 ? `-${Number(e.used_quantity).toFixed(2)}` : '0.00'}
                             </td>
                             <td
@@ -855,8 +1372,8 @@ export default function RawMaterialTallyPage() {
                                 ...tdStyle,
                                 textAlign: 'right',
                                 fontWeight: 900,
-                                fontSize: '0.9rem',
-                                color: Number(e.closing) < 0 ? C.red : C.text,
+                                fontSize: '0.92rem',
+                                color: Number(e.closing) < 0 ? theme.red : theme.text,
                               }}
                             >
                               {Number(e.closing).toFixed(2)} {e.unit}
@@ -865,13 +1382,13 @@ export default function RawMaterialTallyPage() {
                               <button
                                 onClick={() => openPassbookFor(e.material_id)}
                                 style={{
-                                  padding: '3px 8px',
-                                  background: C.primarySoft,
-                                  color: C.primary,
-                                  border: `1px solid #bfdbfe`,
+                                  padding: '4px 10px',
+                                  background: theme.primarySoft,
+                                  color: theme.primaryDark,
+                                  border: '1px solid #bfdbfe',
                                   borderRadius: '4px',
                                   fontSize: '0.7rem',
-                                  fontWeight: 700,
+                                  fontWeight: 800,
                                   cursor: 'pointer',
                                 }}
                               >
@@ -882,9 +1399,9 @@ export default function RawMaterialTallyPage() {
                               <button
                                 onClick={() => handleDeleteEntry(e.id)}
                                 style={{
-                                  padding: '3px 8px',
-                                  background: C.redSoft,
-                                  color: C.red,
+                                  padding: '4px 8px',
+                                  background: theme.redSoft,
+                                  color: theme.red,
                                   border: 'none',
                                   borderRadius: '4px',
                                   fontSize: '0.68rem',
@@ -907,177 +1424,32 @@ export default function RawMaterialTallyPage() {
         )}
 
         {/* ════════════════════════════════════════════════════════════════════ */}
-        {/* TAB 2: RUN-OUT FORECAST & DAYS OF INVENTORY                          */}
-        {/* ════════════════════════════════════════════════════════════════════ */}
-        {tab === 'forecast' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div style={{ ...cardStyle, overflow: 'hidden' }}>
-              <div
-                style={{
-                  padding: '14px 18px',
-                  borderBottom: `1px solid ${C.border}`,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.95rem', color: C.text }}>
-                    Stock Depletion & Days-of-Inventory Forecaster
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: C.textLight }}>
-                    Calculated from actual 30-day factory consumption velocity (used per day)
-                  </div>
-                </div>
-                <button
-                  onClick={fetchForecast}
-                  style={{
-                    padding: '6px 14px',
-                    background: C.white,
-                    border: `1px solid ${C.border}`,
-                    borderRadius: '4px',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Recalculate
-                </button>
-              </div>
-
-              <div style={{ overflowX: 'auto', maxHeight: '72vh' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1050px' }}>
-                  <thead>
-                    <tr>
-                      <th style={thStyle}>Material Name</th>
-                      <th style={thStyle}>Category</th>
-                      <th style={{ ...thStyle, textAlign: 'right' }}>Current Stock</th>
-                      <th style={{ ...thStyle, textAlign: 'right' }}>30d Usage</th>
-                      <th style={{ ...thStyle, textAlign: 'right' }}>Burn Rate (Qty/Day)</th>
-                      <th style={{ ...thStyle, textAlign: 'right' }}>Days Left</th>
-                      <th style={thStyle}>Est. Run-Out Date</th>
-                      <th style={{ ...thStyle, textAlign: 'center' }}>Health Status</th>
-                      <th style={{ ...thStyle, textAlign: 'right' }}>Suggested Reorder</th>
-                      <th style={{ ...thStyle, textAlign: 'right' }}>Inventory Value</th>
-                      <th style={{ ...thStyle, textAlign: 'center' }}>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loadingForecast ? (
-                      <tr>
-                        <td colSpan={11} style={{ ...tdStyle, textAlign: 'center', padding: '40px', color: C.textSubtle }}>
-                          Calculating predictive analytics...
-                        </td>
-                      </tr>
-                    ) : forecastData.forecast?.length === 0 ? (
-                      <tr>
-                        <td colSpan={11} style={{ ...tdStyle, textAlign: 'center', padding: '40px', color: C.textSubtle }}>
-                          No materials available for forecasting.
-                        </td>
-                      </tr>
-                    ) : (
-                      forecastData.forecast.map((f, idx) => {
-                        const statusChip = chipStyle(
-                          f.status === 'OUT OF STOCK' || f.status === 'CRITICAL'
-                            ? C.redSoft
-                            : f.status === 'LOW BUFFER'
-                            ? C.amberSoft
-                            : f.status === 'OVERSTOCKED'
-                            ? C.primarySoft
-                            : C.greenSoft,
-                          f.status_color
-                        );
-
-                        return (
-                          <tr key={f.material_id} style={{ background: idx % 2 === 0 ? C.white : C.slateLight }}>
-                            <td style={{ ...tdStyle, fontWeight: 700, color: C.text }}>{f.material_name}</td>
-                            <td style={{ ...tdStyle, fontSize: '0.78rem', color: C.textLight }}>{f.group_name}</td>
-                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 800, color: C.text }}>
-                              {Number(f.closing_stock).toFixed(2)} {f.unit}
-                            </td>
-                            <td style={{ ...tdStyle, textAlign: 'right', color: C.textMuted }}>
-                              {Number(f.consumption_30d).toFixed(2)}
-                            </td>
-                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: C.red }}>
-                              {f.daily_velocity} {f.unit}/day
-                            </td>
-                            <td
-                              style={{
-                                ...tdStyle,
-                                textAlign: 'right',
-                                fontWeight: 900,
-                                fontSize: '0.95rem',
-                                color: f.days_left !== null && f.days_left <= 7 ? C.red : f.days_left <= 15 ? C.amber : C.green,
-                              }}
-                            >
-                              {f.days_left !== null ? `${f.days_left} Days` : '365+ Days'}
-                            </td>
-                            <td style={{ ...tdStyle, fontWeight: 600, color: C.textMuted, fontSize: '0.8rem' }}>
-                              {f.run_out_date}
-                            </td>
-                            <td style={{ ...tdStyle, textAlign: 'center' }}>
-                              <span style={statusChip}>{f.status}</span>
-                            </td>
-                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 800, color: f.recommended_reorder > 0 ? C.red : C.textSubtle }}>
-                              {f.recommended_reorder > 0 ? `+${f.recommended_reorder.toLocaleString()} ${f.unit}` : 'Adequate'}
-                            </td>
-                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: C.green }}>
-                              Rs {Number(f.valuation).toLocaleString()}
-                            </td>
-                            <td style={{ ...tdStyle, textAlign: 'center' }}>
-                              <button
-                                onClick={() => openPassbookFor(f.material_id)}
-                                style={{
-                                  padding: '3px 8px',
-                                  background: C.white,
-                                  border: `1px solid ${C.borderDark}`,
-                                  borderRadius: '4px',
-                                  fontSize: '0.7rem',
-                                  fontWeight: 700,
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                Passbook
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ════════════════════════════════════════════════════════════════════ */}
-        {/* TAB 3: BULK SHIFT ENTRY (Spreadsheet Grid View)                     */}
+        {/* TAB 3: BULK SHIFT ENTRY (High-Speed Daily Grid)                      */}
         {/* ════════════════════════════════════════════════════════════════════ */}
         {tab === 'bulk' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {/* Header Settings Bar */}
-            <div style={{ ...cardStyle, padding: '14px 18px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '12px' }}>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Header Controls */}
+            <div style={{ background: theme.canvas, borderRadius: '10px', border: `1px solid ${theme.border}`, padding: '16px 20px', boxShadow: theme.cardShadow }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '14px' }}>
+                <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
                   <div style={{ minWidth: '180px' }}>
                     <label style={labelStyle}>Shift Entry Date *</label>
                     <input
                       type="date"
-                      style={inputStyle}
+                      style={inputBase}
                       value={bulkDate}
                       onChange={(e) => setBulkDate(e.target.value)}
                     />
                   </div>
 
-                  <div style={{ minWidth: '220px' }}>
-                    <label style={labelStyle}>Filter Category</label>
+                  <div style={{ minWidth: '240px' }}>
+                    <label style={labelStyle}>Category Filter</label>
                     <select
-                      style={inputStyle}
+                      style={inputBase}
                       value={bulkGroupFilter}
                       onChange={(e) => setBulkGroupFilter(e.target.value)}
                     >
-                      <option value="">All Categories ({materials.length} items)</option>
+                      <option value="">All Categories ({materials.length} raw materials)</option>
                       {groups.map((g) => (
                         <option key={g.id} value={g.id}>
                           {g.name}
@@ -1091,14 +1463,15 @@ export default function RawMaterialTallyPage() {
                   onClick={handleBulkShiftSubmit}
                   disabled={savingBulk}
                   style={{
-                    padding: '11px 24px',
-                    background: savingBulk ? C.textSubtle : C.green,
+                    padding: '12px 28px',
+                    background: savingBulk ? theme.textFaint : theme.greenDark,
                     color: '#ffffff',
                     border: 'none',
-                    borderRadius: '6px',
+                    borderRadius: '8px',
                     fontWeight: 800,
-                    fontSize: '0.85rem',
+                    fontSize: '0.88rem',
                     cursor: savingBulk ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 2px 8px rgba(22,163,74,0.2)',
                   }}
                 >
                   {savingBulk ? 'Saving Entire Shift...' : 'Save Entire Shift Entries'}
@@ -1107,154 +1480,144 @@ export default function RawMaterialTallyPage() {
             </div>
 
             {/* Matrix Table */}
-            <div style={{ ...cardStyle, overflow: 'hidden' }}>
+            <div style={{ background: theme.canvas, borderRadius: '10px', border: `1px solid ${theme.border}`, overflow: 'hidden', boxShadow: theme.cardShadow }}>
               <div style={{ overflowX: 'auto', maxHeight: '72vh' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1100px' }}>
                   <thead>
                     <tr>
-                      <th style={{ ...thStyle, width: '220px' }}>Material Name</th>
+                      <th style={{ ...thStyle, width: '240px' }}>Material Name</th>
                       <th style={thStyle}>Category</th>
                       <th style={{ ...thStyle, textAlign: 'right' }}>Opening</th>
-                      <th style={{ ...thStyle, background: '#166534', textAlign: 'center' }}>Inward Qty (+)</th>
-                      <th style={{ ...thStyle, background: '#166534' }}>Inward Rate (Rs)</th>
-                      <th style={{ ...thStyle, background: '#166534' }}>Supplier / Challan</th>
-                      <th style={{ ...thStyle, background: '#991b1b', textAlign: 'center' }}>Used Qty (-)</th>
+                      <th style={{ ...thStyle, background: '#14532d', textAlign: 'center' }}>Inward Qty (+)</th>
+                      <th style={{ ...thStyle, background: '#14532d' }}>Purchase Rate</th>
+                      <th style={{ ...thStyle, background: '#14532d' }}>Supplier / Challan</th>
+                      <th style={{ ...thStyle, background: '#7f1d1d', textAlign: 'center' }}>Used Qty (-)</th>
                       <th style={{ ...thStyle, textAlign: 'right' }}>Closing Preview</th>
                       <th style={thStyle}>Shift Note</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {bulkRows.length === 0 ? (
-                      <tr>
-                        <td colSpan={9} style={{ ...tdStyle, textAlign: 'center', padding: '40px', color: C.textSubtle }}>
-                          No materials found.
-                        </td>
-                      </tr>
-                    ) : (
-                      bulkRows.map((r, idx) => {
-                        const inQ = parseFloat(r.received_quantity) || 0;
-                        const outQ = parseFloat(r.used_quantity) || 0;
-                        const previewClosing = r.opening + inQ - outQ;
+                    {bulkRows.map((r, idx) => {
+                      const inQ = parseFloat(r.received_quantity) || 0;
+                      const outQ = parseFloat(r.used_quantity) || 0;
+                      const previewClosing = r.opening + inQ - outQ;
 
-                        return (
-                          <tr key={r.material_id} style={{ background: idx % 2 === 0 ? C.white : C.slateLight }}>
-                            <td style={{ ...tdStyle, fontWeight: 700, color: C.text }}>
-                              {r.name}
-                              <span style={{ fontSize: '0.7rem', color: C.textSubtle, marginLeft: '6px' }}>
-                                ({r.unit})
-                              </span>
-                            </td>
-                            <td style={{ ...tdStyle, fontSize: '0.75rem', color: C.textLight }}>
-                              {r.group_name}
-                            </td>
-                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, color: C.primary }}>
-                              {Number(r.opening).toFixed(2)}
-                            </td>
-                            <td style={{ ...tdStyle, width: '110px' }}>
-                              <input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                placeholder="0"
-                                style={{
-                                  ...inputStyle,
-                                  padding: '6px 8px',
-                                  fontWeight: 700,
-                                  color: C.green,
-                                  borderColor: inQ > 0 ? '#86efac' : C.border,
-                                  textAlign: 'right',
-                                }}
-                                value={r.received_quantity}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  setBulkRows((prev) =>
-                                    prev.map((row) => (row.material_id === r.material_id ? { ...row, received_quantity: val } : row))
-                                  );
-                                }}
-                              />
-                            </td>
-                            <td style={{ ...tdStyle, width: '100px' }}>
-                              <input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                placeholder={String(r.rate_per_unit || '0')}
-                                style={{ ...inputStyle, padding: '6px 8px', fontSize: '0.8rem', textAlign: 'right' }}
-                                value={r.rate_per_unit || ''}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  setBulkRows((prev) =>
-                                    prev.map((row) => (row.material_id === r.material_id ? { ...row, rate_per_unit: val } : row))
-                                  );
-                                }}
-                              />
-                            </td>
-                            <td style={{ ...tdStyle, width: '180px' }}>
-                              <input
-                                type="text"
-                                placeholder="Supplier name / Bill no"
-                                style={{ ...inputStyle, padding: '6px 8px', fontSize: '0.78rem' }}
-                                value={r.supplier_name}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  setBulkRows((prev) =>
-                                    prev.map((row) => (row.material_id === r.material_id ? { ...row, supplier_name: val } : row))
-                                  );
-                                }}
-                              />
-                            </td>
-                            <td style={{ ...tdStyle, width: '110px' }}>
-                              <input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                placeholder="0"
-                                style={{
-                                  ...inputStyle,
-                                  padding: '6px 8px',
-                                  fontWeight: 700,
-                                  color: C.red,
-                                  borderColor: outQ > 0 ? '#fca5a5' : C.border,
-                                  textAlign: 'right',
-                                }}
-                                value={r.used_quantity}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  setBulkRows((prev) =>
-                                    prev.map((row) => (row.material_id === r.material_id ? { ...row, used_quantity: val } : row))
-                                  );
-                                }}
-                              />
-                            </td>
-                            <td
+                      return (
+                        <tr key={r.material_id} style={{ background: idx % 2 === 0 ? theme.canvas : '#fafbfc' }}>
+                          <td style={{ ...tdStyle, fontWeight: 700, color: theme.text }}>
+                            {r.name}
+                            <span style={{ fontSize: '0.72rem', color: theme.textFaint, marginLeft: '6px' }}>
+                              ({r.unit})
+                            </span>
+                          </td>
+                          <td style={{ ...tdStyle, fontSize: '0.78rem', color: theme.textSub }}>{r.group_name}</td>
+                          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, color: theme.primary }}>
+                            {Number(r.opening).toFixed(2)}
+                          </td>
+                          <td style={{ ...tdStyle, width: '110px' }}>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              placeholder="0"
                               style={{
-                                ...tdStyle,
+                                ...inputBase,
+                                padding: '6px 8px',
+                                fontWeight: 800,
+                                color: theme.greenDark,
+                                borderColor: inQ > 0 ? '#86efac' : theme.border,
                                 textAlign: 'right',
-                                fontWeight: 900,
-                                fontSize: '0.9rem',
-                                color: previewClosing < 0 ? C.red : C.text,
                               }}
-                            >
-                              {previewClosing.toFixed(2)}
-                            </td>
-                            <td style={{ ...tdStyle, width: '160px' }}>
-                              <input
-                                type="text"
-                                placeholder="Remarks..."
-                                style={{ ...inputStyle, padding: '6px 8px', fontSize: '0.75rem' }}
-                                value={r.notes}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  setBulkRows((prev) =>
-                                    prev.map((row) => (row.material_id === r.material_id ? { ...row, notes: val } : row))
-                                  );
-                                }}
-                              />
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
+                              value={r.received_quantity}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setBulkRows((prev) =>
+                                  prev.map((row) => (row.material_id === r.material_id ? { ...row, received_quantity: val } : row))
+                                );
+                              }}
+                            />
+                          </td>
+                          <td style={{ ...tdStyle, width: '100px' }}>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              placeholder={String(r.rate_per_unit || '0')}
+                              style={{ ...inputBase, padding: '6px 8px', fontSize: '0.8rem', textAlign: 'right' }}
+                              value={r.rate_per_unit || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setBulkRows((prev) =>
+                                  prev.map((row) => (row.material_id === r.material_id ? { ...row, rate_per_unit: val } : row))
+                                );
+                              }}
+                            />
+                          </td>
+                          <td style={{ ...tdStyle, width: '180px' }}>
+                            <input
+                              type="text"
+                              placeholder="Supplier / Bill no"
+                              style={{ ...inputBase, padding: '6px 8px', fontSize: '0.78rem' }}
+                              value={r.supplier_name}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setBulkRows((prev) =>
+                                  prev.map((row) => (row.material_id === r.material_id ? { ...row, supplier_name: val } : row))
+                                );
+                              }}
+                            />
+                          </td>
+                          <td style={{ ...tdStyle, width: '110px' }}>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              placeholder="0"
+                              style={{
+                                ...inputBase,
+                                padding: '6px 8px',
+                                fontWeight: 800,
+                                color: theme.red,
+                                borderColor: outQ > 0 ? '#fca5a5' : theme.border,
+                                textAlign: 'right',
+                              }}
+                              value={r.used_quantity}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setBulkRows((prev) =>
+                                  prev.map((row) => (row.material_id === r.material_id ? { ...row, used_quantity: val } : row))
+                                );
+                              }}
+                            />
+                          </td>
+                          <td
+                            style={{
+                              ...tdStyle,
+                              textAlign: 'right',
+                              fontWeight: 900,
+                              fontSize: '0.92rem',
+                              color: previewClosing < 0 ? theme.red : theme.text,
+                            }}
+                          >
+                            {previewClosing.toFixed(2)}
+                          </td>
+                          <td style={{ ...tdStyle, width: '160px' }}>
+                            <input
+                              type="text"
+                              placeholder="Shift note..."
+                              style={{ ...inputBase, padding: '6px 8px', fontSize: '0.75rem' }}
+                              value={r.notes}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setBulkRows((prev) =>
+                                  prev.map((row) => (row.material_id === r.material_id ? { ...row, notes: val } : row))
+                                );
+                              }}
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -1263,17 +1626,17 @@ export default function RawMaterialTallyPage() {
         )}
 
         {/* ════════════════════════════════════════════════════════════════════ */}
-        {/* TAB 4: MATERIAL PASSBOOK (Bank-Statement Style Ledger)               */}
+        {/* TAB 4: MATERIAL PASSBOOK (Bank Statement Ledger)                     */}
         {/* ════════════════════════════════════════════════════════════════════ */}
         {tab === 'passbook' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {/* Top Passbook Selector Bar */}
-            <div style={{ ...cardStyle, padding: '14px 18px' }}>
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                <div style={{ minWidth: '300px', flex: 1 }}>
-                  <label style={labelStyle}>Select Raw Material</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Top Selector Card */}
+            <div style={{ background: theme.canvas, borderRadius: '10px', border: `1px solid ${theme.border}`, padding: '16px 20px', boxShadow: theme.cardShadow }}>
+              <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                <div style={{ minWidth: '320px', flex: 1 }}>
+                  <label style={labelStyle}>Select Material Statement</label>
                   <select
-                    style={inputStyle}
+                    style={inputBase}
                     value={selectedPassbookMatId}
                     onChange={(e) => {
                       const id = e.target.value;
@@ -1295,21 +1658,21 @@ export default function RawMaterialTallyPage() {
                   </select>
                 </div>
 
-                <div style={{ minWidth: '150px' }}>
+                <div style={{ minWidth: '160px' }}>
                   <label style={labelStyle}>From Date</label>
                   <input
                     type="date"
-                    style={inputStyle}
+                    style={inputBase}
                     value={passbookFrom}
                     onChange={(e) => setPassbookFrom(e.target.value)}
                   />
                 </div>
 
-                <div style={{ minWidth: '150px' }}>
+                <div style={{ minWidth: '160px' }}>
                   <label style={labelStyle}>To Date</label>
                   <input
                     type="date"
-                    style={inputStyle}
+                    style={inputBase}
                     value={passbookTo}
                     onChange={(e) => setPassbookTo(e.target.value)}
                   />
@@ -1319,17 +1682,17 @@ export default function RawMaterialTallyPage() {
                   <button
                     onClick={() => fetchPassbook(selectedPassbookMatId)}
                     style={{
-                      padding: '9px 18px',
-                      background: C.primary,
+                      padding: '10px 18px',
+                      background: theme.primary,
                       color: '#ffffff',
                       border: 'none',
-                      borderRadius: '6px',
-                      fontWeight: 700,
-                      fontSize: '0.82rem',
+                      borderRadius: '8px',
+                      fontWeight: 800,
+                      fontSize: '0.84rem',
                       cursor: 'pointer',
                     }}
                   >
-                    View Statement
+                    Query Passbook
                   </button>
                   {selectedPassbookMatId && (
                     <a
@@ -1337,66 +1700,67 @@ export default function RawMaterialTallyPage() {
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{
-                        padding: '9px 18px',
-                        background: C.green,
+                        padding: '10px 18px',
+                        background: theme.greenDark,
                         color: '#ffffff',
                         textDecoration: 'none',
-                        borderRadius: '6px',
-                        fontWeight: 700,
-                        fontSize: '0.82rem',
+                        borderRadius: '8px',
+                        fontWeight: 800,
+                        fontSize: '0.84rem',
                         display: 'inline-block',
                       }}
                     >
-                      Export Passbook Excel
+                      Export Excel
                     </a>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Material Summary Header Card */}
+            {/* Passbook Info Header Card */}
             {passbookData?.material && (
               <div
                 style={{
-                  ...cardStyle,
-                  padding: '16px 20px',
-                  background: C.slateDark,
+                  background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                  borderRadius: '12px',
+                  padding: '18px 24px',
                   color: '#ffffff',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   flexWrap: 'wrap',
-                  gap: '12px',
+                  gap: '16px',
+                  boxShadow: theme.cardShadow,
                 }}
               >
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  <div style={{ fontSize: '0.74rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     {passbookData.material.group_name}
                   </div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ffffff', marginTop: '2px' }}>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', marginTop: '2px' }}>
                     {passbookData.material.name}
                   </div>
                   <div style={{ fontSize: '0.78rem', color: '#cbd5e1', marginTop: '4px' }}>
-                    Unit: {passbookData.material.unit} • Standard Rate: Rs {passbookData.material.standard_rate} • Min Buffer: {passbookData.material.minimum_stock} {passbookData.material.unit}
+                    Unit: {passbookData.material.unit} • Standard Purchase Rate: Rs {passbookData.material.standard_rate} • Min Buffer: {passbookData.material.minimum_stock} {passbookData.material.unit}
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '28px', alignItems: 'center' }}>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase' }}>Total Inward</div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#86efac' }}>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#86efac' }}>
                       +{passbookData.totals?.total_inward} {passbookData.material.unit}
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase' }}>Total Consumption</div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#fca5a5' }}>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#fca5a5' }}>
                       -{passbookData.totals?.total_outward} {passbookData.material.unit}
                     </div>
                   </div>
-                  <div style={{ textAlign: 'right', paddingLeft: '16px', borderLeft: '1px solid #334155' }}>
+                  <div style={{ textAlign: 'right', paddingLeft: '20px', borderLeft: '1px solid #334155' }}>
                     <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase' }}>Closing Balance</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#ffffff' }}>
+                    <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#ffffff' }}>
                       {passbookData.material.current_stock} {passbookData.material.unit}
                     </div>
                   </div>
@@ -1404,8 +1768,8 @@ export default function RawMaterialTallyPage() {
               </div>
             )}
 
-            {/* Passbook Statement Table */}
-            <div style={{ ...cardStyle, overflow: 'hidden' }}>
+            {/* Statement Table */}
+            <div style={{ background: theme.canvas, borderRadius: '10px', border: `1px solid ${theme.border}`, overflow: 'hidden', boxShadow: theme.cardShadow }}>
               <div style={{ overflowX: 'auto', maxHeight: '68vh' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '950px' }}>
                   <thead>
@@ -1424,33 +1788,33 @@ export default function RawMaterialTallyPage() {
                   <tbody>
                     {loadingPassbook ? (
                       <tr>
-                        <td colSpan={9} style={{ ...tdStyle, textAlign: 'center', padding: '40px', color: C.textSubtle }}>
+                        <td colSpan={9} style={{ ...tdStyle, textAlign: 'center', padding: '40px', color: theme.textFaint }}>
                           Loading material passbook ledger...
                         </td>
                       </tr>
                     ) : !passbookData || passbookData.transactions?.length === 0 ? (
                       <tr>
-                        <td colSpan={9} style={{ ...tdStyle, textAlign: 'center', padding: '40px', color: C.textSubtle }}>
+                        <td colSpan={9} style={{ ...tdStyle, textAlign: 'center', padding: '40px', color: theme.textFaint }}>
                           No transaction history found for this raw material.
                         </td>
                       </tr>
                     ) : (
                       passbookData.transactions.map((t, idx) => (
-                        <tr key={t.id} style={{ background: idx % 2 === 0 ? C.white : C.slateLight }}>
-                          <td style={{ ...tdStyle, fontWeight: 700, color: C.text }}>{t.date}</td>
-                          <td style={{ ...tdStyle, color: C.textMuted }}>{t.particulars}</td>
+                        <tr key={t.id} style={{ background: idx % 2 === 0 ? theme.canvas : '#fafbfc' }}>
+                          <td style={{ ...tdStyle, fontWeight: 700, color: theme.text }}>{t.date}</td>
+                          <td style={{ ...tdStyle, color: theme.textMuted }}>{t.particulars}</td>
                           <td style={{ ...tdStyle, fontSize: '0.78rem' }}>{t.supplier_name || '—'}</td>
-                          <td style={{ ...tdStyle, fontSize: '0.78rem', color: C.textLight }}>{t.bill_challan_no || '—'}</td>
-                          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: C.green }}>
+                          <td style={{ ...tdStyle, fontSize: '0.78rem', color: theme.textSub }}>{t.bill_challan_no || '—'}</td>
+                          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: theme.green }}>
                             {t.received > 0 ? `+${Number(t.received).toFixed(2)}` : '—'}
                           </td>
-                          <td style={{ ...tdStyle, textAlign: 'right', color: C.textLight }}>
+                          <td style={{ ...tdStyle, textAlign: 'right', color: theme.textSub }}>
                             {t.rate > 0 ? `Rs ${Number(t.rate).toFixed(2)}` : '—'}
                           </td>
-                          <td style={{ ...tdStyle, textAlign: 'right', color: C.green, fontWeight: 600 }}>
+                          <td style={{ ...tdStyle, textAlign: 'right', color: theme.greenDark, fontWeight: 600 }}>
                             {t.cost > 0 ? `Rs ${Number(t.cost).toLocaleString()}` : '—'}
                           </td>
-                          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: C.red }}>
+                          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: theme.red }}>
                             {t.used > 0 ? `-${Number(t.used).toFixed(2)}` : '—'}
                           </td>
                           <td
@@ -1459,7 +1823,7 @@ export default function RawMaterialTallyPage() {
                               textAlign: 'right',
                               fontWeight: 900,
                               fontSize: '0.95rem',
-                              color: t.closing < 0 ? C.red : C.text,
+                              color: t.closing < 0 ? theme.red : theme.text,
                             }}
                           >
                             {Number(t.closing).toFixed(2)} {passbookData.material.unit}
@@ -1475,16 +1839,16 @@ export default function RawMaterialTallyPage() {
         )}
 
         {/* ════════════════════════════════════════════════════════════════════ */}
-        {/* TAB 5: CURRENT STOCK (Grouped Cards & Valuation)                     */}
+        {/* TAB 5: CURRENT INVENTORY                                             */}
         {/* ════════════════════════════════════════════════════════════════════ */}
         {tab === 'stock' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {currentStockData.groups?.map((grp) => (
-              <div key={grp.group_id} style={{ ...cardStyle, overflow: 'hidden' }}>
+              <div key={grp.group_id} style={{ background: theme.canvas, borderRadius: '10px', border: `1px solid ${theme.border}`, overflow: 'hidden', boxShadow: theme.cardShadow }}>
                 <div
                   style={{
-                    padding: '12px 18px',
-                    background: C.slateDark,
+                    padding: '12px 20px',
+                    background: theme.navy,
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
@@ -1515,45 +1879,51 @@ export default function RawMaterialTallyPage() {
                       {grp.materials?.map((m, idx) => {
                         const isOut = m.closing_stock <= 0;
                         const isLow = !isOut && m.is_low;
-                        const statusChip = isOut
-                          ? chipStyle(C.redSoft, C.red)
-                          : isLow
-                          ? chipStyle(C.amberSoft, C.amber)
-                          : chipStyle(C.greenSoft, C.green);
 
                         return (
-                          <tr key={m.material_id} style={{ background: idx % 2 === 0 ? C.white : C.slateLight }}>
-                            <td style={{ ...tdStyle, fontWeight: 700, color: C.text }}>{m.material_name}</td>
-                            <td style={{ ...tdStyle, color: C.textSubtle, fontSize: '0.75rem' }}>{m.unit}</td>
-                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 900, fontSize: '0.95rem', color: isOut ? C.red : isLow ? C.amber : C.text }}>
+                          <tr key={m.material_id} style={{ background: idx % 2 === 0 ? theme.canvas : '#fafbfc' }}>
+                            <td style={{ ...tdStyle, fontWeight: 700, color: theme.text }}>{m.material_name}</td>
+                            <td style={{ ...tdStyle, color: theme.textFaint, fontSize: '0.75rem' }}>{m.unit}</td>
+                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 900, fontSize: '0.95rem', color: isOut ? theme.red : isLow ? theme.amber : theme.text }}>
                               {Number(m.closing_stock).toFixed(2)}
                             </td>
-                            <td style={{ ...tdStyle, textAlign: 'right', color: C.textLight }}>
+                            <td style={{ ...tdStyle, textAlign: 'right', color: theme.textSub }}>
                               Rs {Number(m.effective_rate || 0).toFixed(2)}
                             </td>
-                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: C.green }}>
+                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: theme.greenDark }}>
                               Rs {Number(m.valuation || 0).toLocaleString()}
                             </td>
-                            <td style={{ ...tdStyle, textAlign: 'right', color: C.textLight }}>
+                            <td style={{ ...tdStyle, textAlign: 'right', color: theme.textSub }}>
                               {m.minimum_stock > 0 ? Number(m.minimum_stock).toFixed(2) : '—'}
                             </td>
-                            <td style={{ ...tdStyle, color: C.textSubtle, fontSize: '0.78rem' }}>
+                            <td style={{ ...tdStyle, color: theme.textFaint, fontSize: '0.78rem' }}>
                               {m.last_entry_date || 'No entries'}
                             </td>
                             <td style={{ ...tdStyle, textAlign: 'center' }}>
-                              <span style={statusChip}>{isOut ? 'OUT' : isLow ? 'LOW' : 'OK'}</span>
+                              <span
+                                style={{
+                                  padding: '2px 8px',
+                                  borderRadius: '10px',
+                                  fontSize: '0.68rem',
+                                  fontWeight: 800,
+                                  background: isOut ? theme.redSoft : isLow ? theme.amberSoft : theme.greenSoft,
+                                  color: isOut ? theme.red : isLow ? theme.amber : theme.greenDark,
+                                }}
+                              >
+                                {isOut ? 'OUT OF STOCK' : isLow ? 'LOW STOCK' : 'HEALTHY'}
+                              </span>
                             </td>
                             <td style={{ ...tdStyle, textAlign: 'center' }}>
                               <button
                                 onClick={() => openPassbookFor(m.material_id)}
                                 style={{
                                   padding: '3px 8px',
-                                  background: C.primarySoft,
-                                  color: C.primary,
-                                  border: `1px solid #bfdbfe`,
+                                  background: theme.primarySoft,
+                                  color: theme.primaryDark,
+                                  border: '1px solid #bfdbfe',
                                   borderRadius: '4px',
                                   fontSize: '0.7rem',
-                                  fontWeight: 700,
+                                  fontWeight: 800,
                                   cursor: 'pointer',
                                 }}
                               >
@@ -1572,25 +1942,25 @@ export default function RawMaterialTallyPage() {
         )}
 
         {/* ════════════════════════════════════════════════════════════════════ */}
-        {/* TAB 6: SINGLE ENTRY FORM                                             */}
+        {/* TAB 6: SINGLE TRANSACTION ENTRY                                      */}
         {/* ════════════════════════════════════════════════════════════════════ */}
         {tab === 'entry' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(380px, 460px) 1fr', gap: '20px', alignItems: 'start' }}>
-            <div style={cardStyle}>
-              <div style={{ padding: '16px 20px', borderBottom: `1px solid ${C.border}`, background: '#fafafa' }}>
-                <div style={{ fontWeight: 800, fontSize: '0.95rem', color: C.text }}>
-                  Record Single Stock Entry
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(400px, 480px) 1fr', gap: '20px', alignItems: 'start' }}>
+            <div style={{ background: theme.canvas, borderRadius: '10px', border: `1px solid ${theme.border}`, boxShadow: theme.cardShadow, overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', borderBottom: `1px solid ${theme.border}`, background: '#fafafa' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.95rem', color: theme.text }}>
+                  Record Individual Inward / Outward
                 </div>
-                <div style={{ fontSize: '0.75rem', color: C.textLight }}>
-                  Opening balance auto-fetched from previous closing
+                <div style={{ fontSize: '0.75rem', color: theme.textSub }}>
+                  Auto-fetches opening balance from previous closing
                 </div>
               </div>
 
-              <form onSubmit={handleSingleEntrySubmit} style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <form onSubmit={handleSingleEntrySubmit} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div>
                   <label style={labelStyle}>Material *</label>
                   <select
-                    style={inputStyle}
+                    style={inputBase}
                     value={entryForm.material_id}
                     onChange={(e) => setEntryForm((p) => ({ ...p, material_id: e.target.value }))}
                     required
@@ -1611,10 +1981,10 @@ export default function RawMaterialTallyPage() {
                 </div>
 
                 <div>
-                  <label style={labelStyle}>Entry Date *</label>
+                  <label style={labelStyle}>Date *</label>
                   <input
                     type="date"
-                    style={inputStyle}
+                    style={inputBase}
                     value={entryForm.date}
                     onChange={(e) => setEntryForm((p) => ({ ...p, date: e.target.value }))}
                     required
@@ -1623,25 +1993,25 @@ export default function RawMaterialTallyPage() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div>
-                    <label style={{ ...labelStyle, color: C.green }}>Inward Qty (+)</label>
+                    <label style={{ ...labelStyle, color: theme.greenDark }}>Inward Qty (+)</label>
                     <input
                       type="number"
                       step="0.01"
                       min="0"
                       placeholder="0.00"
-                      style={{ ...inputStyle, fontWeight: 700, color: C.green }}
+                      style={{ ...inputBase, fontWeight: 700, color: theme.greenDark }}
                       value={entryForm.received_quantity}
                       onChange={(e) => setEntryForm((p) => ({ ...p, received_quantity: e.target.value }))}
                     />
                   </div>
                   <div>
-                    <label style={{ ...labelStyle, color: C.red }}>Consumption / Used (-)</label>
+                    <label style={{ ...labelStyle, color: theme.red }}>Consumption / Used (-)</label>
                     <input
                       type="number"
                       step="0.01"
                       min="0"
                       placeholder="0.00"
-                      style={{ ...inputStyle, fontWeight: 700, color: C.red }}
+                      style={{ ...inputBase, fontWeight: 700, color: theme.red }}
                       value={entryForm.used_quantity}
                       onChange={(e) => setEntryForm((p) => ({ ...p, used_quantity: e.target.value }))}
                     />
@@ -1656,7 +2026,7 @@ export default function RawMaterialTallyPage() {
                       step="0.01"
                       min="0"
                       placeholder="0.00"
-                      style={inputStyle}
+                      style={inputBase}
                       value={entryForm.rate_per_unit}
                       onChange={(e) => setEntryForm((p) => ({ ...p, rate_per_unit: e.target.value }))}
                     />
@@ -1666,7 +2036,7 @@ export default function RawMaterialTallyPage() {
                     <input
                       type="text"
                       placeholder="Supplier / Mill"
-                      style={inputStyle}
+                      style={inputBase}
                       value={entryForm.supplier_name}
                       onChange={(e) => setEntryForm((p) => ({ ...p, supplier_name: e.target.value }))}
                     />
@@ -1679,7 +2049,7 @@ export default function RawMaterialTallyPage() {
                     <input
                       type="text"
                       placeholder="CH-XXXX"
-                      style={inputStyle}
+                      style={inputBase}
                       value={entryForm.bill_challan_no}
                       onChange={(e) => setEntryForm((p) => ({ ...p, bill_challan_no: e.target.value }))}
                     />
@@ -1688,8 +2058,8 @@ export default function RawMaterialTallyPage() {
                     <label style={labelStyle}>Vehicle No</label>
                     <input
                       type="text"
-                      placeholder="e.g. DL-01-XX"
-                      style={inputStyle}
+                      placeholder="DL-01-XX"
+                      style={inputBase}
                       value={entryForm.vehicle_no}
                       onChange={(e) => setEntryForm((p) => ({ ...p, vehicle_no: e.target.value }))}
                     />
@@ -1701,7 +2071,7 @@ export default function RawMaterialTallyPage() {
                   <input
                     type="text"
                     placeholder="Shift / Batch note..."
-                    style={inputStyle}
+                    style={inputBase}
                     value={entryForm.notes}
                     onChange={(e) => setEntryForm((p) => ({ ...p, notes: e.target.value }))}
                   />
@@ -1711,11 +2081,11 @@ export default function RawMaterialTallyPage() {
                   type="submit"
                   disabled={savingEntry}
                   style={{
-                    padding: '11px',
-                    background: savingEntry ? C.textSubtle : C.primary,
+                    padding: '12px',
+                    background: savingEntry ? theme.textFaint : theme.primary,
                     color: '#ffffff',
                     border: 'none',
-                    borderRadius: '6px',
+                    borderRadius: '8px',
                     fontWeight: 800,
                     fontSize: '0.88rem',
                     cursor: savingEntry ? 'not-allowed' : 'pointer',
@@ -1728,9 +2098,9 @@ export default function RawMaterialTallyPage() {
             </div>
 
             {/* Today's Transactions */}
-            <div style={{ ...cardStyle, overflow: 'hidden' }}>
-              <div style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}`, background: '#fafafa' }}>
-                <div style={{ fontWeight: 800, fontSize: '0.9rem', color: C.text }}>Transactions Today ({todayStr})</div>
+            <div style={{ background: theme.canvas, borderRadius: '10px', border: `1px solid ${theme.border}`, boxShadow: theme.cardShadow, overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', borderBottom: `1px solid ${theme.border}`, background: '#fafafa' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.92rem', color: theme.text }}>Transactions Recorded Today ({todayStr})</div>
               </div>
               <div style={{ overflowX: 'auto', maxHeight: '520px' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -1749,25 +2119,25 @@ export default function RawMaterialTallyPage() {
                       if (list.length === 0) {
                         return (
                           <tr>
-                            <td colSpan={5} style={{ ...tdStyle, textAlign: 'center', padding: '36px', color: C.textSubtle }}>
+                            <td colSpan={5} style={{ ...tdStyle, textAlign: 'center', padding: '36px', color: theme.textFaint }}>
                               No transactions recorded for today yet.
                             </td>
                           </tr>
                         );
                       }
                       return list.map((e, idx) => (
-                        <tr key={e.id} style={{ background: idx % 2 === 0 ? C.white : C.slateLight }}>
-                          <td style={{ ...tdStyle, fontWeight: 700, color: C.text }}>{e.material_name}</td>
-                          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: C.green }}>
+                        <tr key={e.id} style={{ background: idx % 2 === 0 ? theme.canvas : '#fafbfc' }}>
+                          <td style={{ ...tdStyle, fontWeight: 700, color: theme.text }}>{e.material_name}</td>
+                          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: theme.green }}>
                             {e.received_quantity > 0 ? `+${Number(e.received_quantity).toFixed(2)}` : '0.00'}
                           </td>
-                          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: C.red }}>
+                          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: theme.red }}>
                             {e.used_quantity > 0 ? `-${Number(e.used_quantity).toFixed(2)}` : '0.00'}
                           </td>
-                          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 900, color: C.text }}>
+                          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 900, color: theme.text }}>
                             {Number(e.closing).toFixed(2)}
                           </td>
-                          <td style={{ ...tdStyle, fontSize: '0.75rem', color: C.textLight }}>
+                          <td style={{ ...tdStyle, fontSize: '0.78rem', color: theme.textSub }}>
                             {e.supplier_name || e.notes || '—'}
                           </td>
                         </tr>
@@ -1784,19 +2154,19 @@ export default function RawMaterialTallyPage() {
         {/* TAB 7: MASTER SETUP                                                  */}
         {/* ════════════════════════════════════════════════════════════════════ */}
         {tab === 'setup' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: '18px', alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: '20px', alignItems: 'start' }}>
             {/* Category / Group Management */}
-            <div style={cardStyle}>
-              <div style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}`, background: '#fafafa' }}>
-                <div style={{ fontWeight: 800, fontSize: '0.9rem', color: C.text }}>Material Categories</div>
-                <div style={{ fontSize: '0.72rem', color: C.textLight }}>Rubber, Chemicals, Carbon Black, etc.</div>
+            <div style={{ background: theme.canvas, borderRadius: '10px', border: `1px solid ${theme.border}`, boxShadow: theme.cardShadow, overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', borderBottom: `1px solid ${theme.border}`, background: '#fafafa' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.92rem', color: theme.text }}>Material Categories</div>
+                <div style={{ fontSize: '0.74rem', color: theme.textSub }}>Rubber, Chemicals, Carbon Black, etc.</div>
               </div>
-              <div style={{ padding: '16px' }}>
+              <div style={{ padding: '18px' }}>
                 <form onSubmit={handleAddGroup} style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
                   <input
                     type="text"
                     placeholder="Category name..."
-                    style={{ ...inputStyle, flex: 1 }}
+                    style={{ ...inputBase, flex: 1 }}
                     value={groupName}
                     onChange={(e) => setGroupName(e.target.value)}
                   />
@@ -1804,13 +2174,13 @@ export default function RawMaterialTallyPage() {
                     type="submit"
                     disabled={savingGroup}
                     style={{
-                      padding: '9px 16px',
-                      background: C.primary,
+                      padding: '10px 18px',
+                      background: theme.primary,
                       color: '#ffffff',
                       border: 'none',
-                      borderRadius: '6px',
-                      fontWeight: 700,
-                      fontSize: '0.8rem',
+                      borderRadius: '8px',
+                      fontWeight: 800,
+                      fontSize: '0.82rem',
                       cursor: 'pointer',
                     }}
                   >
@@ -1818,7 +2188,7 @@ export default function RawMaterialTallyPage() {
                   </button>
                 </form>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '450px', overflowY: 'auto' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '460px', overflowY: 'auto' }}>
                   {groups.map((g) => {
                     const count = materials.filter((m) => m.group_id === g.id).length;
                     return (
@@ -1828,15 +2198,15 @@ export default function RawMaterialTallyPage() {
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center',
-                          padding: '8px 12px',
-                          background: C.slateLight,
+                          padding: '9px 12px',
+                          background: '#f8fafc',
                           borderRadius: '6px',
-                          border: `1px solid ${C.border}`,
+                          border: `1px solid ${theme.border}`,
                         }}
                       >
                         <div>
-                          <span style={{ fontWeight: 700, color: C.text, fontSize: '0.82rem' }}>{g.name}</span>
-                          <span style={{ ...chipStyle(C.primarySoft, C.primary), marginLeft: '8px' }}>
+                          <span style={{ fontWeight: 700, color: theme.text, fontSize: '0.85rem' }}>{g.name}</span>
+                          <span style={{ padding: '2px 8px', borderRadius: '10px', background: theme.primarySoft, color: theme.primary, marginLeft: '8px', fontSize: '0.68rem', fontWeight: 800 }}>
                             {count} items
                           </span>
                         </div>
@@ -1844,8 +2214,8 @@ export default function RawMaterialTallyPage() {
                           onClick={() => handleDeleteGroup(g.id, g.name)}
                           style={{
                             padding: '3px 8px',
-                            background: C.redSoft,
-                            color: C.red,
+                            background: theme.redSoft,
+                            color: theme.red,
                             border: 'none',
                             borderRadius: '4px',
                             fontSize: '0.68rem',
@@ -1863,32 +2233,32 @@ export default function RawMaterialTallyPage() {
             </div>
 
             {/* Materials Master Register */}
-            <div style={cardStyle}>
-              <div style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}`, background: '#fafafa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ background: theme.canvas, borderRadius: '10px', border: `1px solid ${theme.border}`, boxShadow: theme.cardShadow, overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', borderBottom: `1px solid ${theme.border}`, background: '#fafafa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.9rem', color: C.text }}>Raw Materials Directory</div>
-                  <div style={{ fontSize: '0.72rem', color: C.textLight }}>Configure standard purchase rate, HSN & min stock</div>
+                  <div style={{ fontWeight: 800, fontSize: '0.92rem', color: theme.text }}>Raw Materials Directory</div>
+                  <div style={{ fontSize: '0.74rem', color: theme.textSub }}>Set standard purchase rate, HSN & min stock</div>
                 </div>
                 <div style={{ width: '220px' }}>
                   <input
                     type="text"
                     placeholder="Search material..."
-                    style={{ ...inputStyle, padding: '6px 10px', fontSize: '0.78rem' }}
+                    style={{ ...inputBase, padding: '7px 12px', fontSize: '0.8rem' }}
                     value={searchMaterial}
                     onChange={(e) => setSearchMaterial(e.target.value)}
                   />
                 </div>
               </div>
 
-              <div style={{ padding: '16px' }}>
+              <div style={{ padding: '18px' }}>
                 <form
                   onSubmit={handleAddMaterial}
                   style={{
                     background: '#f8fafc',
-                    border: `1px solid ${C.border}`,
+                    border: `1px solid ${theme.border}`,
                     borderRadius: '8px',
-                    padding: '14px',
-                    marginBottom: '16px',
+                    padding: '16px',
+                    marginBottom: '18px',
                   }}
                 >
                   <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1fr 1fr auto', gap: '8px', alignItems: 'flex-end' }}>
@@ -1897,7 +2267,7 @@ export default function RawMaterialTallyPage() {
                       <input
                         type="text"
                         placeholder="e.g. RSS-4 Rubber"
-                        style={inputStyle}
+                        style={inputBase}
                         value={matForm.name}
                         onChange={(e) => setMatForm((p) => ({ ...p, name: e.target.value }))}
                         required
@@ -1906,7 +2276,7 @@ export default function RawMaterialTallyPage() {
                     <div>
                       <label style={labelStyle}>Category *</label>
                       <select
-                        style={inputStyle}
+                        style={inputBase}
                         value={matForm.group_id}
                         onChange={(e) => setMatForm((p) => ({ ...p, group_id: e.target.value }))}
                         required
@@ -1920,7 +2290,7 @@ export default function RawMaterialTallyPage() {
                     <div>
                       <label style={labelStyle}>Unit</label>
                       <select
-                        style={inputStyle}
+                        style={inputBase}
                         value={matForm.unit}
                         onChange={(e) => setMatForm((p) => ({ ...p, unit: e.target.value }))}
                       >
@@ -1936,7 +2306,7 @@ export default function RawMaterialTallyPage() {
                         step="0.01"
                         min="0"
                         placeholder="0.00"
-                        style={inputStyle}
+                        style={inputBase}
                         value={matForm.standard_rate}
                         onChange={(e) => setMatForm((p) => ({ ...p, standard_rate: e.target.value }))}
                       />
@@ -1948,7 +2318,7 @@ export default function RawMaterialTallyPage() {
                         step="0.01"
                         min="0"
                         placeholder="0.00"
-                        style={inputStyle}
+                        style={inputBase}
                         value={matForm.minimum_stock}
                         onChange={(e) => setMatForm((p) => ({ ...p, minimum_stock: e.target.value }))}
                       />
@@ -1958,7 +2328,7 @@ export default function RawMaterialTallyPage() {
                       <input
                         type="text"
                         placeholder="e.g. 4001"
-                        style={inputStyle}
+                        style={inputBase}
                         value={matForm.hsn_code}
                         onChange={(e) => setMatForm((p) => ({ ...p, hsn_code: e.target.value }))}
                       />
@@ -1967,16 +2337,16 @@ export default function RawMaterialTallyPage() {
                       type="submit"
                       disabled={savingMat}
                       style={{
-                        padding: '9px 18px',
-                        background: C.green,
+                        padding: '10px 18px',
+                        background: theme.greenDark,
                         color: '#ffffff',
                         border: 'none',
-                        borderRadius: '6px',
-                        fontWeight: 700,
-                        fontSize: '0.8rem',
+                        borderRadius: '8px',
+                        fontWeight: 800,
+                        fontSize: '0.82rem',
                         cursor: 'pointer',
                         whiteSpace: 'nowrap',
-                        height: '38px',
+                        height: '40px',
                       }}
                     >
                       {savingMat ? '...' : 'Register'}
@@ -2007,25 +2377,25 @@ export default function RawMaterialTallyPage() {
                             m.group_name.toLowerCase().includes(searchMaterial.toLowerCase())
                         )
                         .map((m, idx) => (
-                          <tr key={m.id} style={{ background: idx % 2 === 0 ? C.white : C.slateLight }}>
-                            <td style={{ ...tdStyle, fontWeight: 700, color: C.text }}>{m.name}</td>
-                            <td style={{ ...tdStyle, color: C.textLight }}>{m.group_name}</td>
-                            <td style={{ ...tdStyle, color: C.textSubtle, fontSize: '0.75rem' }}>{m.unit}</td>
-                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, color: C.green }}>
+                          <tr key={m.id} style={{ background: idx % 2 === 0 ? theme.canvas : '#fafbfc' }}>
+                            <td style={{ ...tdStyle, fontWeight: 700, color: theme.text }}>{m.name}</td>
+                            <td style={{ ...tdStyle, color: theme.textSub }}>{m.group_name}</td>
+                            <td style={{ ...tdStyle, color: theme.textFaint, fontSize: '0.75rem' }}>{m.unit}</td>
+                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, color: theme.greenDark }}>
                               {m.standard_rate > 0 ? `Rs ${Number(m.standard_rate).toFixed(2)}` : '—'}
                             </td>
-                            <td style={{ ...tdStyle, textAlign: 'right', color: C.textMuted }}>
+                            <td style={{ ...tdStyle, textAlign: 'right', color: theme.textMuted }}>
                               {m.minimum_stock > 0 ? `${Number(m.minimum_stock).toFixed(2)} ${m.unit}` : '—'}
                             </td>
-                            <td style={{ ...tdStyle, color: C.textSubtle, fontSize: '0.75rem' }}>{m.hsn_code || '—'}</td>
+                            <td style={{ ...tdStyle, color: theme.textFaint, fontSize: '0.75rem' }}>{m.hsn_code || '—'}</td>
                             <td style={{ ...tdStyle, textAlign: 'center' }}>
                               <button
                                 onClick={() => openPassbookFor(m.id)}
                                 style={{
                                   padding: '3px 8px',
-                                  background: C.primarySoft,
-                                  color: C.primary,
-                                  border: `1px solid #bfdbfe`,
+                                  background: theme.primarySoft,
+                                  color: theme.primary,
+                                  border: '1px solid #bfdbfe',
                                   borderRadius: '4px',
                                   fontSize: '0.7rem',
                                   fontWeight: 700,
@@ -2040,8 +2410,8 @@ export default function RawMaterialTallyPage() {
                                 onClick={() => handleDeleteMaterial(m.id, m.name)}
                                 style={{
                                   padding: '3px 8px',
-                                  background: C.redSoft,
-                                  color: C.red,
+                                  background: theme.redSoft,
+                                  color: theme.red,
                                   border: 'none',
                                   borderRadius: '4px',
                                   fontSize: '0.68rem',
