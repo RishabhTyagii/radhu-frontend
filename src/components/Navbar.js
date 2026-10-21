@@ -144,6 +144,7 @@ export default function Navbar() {
 
   const rawMaterialNavItems = [
     { name: 'Mixing Sheet', path: '/rawmaterial/mixing', icon: 'fas fa-blender', color: '#10b981', key: 'mixing_sheet' },
+    { name: 'Tally Cards', path: '/rawmaterial/tally', icon: 'fas fa-book-open', color: '#7c3aed', key: 'mixing_sheet' },
   ];
 
   if (!userData) return null;
