@@ -395,13 +395,13 @@ export default function MixingPage() {
               <thead>
                 {/* Top Section Headers */}
                 <tr style={{ background: '#0f172a', color: '#fff', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
-                  <th colSpan="15" style={{ padding: '8px 12px', textAlign: 'center', borderRight: '2px solid #fff', background: '#0284c7' }}>
+                  <th colSpan="15" style={{ padding: '8px 12px', textAlign: 'center', borderRight: '2px solid #fff', background: '#0284c7', color: '#ffffff' }}>
                     <i className="fas fa-industry" style={{ marginRight: '6px', color: '#ffffff' }}></i> Compound Mixing (Kgs)
                   </th>
-                  <th colSpan="15" style={{ padding: '8px 12px', textAlign: 'center', borderRight: '2px solid #fff', background: '#d97706' }}>
+                  <th colSpan="15" style={{ padding: '8px 12px', textAlign: 'center', borderRight: '2px solid #fff', background: '#d97706', color: '#ffffff' }}>
                     <i className="fas fa-recycle" style={{ marginRight: '6px', color: '#ffffff' }}></i> Rubber Consumption (Kgs)
                   </th>
-                  <th colSpan="4" style={{ padding: '8px 12px', textAlign: 'center', background: '#059669' }}>
+                  <th colSpan="4" style={{ padding: '8px 12px', textAlign: 'center', background: '#059669', color: '#ffffff' }}>
                     <i className="fas fa-balance-scale" style={{ marginRight: '6px', color: '#ffffff' }}></i> Audit &amp; Reconciliation
                   </th>
                 </tr>
