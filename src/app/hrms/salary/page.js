@@ -108,9 +108,18 @@ const SlipRenderer = ({ selectedSlip, printWages, onClose, onPrint, isBulk = fal
   const prodGroups = {}
 ;
   (selectedSlip.production_detail || []).forEach((p) => {
-    if (!prodGroups[p.product_name]) prodGroups[p.product_name] = {}
-;
-    prodGroups[p.product_name][parseInt(p.day, 10)] = p;
+    const day = parseInt(p.day, 10);
+    if (!prodGroups[p.product_name]) prodGroups[p.product_name] = {};
+    if (prodGroups[p.product_name][day]) {
+      const existing = prodGroups[p.product_name][day];
+      prodGroups[p.product_name][day] = {
+        ...existing,
+        quantity: N(existing.quantity) + N(p.quantity),
+        total_amount: N(existing.total_amount) + N(p.total_amount),
+      };
+    } else {
+      prodGroups[p.product_name][day] = { ...p };
+    }
   });
 
   // Attendance by day
