@@ -47,6 +47,38 @@ const inputBase = {
   transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
 };
 
+const labelStyle = {
+  display: 'block',
+  fontSize: '0.74rem',
+  fontWeight: 700,
+  color: theme.textSub,
+  marginBottom: '6px',
+  textTransform: 'uppercase',
+  letterSpacing: '0.04em',
+};
+
+const thStyle = {
+  padding: '11px 14px',
+  fontSize: '0.72rem',
+  fontWeight: 800,
+  color: '#ffffff',
+  background: '#1e293b',
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+  whiteSpace: 'nowrap',
+  borderBottom: `2px solid ${theme.border}`,
+  textAlign: 'left',
+};
+
+const tdStyle = {
+  padding: '11px 14px',
+  fontSize: '0.84rem',
+  color: theme.text,
+  borderBottom: `1px solid ${theme.borderLight}`,
+  whiteSpace: 'nowrap',
+  verticalAlign: 'middle',
+};
+
 const TABS = [
   { id: 'forecast', label: 'Run-Out Forecaster', badge: 'AI Predict' },
   { id: 'ledger', label: 'Stock Ledger', badge: null },
@@ -415,8 +447,10 @@ export default function RawMaterialTallyPage() {
   }
 
   function openPassbookFor(materialId) {
-    setSelectedPassbookMatId(String(materialId));
+    const mId = String(materialId);
+    setSelectedPassbookMatId(mId);
     setTab('passbook');
+    fetchPassbook(mId);
   }
 
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -1641,9 +1675,10 @@ export default function RawMaterialTallyPage() {
                     onChange={(e) => {
                       const id = e.target.value;
                       setSelectedPassbookMatId(id);
-                      fetchPassbook(id);
+                      if (id) fetchPassbook(id);
                     }}
                   >
+                    <option value="">-- Choose Raw Material Statement --</option>
                     {groups.map((g) => (
                       <optgroup key={g.id} label={g.name}>
                         {materials
@@ -1826,7 +1861,7 @@ export default function RawMaterialTallyPage() {
                               color: t.closing < 0 ? theme.red : theme.text,
                             }}
                           >
-                            {Number(t.closing).toFixed(2)} {passbookData.material.unit}
+                            {Number(t.closing || 0).toFixed(2)} {passbookData?.material?.unit || ''}
                           </td>
                         </tr>
                       ))
