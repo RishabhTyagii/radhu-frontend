@@ -42,6 +42,8 @@ export default function Navbar() {
       setActiveModule('stock');
     } else if (pathname.startsWith('/rawmaterial')) {
       setActiveModule('rawmaterial');
+    } else if (pathname.startsWith('/plant-performance')) {
+      setActiveModule('plantperformance');
     }
   }, [pathname]);
 
@@ -65,6 +67,7 @@ export default function Navbar() {
     { id: 'hrms', name: 'HRMS', icon: <i className="fas fa-users"></i>, path: '/hrms', color: '#1e293b' },
     { id: 'orders', name: 'Orders', icon: <i className="fas fa-box"></i>, path: '/orders', color: '#1e293b' },
     { id: 'rawmaterial', name: 'Raw Material', icon: <i className="fas fa-layer-group"></i>, path: '/rawmaterial/mixing', color: '#1e293b' },
+    { id: 'plantperformance', name: 'Plant MIS', icon: <i className="fas fa-chart-line"></i>, path: '/plant-performance', color: '#1e293b' },
     { id: 'ai', name: 'RADHU AI', icon: <i className="fas fa-robot"></i>, path: '/ai-agent', color: '#1e293b' },
     ...(userData?.is_superuser ? [{ id: 'users', name: 'Users', icon: <i className="fas fa-cog"></i>, path: '/users', color: '#1e293b' }] : []),
   ];
@@ -147,6 +150,10 @@ export default function Navbar() {
     { name: 'Tally Cards', path: '/rawmaterial/tally', icon: 'fas fa-book-open', color: '#7c3aed', key: 'mixing_sheet' },
   ];
 
+  const plantPerformanceNavItems = [
+    { name: 'Plant Tracking Sheet', path: '/plant-performance', icon: 'fas fa-table', color: '#3b82f6', key: 'mixing_sheet' },
+  ];
+
   if (!userData) return null;
 
   let currentNavItems = stockNavItems;
@@ -158,6 +165,7 @@ export default function Navbar() {
   if (activeModule === 'users') currentNavItems = usersNavItems;
   if (activeModule === 'ai') currentNavItems = aiNavItems;
   if (activeModule === 'rawmaterial') currentNavItems = rawMaterialNavItems;
+  if (activeModule === 'plantperformance') currentNavItems = plantPerformanceNavItems;
 
   const filteredNavItems = currentNavItems.filter((item) => (
     item.key === 'ai_agent' || item.key === 'ai_audit_log' || item.key === 'mixing_sheet' || isPageAllowed(item.key)
