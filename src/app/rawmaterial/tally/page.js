@@ -79,10 +79,43 @@ const tdStyle = {
   verticalAlign: 'middle',
 };
 
+
+const sheetThStyle = {
+  padding: '8px 10px',
+  fontSize: '0.7rem',
+  fontWeight: 800,
+  color: '#475569',
+  background: '#f8fafc',
+  textTransform: 'uppercase',
+  letterSpacing: '0.04em',
+  whiteSpace: 'nowrap',
+};
+
+const sheetTdStyle = {
+  padding: '6px 8px',
+  fontSize: '0.78rem',
+  color: '#0f172a',
+  whiteSpace: 'nowrap',
+  verticalAlign: 'middle',
+};
+
+const sheetInputBase = {
+  width: '100%',
+  padding: '4px 6px',
+  borderRadius: '5px',
+  border: '1.5px solid #cbd5e1',
+  fontSize: '0.8rem',
+  outline: 'none',
+  boxSizing: 'border-box',
+  fontFamily: 'inherit',
+  textAlign: 'right',
+  transition: 'border-color 0.15s ease, background 0.15s ease',
+};
+
 const TABS = [
+  { id: 'bulk', label: 'Daily Stock Sheet', badge: 'Factory Matrix' },
   { id: 'forecast', label: 'Run-Out Forecaster', badge: 'AI Predict' },
   { id: 'ledger', label: 'Stock Ledger', badge: null },
-  { id: 'bulk', label: 'Bulk Shift Entry', badge: 'Matrix' },
   { id: 'passbook', label: 'Material Passbook', badge: null },
   { id: 'stock', label: 'Current Inventory', badge: null },
   { id: 'entry', label: 'Single Transaction', badge: null },
@@ -90,7 +123,7 @@ const TABS = [
 ];
 
 export default function RawMaterialTallyPage() {
-  const [tab, setTab] = useState('forecast');
+  const [tab, setTab] = useState('bulk');
   const [groups, setGroups] = useState([]);
   const [materials, setMaterials] = useState([]);
   const [entries, setEntries] = useState([]);
@@ -110,6 +143,304 @@ export default function RawMaterialTallyPage() {
   const [filterMat, setFilterMat] = useState('');
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
+
+  // Daily Stock Sheet State (Dual-Column Factory Matrix)
+  const [sheetDate, setSheetDate] = useState('2026-10-22');
+  const [sheetData, setSheetData] = useState(null);
+  const [loadingSheet, setLoadingSheet] = useState(false);
+  const [savingSheet, setSavingSheet] = useState(false);
+  const [sheetSearch, setSheetSearch] = useState('');
+  const [modifiedItems, setModifiedItems] = useState({});
+
+  const fetchDailySheet = useCallback(async (targetDate) => {
+    setLoadingSheet(true);
+    try {
+      const res = await apiGet(`/rawmaterial/daily-sheet/?date=${targetDate}`);
+      if (res && res.date) {
+        setSheetData(res);
+        setSheetDate(res.date);
+        setModifiedItems({});
+      }
+    } catch (e) {
+      console.error('Error fetching daily sheet:', e);
+      showToast('error', 'Failed to load daily stock sheet.');
+    } finally {
+      setLoadingSheet(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (tab === 'bulk') {
+      fetchDailySheet(sheetDate);
+    }
+  }, [tab, sheetDate, fetchDailySheet]);
+
+  const handleClosingChange = (matId, opening, newCloseVal) => {
+    const cVal = parseFloat(newCloseVal);
+    if (isNaN(cVal)) {
+      setModifiedItems((prev) => {
+        const copy = { ...prev };
+        delete copy[matId];
+        return copy;
+      });
+      return;
+    }
+    let inQ = 0;
+    let outQ = 0;
+    if (cVal < opening) {
+      outQ = Number((opening - cVal).toFixed(2));
+      inQ = 0;
+    } else if (cVal > opening) {
+      inQ = Number((cVal - opening).toFixed(2));
+      outQ = 0;
+    }
+    setModifiedItems((prev) => ({
+      ...prev,
+      [matId]: {
+        ...prev[matId],
+        closing: cVal,
+        received_quantity: inQ,
+        used_quantity: outQ,
+        is_modified: true,
+      },
+    }));
+  };
+
+  const handleInwardChange = (matId, opening, currentUsed, newInwardVal) => {
+    const inVal = parseFloat(newInwardVal) || 0;
+    const outVal = parseFloat(currentUsed) || 0;
+    const newClose = Number((opening + inVal - outVal).toFixed(2));
+    setModifiedItems((prev) => ({
+      ...prev,
+      [matId]: {
+        ...prev[matId],
+        received_quantity: inVal,
+        used_quantity: outVal,
+        closing: newClose,
+        is_modified: true,
+      },
+    }));
+  };
+
+  const handleUsedChange = (matId, opening, currentInward, newUsedVal) => {
+    const outVal = parseFloat(newUsedVal) || 0;
+    const inVal = parseFloat(currentInward) || 0;
+    const newClose = Number((opening + inVal - outVal).toFixed(2));
+    setModifiedItems((prev) => ({
+      ...prev,
+      [matId]: {
+        ...prev[matId],
+        received_quantity: inVal,
+        used_quantity: outVal,
+        closing: newClose,
+        is_modified: true,
+      },
+    }));
+  };
+
+  const handleSaveDailySheet = async () => {
+    if (!sheetData) return;
+    setSavingSheet(true);
+
+    const allSections = [...(sheetData.left_sections || []), ...(sheetData.right_sections || [])];
+    const itemsToSave = [];
+
+    allSections.forEach((sec) => {
+      sec.items.forEach((it) => {
+        const mod = modifiedItems[it.material_id];
+        const opening = it.opening;
+        const recv = mod ? (mod.received_quantity ?? it.received_quantity) : it.received_quantity;
+        const used = mod ? (mod.used_quantity ?? it.used_quantity) : it.used_quantity;
+        const closing = mod ? (mod.closing ?? it.closing) : it.closing;
+        const rate = mod ? (mod.rate_per_unit ?? it.rate_per_unit) : it.rate_per_unit;
+
+        itemsToSave.push({
+          material_id: it.material_id,
+          opening: opening,
+          received_quantity: recv,
+          used_quantity: used,
+          closing: closing,
+          rate_per_unit: rate,
+          supplier_name: it.supplier_name || '',
+          bill_challan_no: it.bill_challan_no || '',
+          notes: it.notes || '',
+        });
+      });
+    });
+
+    const res = await apiPost('/rawmaterial/daily-sheet/', {
+      date: sheetDate,
+      items: itemsToSave,
+    });
+    setSavingSheet(false);
+
+    if (res && res.ok) {
+      showToast('success', `Daily stock sheet for ${sheetDate} saved! (${res.data?.saved_count || itemsToSave.length} items recorded)`);
+      setModifiedItems({});
+      fetchDailySheet(sheetDate);
+      fetchBaseData();
+    } else {
+      showToast('error', res?.data?.error || 'Failed to save daily sheet.');
+    }
+  };
+
+  const renderSheetSection = (sec) => {
+    const filteredItems = sec.items.filter((it) =>
+      !sheetSearch || it.material_name.toLowerCase().includes(sheetSearch.toLowerCase())
+    );
+
+    if (filteredItems.length === 0 && sheetSearch) return null;
+
+    return (
+      <div
+        key={sec.group_name}
+        style={{
+          background: theme.canvas,
+          borderRadius: '10px',
+          border: `1px solid ${theme.border}`,
+          overflow: 'hidden',
+          boxShadow: theme.cardShadow,
+        }}
+      >
+        <div
+          style={{
+            background: '#1e293b',
+            padding: '10px 14px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <span
+            style={{
+              fontSize: '0.84rem',
+              fontWeight: 900,
+              color: '#ffffff',
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+            }}
+          >
+            {sec.group_name}
+          </span>
+          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8' }}>
+            {filteredItems.length} items
+          </span>
+        </div>
+
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+            <thead>
+              <tr style={{ background: '#f8fafc', borderBottom: `1.5px solid ${theme.border}` }}>
+                <th style={{ ...sheetThStyle, width: '36px', textAlign: 'center' }}>#</th>
+                <th style={{ ...sheetThStyle, textAlign: 'left' }}>Particulars</th>
+                <th style={{ ...sheetThStyle, textAlign: 'right', width: '65px' }}>Open</th>
+                <th style={{ ...sheetThStyle, textAlign: 'right', width: '70px', color: '#15803d' }}>Inward (+)</th>
+                <th style={{ ...sheetThStyle, textAlign: 'right', width: '70px', color: '#b91c1c' }}>Used (-)</th>
+                <th style={{ ...sheetThStyle, textAlign: 'right', width: '80px', color: '#1d4ed8' }}>Closing Qty</th>
+                <th style={{ ...sheetThStyle, textAlign: 'center', width: '45px' }}>Unit</th>
+                <th style={{ ...sheetThStyle, textAlign: 'right', width: '55px' }}>Per Bag</th>
+                <th style={{ ...sheetThStyle, textAlign: 'right', width: '80px' }}>Total Kg</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredItems.map((it, idx) => {
+                const mod = modifiedItems[it.material_id];
+                const openQ = it.opening;
+                const inQ = mod ? (mod.received_quantity ?? it.received_quantity) : it.received_quantity;
+                const outQ = mod ? (mod.used_quantity ?? it.used_quantity) : it.used_quantity;
+                const closeQ = mod ? (mod.closing ?? it.closing) : it.closing;
+                const pb = it.per_bag || 0;
+                const kgVal = pb > 0 ? Number((closeQ * pb).toFixed(2)) : (it.unit.toLowerCase() === 'kg' ? closeQ : 0);
+                const isModified = Boolean(mod?.is_modified);
+
+                return (
+                  <tr
+                    key={it.material_id}
+                    style={{
+                      background: isModified ? '#eff6ff' : (idx % 2 === 0 ? theme.canvas : '#fafbfc'),
+                      borderBottom: `1px solid ${theme.borderLight}`,
+                      borderLeft: isModified ? '3px solid #2563eb' : 'none',
+                    }}
+                  >
+                    <td style={{ ...sheetTdStyle, textAlign: 'center', color: theme.textFaint, fontWeight: 700 }}>
+                      {it.sno}
+                    </td>
+                    <td style={{ ...sheetTdStyle, fontWeight: 700, color: theme.navy }}>
+                      {it.material_name}
+                    </td>
+                    <td style={{ ...sheetTdStyle, textAlign: 'right', color: theme.textSub, fontWeight: 600 }}>
+                      {Number(openQ).toFixed(0)}
+                    </td>
+                    <td style={{ ...sheetTdStyle, padding: '3px 4px' }}>
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        value={inQ === 0 ? '' : inQ}
+                        placeholder="0"
+                        onChange={(e) => handleInwardChange(it.material_id, openQ, outQ, e.target.value)}
+                        style={{
+                          ...sheetInputBase,
+                          color: inQ > 0 ? '#15803d' : theme.text,
+                          fontWeight: inQ > 0 ? 800 : 500,
+                          background: inQ > 0 ? '#f0fdf4' : '#ffffff',
+                          borderColor: inQ > 0 ? '#86efac' : theme.border,
+                        }}
+                      />
+                    </td>
+                    <td style={{ ...sheetTdStyle, padding: '3px 4px' }}>
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        value={outQ === 0 ? '' : outQ}
+                        placeholder="0"
+                        onChange={(e) => handleUsedChange(it.material_id, openQ, inQ, e.target.value)}
+                        style={{
+                          ...sheetInputBase,
+                          color: outQ > 0 ? '#b91c1c' : theme.text,
+                          fontWeight: outQ > 0 ? 800 : 500,
+                          background: outQ > 0 ? '#fef2f2' : '#ffffff',
+                          borderColor: outQ > 0 ? '#fca5a5' : theme.border,
+                        }}
+                      />
+                    </td>
+                    <td style={{ ...sheetTdStyle, padding: '3px 4px' }}>
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        value={closeQ === 0 && openQ === 0 && inQ === 0 ? '' : closeQ}
+                        placeholder="0"
+                        onChange={(e) => handleClosingChange(it.material_id, openQ, e.target.value)}
+                        style={{
+                          ...sheetInputBase,
+                          fontWeight: 900,
+                          color: isModified ? '#1d4ed8' : theme.navy,
+                          background: isModified ? '#dbeafe' : '#f8fafc',
+                          borderColor: isModified ? '#60a5fa' : theme.border,
+                        }}
+                      />
+                    </td>
+                    <td style={{ ...sheetTdStyle, textAlign: 'center', fontSize: '0.72rem', color: theme.textSub, fontWeight: 600 }}>
+                      {it.unit}
+                    </td>
+                    <td style={{ ...sheetTdStyle, textAlign: 'right', color: theme.textFaint, fontSize: '0.74rem' }}>
+                      {pb > 0 ? pb : '-'}
+                    </td>
+                    <td style={{ ...sheetTdStyle, textAlign: 'right', fontWeight: 800, color: '#475569' }}>
+                      {kgVal > 0 ? Number(kgVal).toLocaleString('en-IN') : '-'}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
 
   // Bulk Shift Entry State
   const [bulkDate, setBulkDate] = useState(new Date().toISOString().slice(0, 10));
@@ -1462,206 +1793,224 @@ export default function RawMaterialTallyPage() {
         {/* ════════════════════════════════════════════════════════════════════ */}
         {tab === 'bulk' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* Header Controls */}
-            <div style={{ background: theme.canvas, borderRadius: '10px', border: `1px solid ${theme.border}`, padding: '16px 20px', boxShadow: theme.cardShadow }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '14px' }}>
-                <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                  <div style={{ minWidth: '180px' }}>
-                    <label style={labelStyle}>Shift Entry Date *</label>
-                    <input
-                      type="date"
-                      style={inputBase}
-                      value={bulkDate}
-                      onChange={(e) => setBulkDate(e.target.value)}
-                    />
+            {/* Top Toolbar */}
+            <div style={{ background: theme.canvas, borderRadius: '12px', border: `1px solid ${theme.border}`, padding: '18px 22px', boxShadow: theme.cardShadow }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                
+                {/* Left: Title & Date Navigation */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '1.08rem', fontWeight: 900, color: theme.navy, letterSpacing: '-0.01em' }}>
+                        Raw Materials Stock Position Sheet
+                      </span>
+                      {sheetData?.is_saved ? (
+                        <span style={{ padding: '3px 9px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800, background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0' }}>
+                          ✓ Saved Sheet
+                        </span>
+                      ) : (
+                        <span style={{ padding: '3px 9px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800, background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a' }}>
+                          ⚡ New Sheet
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '0.76rem', color: theme.textSub, marginTop: '2px' }}>
+                      Exact factory closing sheet: Rubbers, Carbon & Oils (Left) | Fillers, Fabrics, Valves & Engineering (Right)
+                    </div>
                   </div>
 
-                  <div style={{ minWidth: '240px' }}>
-                    <label style={labelStyle}>Category Filter</label>
-                    <select
-                      style={inputBase}
-                      value={bulkGroupFilter}
-                      onChange={(e) => setBulkGroupFilter(e.target.value)}
+                  {/* Date Navigation Strip */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f1f5f9', padding: '4px 6px', borderRadius: '8px', border: `1px solid ${theme.border}` }}>
+                    <button
+                      type="button"
+                      disabled={!sheetData?.previous_date || loadingSheet}
+                      onClick={() => sheetData?.previous_date && setSheetDate(sheetData.previous_date)}
+                      style={{
+                        padding: '6px 10px',
+                        background: sheetData?.previous_date ? '#ffffff' : '#f8fafc',
+                        border: `1px solid ${theme.border}`,
+                        borderRadius: '6px',
+                        fontSize: '0.76rem',
+                        fontWeight: 700,
+                        cursor: sheetData?.previous_date ? 'pointer' : 'not-allowed',
+                        color: sheetData?.previous_date ? theme.text : theme.textFaint,
+                      }}
+                      title="Previous day sheet"
                     >
-                      <option value="">All Categories ({materials.length} raw materials)</option>
-                      {groups.map((g) => (
-                        <option key={g.id} value={g.id}>
-                          {g.name}
+                      ◀ Prev
+                    </button>
+
+                    <input
+                      type="date"
+                      value={sheetDate}
+                      onChange={(e) => setSheetDate(e.target.value)}
+                      style={{
+                        padding: '6px 10px',
+                        borderRadius: '6px',
+                        border: `1px solid ${theme.border}`,
+                        fontSize: '0.82rem',
+                        fontWeight: 800,
+                        color: theme.navy,
+                        background: '#ffffff',
+                        outline: 'none',
+                      }}
+                    />
+
+                    <button
+                      type="button"
+                      disabled={!sheetData?.next_date || loadingSheet}
+                      onClick={() => sheetData?.next_date && setSheetDate(sheetData.next_date)}
+                      style={{
+                        padding: '6px 10px',
+                        background: sheetData?.next_date ? '#ffffff' : '#f8fafc',
+                        border: `1px solid ${theme.border}`,
+                        borderRadius: '6px',
+                        fontSize: '0.76rem',
+                        fontWeight: 700,
+                        cursor: sheetData?.next_date ? 'pointer' : 'not-allowed',
+                        color: sheetData?.next_date ? theme.text : theme.textFaint,
+                      }}
+                      title="Next day sheet"
+                    >
+                      Next ▶
+                    </button>
+
+                    <select
+                      value={sheetDate}
+                      onChange={(e) => setSheetDate(e.target.value)}
+                      style={{
+                        padding: '6px 10px',
+                        borderRadius: '6px',
+                        border: `1px solid ${theme.border}`,
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        color: theme.text,
+                        background: '#ffffff',
+                        outline: 'none',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <option value={sheetDate}>Jump: {sheetDate}</option>
+                      {sheetData?.available_dates?.map((d) => (
+                        <option key={d} value={d}>
+                          {d} (Saved)
                         </option>
                       ))}
                     </select>
                   </div>
                 </div>
 
-                <button
-                  onClick={handleBulkShiftSubmit}
-                  disabled={savingBulk}
-                  style={{
-                    padding: '12px 28px',
-                    background: savingBulk ? theme.textFaint : theme.greenDark,
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontWeight: 800,
-                    fontSize: '0.88rem',
-                    cursor: savingBulk ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 2px 8px rgba(22,163,74,0.2)',
-                  }}
-                >
-                  {savingBulk ? 'Saving Entire Shift...' : 'Save Entire Shift Entries'}
-                </button>
+                {/* Right: Search, Export & Save */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <input
+                    type="text"
+                    placeholder="Search material in sheet..."
+                    value={sheetSearch}
+                    onChange={(e) => setSheetSearch(e.target.value)}
+                    style={{
+                      ...inputBase,
+                      width: '210px',
+                      padding: '8px 12px',
+                      fontSize: '0.8rem',
+                    }}
+                  />
+
+                  <a
+                    href={`https://api.radhuerp.site/api/rawmaterial/daily-sheet/export-excel/?date=${sheetDate}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '9px 16px',
+                      background: '#ffffff',
+                      color: '#047857',
+                      border: '1.5px solid #10b981',
+                      borderRadius: '8px',
+                      fontWeight: 800,
+                      fontSize: '0.82rem',
+                      textDecoration: 'none',
+                      boxShadow: '0 1px 3px rgba(16,185,129,0.1)',
+                    }}
+                  >
+                    📥 Export Excel
+                  </a>
+
+                  <button
+                    onClick={handleSaveDailySheet}
+                    disabled={savingSheet}
+                    style={{
+                      padding: '10px 22px',
+                      background: savingSheet ? theme.textFaint : '#15803d',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontWeight: 800,
+                      fontSize: '0.84rem',
+                      cursor: savingSheet ? 'not-allowed' : 'pointer',
+                      boxShadow: '0 2px 8px rgba(21,128,61,0.25)',
+                    }}
+                  >
+                    {savingSheet ? 'Saving Sheet...' : `Save Day Sheet (${Object.keys(modifiedItems).length} modified)`}
+                  </button>
+                </div>
               </div>
+
+              {/* KPI Strip */}
+              {sheetData?.kpis && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', marginTop: '16px', paddingTop: '14px', borderTop: `1px solid ${theme.borderLight}` }}>
+                  <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: `1px solid ${theme.border}` }}>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: theme.textSub, textTransform: 'uppercase' }}>Materials</div>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 900, color: theme.navy }}>{sheetData.kpis.total_materials} Items</div>
+                  </div>
+                  <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: `1px solid ${theme.border}` }}>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: theme.textSub, textTransform: 'uppercase' }}>Opening Qty</div>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 900, color: theme.primary }}>{Number(sheetData.kpis.total_opening).toLocaleString('en-IN')}</div>
+                  </div>
+                  <div style={{ background: '#f0fdf4', padding: '8px 12px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#15803d', textTransform: 'uppercase' }}>Day Inward (+)</div>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#15803d' }}>+{Number(sheetData.kpis.total_received).toLocaleString('en-IN')}</div>
+                  </div>
+                  <div style={{ background: '#fef2f2', padding: '8px 12px', borderRadius: '8px', border: '1px solid #fecaca' }}>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#b91c1c', textTransform: 'uppercase' }}>Day Used (-)</div>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#b91c1c' }}>-{Number(sheetData.kpis.total_used).toLocaleString('en-IN')}</div>
+                  </div>
+                  <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: `1px solid ${theme.border}` }}>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: theme.textSub, textTransform: 'uppercase' }}>Closing Qty</div>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 900, color: theme.navy }}>{Number(sheetData.kpis.total_closing).toLocaleString('en-IN')}</div>
+                  </div>
+                  <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: `1px solid ${theme.border}` }}>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: theme.textSub, textTransform: 'uppercase' }}>Total Weight (Kg)</div>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#7c3aed' }}>{Number(sheetData.kpis.total_kg).toLocaleString('en-IN')} Kg</div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Matrix Table */}
-            <div style={{ background: theme.canvas, borderRadius: '10px', border: `1px solid ${theme.border}`, overflow: 'hidden', boxShadow: theme.cardShadow }}>
-              <div style={{ overflowX: 'auto', maxHeight: '72vh' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1100px' }}>
-                  <thead>
-                    <tr>
-                      <th style={{ ...thStyle, width: '240px' }}>Material Name</th>
-                      <th style={thStyle}>Category</th>
-                      <th style={{ ...thStyle, textAlign: 'right' }}>Opening</th>
-                      <th style={{ ...thStyle, background: '#14532d', textAlign: 'center' }}>Inward Qty (+)</th>
-                      <th style={{ ...thStyle, background: '#14532d' }}>Purchase Rate</th>
-                      <th style={{ ...thStyle, background: '#14532d' }}>Supplier / Challan</th>
-                      <th style={{ ...thStyle, background: '#7f1d1d', textAlign: 'center' }}>Used Qty (-)</th>
-                      <th style={{ ...thStyle, textAlign: 'right' }}>Closing Preview</th>
-                      <th style={thStyle}>Shift Note</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {bulkRows.map((r, idx) => {
-                      const inQ = parseFloat(r.received_quantity) || 0;
-                      const outQ = parseFloat(r.used_quantity) || 0;
-                      const previewClosing = r.opening + inQ - outQ;
-
-                      return (
-                        <tr key={r.material_id} style={{ background: idx % 2 === 0 ? theme.canvas : '#fafbfc' }}>
-                          <td style={{ ...tdStyle, fontWeight: 700, color: theme.text }}>
-                            {r.name}
-                            <span style={{ fontSize: '0.72rem', color: theme.textFaint, marginLeft: '6px' }}>
-                              ({r.unit})
-                            </span>
-                          </td>
-                          <td style={{ ...tdStyle, fontSize: '0.78rem', color: theme.textSub }}>{r.group_name}</td>
-                          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, color: theme.primary }}>
-                            {Number(r.opening).toFixed(2)}
-                          </td>
-                          <td style={{ ...tdStyle, width: '110px' }}>
-                            <input
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              placeholder="0"
-                              style={{
-                                ...inputBase,
-                                padding: '6px 8px',
-                                fontWeight: 800,
-                                color: theme.greenDark,
-                                borderColor: inQ > 0 ? '#86efac' : theme.border,
-                                textAlign: 'right',
-                              }}
-                              value={r.received_quantity}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setBulkRows((prev) =>
-                                  prev.map((row) => (row.material_id === r.material_id ? { ...row, received_quantity: val } : row))
-                                );
-                              }}
-                            />
-                          </td>
-                          <td style={{ ...tdStyle, width: '100px' }}>
-                            <input
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              placeholder={String(r.rate_per_unit || '0')}
-                              style={{ ...inputBase, padding: '6px 8px', fontSize: '0.8rem', textAlign: 'right' }}
-                              value={r.rate_per_unit || ''}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setBulkRows((prev) =>
-                                  prev.map((row) => (row.material_id === r.material_id ? { ...row, rate_per_unit: val } : row))
-                                );
-                              }}
-                            />
-                          </td>
-                          <td style={{ ...tdStyle, width: '180px' }}>
-                            <input
-                              type="text"
-                              placeholder="Supplier / Bill no"
-                              style={{ ...inputBase, padding: '6px 8px', fontSize: '0.78rem' }}
-                              value={r.supplier_name}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setBulkRows((prev) =>
-                                  prev.map((row) => (row.material_id === r.material_id ? { ...row, supplier_name: val } : row))
-                                );
-                              }}
-                            />
-                          </td>
-                          <td style={{ ...tdStyle, width: '110px' }}>
-                            <input
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              placeholder="0"
-                              style={{
-                                ...inputBase,
-                                padding: '6px 8px',
-                                fontWeight: 800,
-                                color: theme.red,
-                                borderColor: outQ > 0 ? '#fca5a5' : theme.border,
-                                textAlign: 'right',
-                              }}
-                              value={r.used_quantity}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setBulkRows((prev) =>
-                                  prev.map((row) => (row.material_id === r.material_id ? { ...row, used_quantity: val } : row))
-                                );
-                              }}
-                            />
-                          </td>
-                          <td
-                            style={{
-                              ...tdStyle,
-                              textAlign: 'right',
-                              fontWeight: 900,
-                              fontSize: '0.92rem',
-                              color: previewClosing < 0 ? theme.red : theme.text,
-                            }}
-                          >
-                            {previewClosing.toFixed(2)}
-                          </td>
-                          <td style={{ ...tdStyle, width: '160px' }}>
-                            <input
-                              type="text"
-                              placeholder="Shift note..."
-                              style={{ ...inputBase, padding: '6px 8px', fontSize: '0.75rem' }}
-                              value={r.notes}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setBulkRows((prev) =>
-                                  prev.map((row) => (row.material_id === r.material_id ? { ...row, notes: val } : row))
-                                );
-                              }}
-                            />
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+            {/* DUAL-COLUMN FACTORY SHEET */}
+            {loadingSheet ? (
+              <div style={{ padding: '60px', textAlign: 'center', color: theme.textSub, fontWeight: 700 }}>
+                Loading Daily Stock Sheet for {sheetDate}...
               </div>
-            </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(560px, 1fr))', gap: '16px', alignItems: 'start' }}>
+                
+                {/* LEFT COLUMN: RUBBERS, CHEMICAL & CARBON, PROCESSING OILS */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {sheetData?.left_sections?.map((sec) => renderSheetSection(sec))}
+                </div>
+
+                {/* RIGHT COLUMN: FILLERS, OTHER MAIN, TUBE VALVE, BOILER, ENGINEERING, MISCELLANEOUS */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {sheetData?.right_sections?.map((sec) => renderSheetSection(sec))}
+                </div>
+
+              </div>
+            )}
           </div>
         )}
 
-        {/* ════════════════════════════════════════════════════════════════════ */}
-        {/* TAB 4: MATERIAL PASSBOOK (Bank Statement Ledger)                     */}
-        {/* ════════════════════════════════════════════════════════════════════ */}
         {tab === 'passbook' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {/* Top Selector Card */}
