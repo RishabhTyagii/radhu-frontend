@@ -122,6 +122,23 @@ const TABS = [
   { id: 'setup', label: 'Master Setup', badge: null },
 ];
 
+
+function highlightMatch(text, query) {
+  if (!query || !query.trim() || typeof text !== 'string') return text;
+  const q = query.trim();
+  const index = text.toLowerCase().indexOf(q.toLowerCase());
+  if (index === -1) return text;
+  return (
+    <>
+      {text.substring(0, index)}
+      <span style={{ background: '#fef08a', color: '#854d0e', padding: '1px 3px', borderRadius: '3px', fontWeight: 900 }}>
+        {text.substring(index, index + q.length)}
+      </span>
+      {text.substring(index + q.length)}
+    </>
+  );
+}
+
 export default function RawMaterialTallyPage() {
   const [tab, setTab] = useState('bulk');
   const [groups, setGroups] = useState([]);
@@ -150,7 +167,37 @@ export default function RawMaterialTallyPage() {
   const [loadingSheet, setLoadingSheet] = useState(false);
   const [savingSheet, setSavingSheet] = useState(false);
   const [sheetSearch, setSheetSearch] = useState('');
+  const [sheetCategoryFilter, setSheetCategoryFilter] = useState('ALL');
+  const [sheetStatusFilter, setSheetStatusFilter] = useState('ALL'); // ALL, IN_STOCK, MODIFIED, ZERO
   const [modifiedItems, setModifiedItems] = useState({});
+
+  const totalMatchesCount = useMemo(() => {
+    if (!sheetData) return 0;
+    const allSections = [...(sheetData.left_sections || []), ...(sheetData.right_sections || [])];
+    let count = 0;
+    allSections.forEach((sec) => {
+      if (sheetCategoryFilter !== 'ALL' && sec.group_name !== sheetCategoryFilter) return;
+      sec.items.forEach((it) => {
+        const mod = modifiedItems[it.material_id];
+        const isMod = Boolean(mod?.is_modified);
+        const closeQ = mod ? (mod.closing ?? it.closing) : it.closing;
+
+        if (sheetStatusFilter === 'IN_STOCK' && closeQ <= 0) return;
+        if (sheetStatusFilter === 'ZERO' && closeQ > 0) return;
+        if (sheetStatusFilter === 'MODIFIED' && !isMod) return;
+
+        if (sheetSearch && sheetSearch.trim()) {
+          const q = sheetSearch.trim().toLowerCase();
+          const matchName = it.material_name.toLowerCase().includes(q);
+          const matchUnit = it.unit.toLowerCase().includes(q);
+          const matchGrp = sec.group_name.toLowerCase().includes(q);
+          if (!matchName && !matchUnit && !matchGrp) return;
+        }
+        count++;
+      });
+    });
+    return count;
+  }, [sheetData, sheetCategoryFilter, sheetStatusFilter, sheetSearch, modifiedItems]);
 
   const fetchDailySheet = useCallback(async (targetDate) => {
     setLoadingSheet(true);
@@ -285,11 +332,43 @@ export default function RawMaterialTallyPage() {
   };
 
   const renderSheetSection = (sec) => {
-    const filteredItems = sec.items.filter((it) =>
-      !sheetSearch || it.material_name.toLowerCase().includes(sheetSearch.toLowerCase())
-    );
+    if (sheetCategoryFilter !== 'ALL' && sec.group_name !== sheetCategoryFilter) {
+      return null;
+    }
 
-    if (filteredItems.length === 0 && sheetSearch) return null;
+    const filteredItems = sec.items.filter((it) => {
+      const mod = modifiedItems[it.material_id];
+      const isMod = Boolean(mod?.is_modified);
+      const closeQ = mod ? (mod.closing ?? it.closing) : it.closing;
+
+      if (sheetStatusFilter === 'IN_STOCK' && closeQ <= 0) return false;
+      if (sheetStatusFilter === 'ZERO' && closeQ > 0) return false;
+      if (sheetStatusFilter === 'MODIFIED' && !isMod) return false;
+
+      if (sheetSearch && sheetSearch.trim()) {
+        const q = sheetSearch.trim().toLowerCase();
+        const matchName = it.material_name.toLowerCase().includes(q);
+        const matchUnit = it.unit.toLowerCase().includes(q);
+        const matchGrp = sec.group_name.toLowerCase().includes(q);
+        if (!matchName && !matchUnit && !matchGrp) return false;
+      }
+      return true;
+    });
+
+    if (filteredItems.length === 0 && (sheetSearch || sheetStatusFilter !== 'ALL' || sheetCategoryFilter !== 'ALL')) {
+      return null;
+    }
+
+    let secTotalQty = 0;
+    let secTotalKg = 0;
+    filteredItems.forEach((it) => {
+      const mod = modifiedItems[it.material_id];
+      const closeQ = mod ? (mod.closing ?? it.closing) : it.closing;
+      const pb = it.per_bag || 0;
+      const kgVal = pb > 0 ? closeQ * pb : (it.unit.toLowerCase() === 'kg' ? closeQ : 0);
+      secTotalQty += closeQ;
+      secTotalKg += kgVal;
+    });
 
     return (
       <div
@@ -311,20 +390,38 @@ export default function RawMaterialTallyPage() {
             alignItems: 'center',
           }}
         >
-          <span
-            style={{
-              fontSize: '0.84rem',
-              fontWeight: 900,
-              color: '#ffffff',
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase',
-            }}
-          >
-            {sec.group_name}
-          </span>
-          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8' }}>
-            {filteredItems.length} items
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span
+              style={{
+                fontSize: '0.84rem',
+                fontWeight: 900,
+                color: '#ffffff',
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+              }}
+            >
+              {highlightMatch(sec.group_name, sheetSearch)}
+            </span>
+            <span
+              style={{
+                padding: '2px 7px',
+                borderRadius: '12px',
+                fontSize: '0.68rem',
+                fontWeight: 800,
+                background: '#334155',
+                color: '#cbd5e1',
+              }}
+            >
+              {filteredItems.length} items
+            </span>
+          </div>
+
+          <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>
+            Total: <span style={{ color: '#ffffff' }}>{Number(secTotalQty).toLocaleString('en-IN')}</span> Qty
+            {secTotalKg > 0 && (
+              <> | <span style={{ color: '#67e8f9' }}>{Number(secTotalKg).toLocaleString('en-IN')} Kg</span></>
+            )}
+          </div>
         </div>
 
         <div style={{ overflowX: 'auto' }}>
@@ -359,14 +456,29 @@ export default function RawMaterialTallyPage() {
                     style={{
                       background: isModified ? '#eff6ff' : (idx % 2 === 0 ? theme.canvas : '#fafbfc'),
                       borderBottom: `1px solid ${theme.borderLight}`,
-                      borderLeft: isModified ? '3px solid #2563eb' : 'none',
+                      borderLeft: isModified ? '3.5px solid #2563eb' : 'none',
                     }}
                   >
                     <td style={{ ...sheetTdStyle, textAlign: 'center', color: theme.textFaint, fontWeight: 700 }}>
                       {it.sno}
                     </td>
                     <td style={{ ...sheetTdStyle, fontWeight: 700, color: theme.navy }}>
-                      {it.material_name}
+                      {highlightMatch(it.material_name, sheetSearch)}
+                      {isModified && (
+                        <span
+                          style={{
+                            marginLeft: '6px',
+                            fontSize: '0.64rem',
+                            background: '#dbeafe',
+                            color: '#1e40af',
+                            padding: '1px 5px',
+                            borderRadius: '4px',
+                            fontWeight: 800,
+                          }}
+                        >
+                          EDITED
+                        </span>
+                      )}
                     </td>
                     <td style={{ ...sheetTdStyle, textAlign: 'right', color: theme.textSub, fontWeight: 600 }}>
                       {Number(openQ).toFixed(0)}
@@ -440,7 +552,6 @@ export default function RawMaterialTallyPage() {
       </div>
     );
   };
-
 
   // Bulk Shift Entry State
   const [bulkDate, setBulkDate] = useState(new Date().toISOString().slice(0, 10));
@@ -1900,21 +2011,8 @@ export default function RawMaterialTallyPage() {
                   </div>
                 </div>
 
-                {/* Right: Search, Export & Save */}
+                {/* Right: Export & Save Buttons */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                  <input
-                    type="text"
-                    placeholder="Search material in sheet..."
-                    value={sheetSearch}
-                    onChange={(e) => setSheetSearch(e.target.value)}
-                    style={{
-                      ...inputBase,
-                      width: '210px',
-                      padding: '8px 12px',
-                      fontSize: '0.8rem',
-                    }}
-                  />
-
                   <a
                     href={`https://api.radhuerp.site/api/rawmaterial/daily-sheet/export-excel/?date=${sheetDate}`}
                     target="_blank"
@@ -1986,6 +2084,164 @@ export default function RawMaterialTallyPage() {
                   </div>
                 </div>
               )}
+
+              {/* 🔍 ACTIVE SEARCH & FILTER CONTROL BAR */}
+              <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: `1px solid ${theme.borderLight}`, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  
+                  {/* Active Search Input */}
+                  <div style={{ position: 'relative', flex: 1, minWidth: '280px' }}>
+                    <input
+                      type="text"
+                      placeholder="Type to actively search material name or unit (e.g. RSS, Clay, Diesel, Wax, NTC, Resin)..."
+                      value={sheetSearch}
+                      onChange={(e) => setSheetSearch(e.target.value)}
+                      style={{
+                        ...inputBase,
+                        padding: '10px 38px 10px 14px',
+                        fontSize: '0.86rem',
+                        borderRadius: '8px',
+                        borderColor: sheetSearch ? theme.primary : theme.border,
+                        boxShadow: sheetSearch ? '0 0 0 3px rgba(37,99,235,0.1)' : 'none',
+                      }}
+                    />
+                    {sheetSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setSheetSearch('')}
+                        style={{
+                          position: 'absolute',
+                          right: '10px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          color: theme.textSub,
+                          cursor: 'pointer',
+                          fontSize: '0.9rem',
+                          fontWeight: 800,
+                          padding: '4px',
+                        }}
+                        title="Clear search"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Active Matches Counter */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span
+                      style={{
+                        padding: '8px 14px',
+                        borderRadius: '8px',
+                        fontSize: '0.8rem',
+                        fontWeight: 800,
+                        background: sheetSearch || sheetStatusFilter !== 'ALL' || sheetCategoryFilter !== 'ALL' ? '#eff6ff' : '#f1f5f9',
+                        color: sheetSearch || sheetStatusFilter !== 'ALL' || sheetCategoryFilter !== 'ALL' ? theme.primaryDark : theme.textSub,
+                        border: `1px solid ${sheetSearch || sheetStatusFilter !== 'ALL' || sheetCategoryFilter !== 'ALL' ? '#bfdbfe' : theme.border}`,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      Showing: <strong>{totalMatchesCount}</strong> of 96 items
+                    </span>
+
+                    {(sheetSearch || sheetStatusFilter !== 'ALL' || sheetCategoryFilter !== 'ALL') && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSheetSearch('');
+                          setSheetCategoryFilter('ALL');
+                          setSheetStatusFilter('ALL');
+                        }}
+                        style={{
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          background: '#ffffff',
+                          color: '#dc2626',
+                          border: '1px solid #fca5a5',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Reset All Filters
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Filter Pills: Sections & Status */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                  
+                  {/* Category Filter Pills */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: theme.textSub, textTransform: 'uppercase', marginRight: '4px' }}>
+                      Section:
+                    </span>
+                    {['ALL', 'Rubbers', 'Chemical & Carbon', 'Processing Oils', 'Fillers', 'Other Main', 'Tube Valve', 'Boiler', 'Engineering', 'Miscellaneous'].map((cat) => {
+                      const isActive = sheetCategoryFilter === cat;
+                      return (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setSheetCategoryFilter(cat)}
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: '6px',
+                            fontSize: '0.74rem',
+                            fontWeight: isActive ? 800 : 600,
+                            background: isActive ? '#0f172a' : '#f1f5f9',
+                            color: isActive ? '#ffffff' : theme.textSub,
+                            border: `1px solid ${isActive ? '#0f172a' : theme.border}`,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          {cat === 'ALL' ? 'All Sections (9)' : cat}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Status Filters */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: theme.textSub, textTransform: 'uppercase', marginRight: '4px' }}>
+                      Status:
+                    </span>
+                    {[
+                      { id: 'ALL', label: 'All Stock' },
+                      { id: 'IN_STOCK', label: 'With Stock (> 0)' },
+                      { id: 'MODIFIED', label: `Modified (${Object.keys(modifiedItems).length})` },
+                      { id: 'ZERO', label: 'Zero Stock (= 0)' },
+                    ].map((st) => {
+                      const isActive = sheetStatusFilter === st.id;
+                      const isModTag = st.id === 'MODIFIED' && Object.keys(modifiedItems).length > 0;
+                      return (
+                        <button
+                          key={st.id}
+                          type="button"
+                          onClick={() => setSheetStatusFilter(st.id)}
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: '6px',
+                            fontSize: '0.74rem',
+                            fontWeight: isActive ? 800 : 600,
+                            background: isActive ? (isModTag ? '#1d4ed8' : '#0f172a') : (isModTag ? '#dbeafe' : '#f1f5f9'),
+                            color: isActive ? '#ffffff' : (isModTag ? '#1e40af' : theme.textSub),
+                            border: `1px solid ${isActive ? (isModTag ? '#1d4ed8' : '#0f172a') : (isModTag ? '#93c5fd' : theme.border)}`,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          {st.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                </div>
+              </div>
             </div>
 
             {/* DUAL-COLUMN FACTORY SHEET */}
