@@ -3,76 +3,71 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import Navbar from '@/components/Navbar';
 import { apiGet, apiPost, apiDelete } from '@/lib/api';
 
-// ─── Design System & Modern Tokens (Edge-to-Edge, Light Mode, 10/10 Polish) ───
+// ─── Design Tokens ───
 const theme = {
-  bg: '#f8fafc',
+  bg: '#f5f5f5',
   canvas: '#ffffff',
-  border: '#e2e8f0',
-  borderDark: '#cbd5e1',
-  borderLight: '#f1f5f9',
-  text: '#0f172a',
-  textMuted: '#334155',
-  textSub: '#64748b',
-  textFaint: '#94a3b8',
-  primary: '#2563eb',
-  primaryDark: '#1d4ed8',
-  primarySoft: '#eff6ff',
-  green: '#16a34a',
-  greenDark: '#15803d',
-  greenSoft: '#dcfce7',
-  red: '#dc2626',
-  redDark: '#b91c1c',
-  redSoft: '#fee2e2',
-  amber: '#d97706',
-  amberDark: '#b45309',
-  amberSoft: '#fef3c7',
-  purple: '#7c3aed',
-  purpleSoft: '#f5f3ff',
-  navy: '#0f172a',
-  cardShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.03)',
-  cardShadowHover: '0 10px 28px -4px rgba(15, 23, 42, 0.08), 0 4px 10px -2px rgba(15, 23, 42, 0.04)',
+  border: '#e0e0e0',
+  borderDark: '#bdbdbd',
+  borderLight: '#f5f5f5',
+  text: '#212121',
+  textMuted: '#424242',
+  textSub: '#757575',
+  textFaint: '#9e9e9e',
+  primary: '#1976d2',
+  primaryDark: '#1565c0',
+  primarySoft: '#e3f2fd',
+  green: '#2e7d32',
+  greenDark: '#1b5e20',
+  greenSoft: '#e8f5e9',
+  red: '#c62828',
+  redDark: '#b71c1c',
+  redSoft: '#ffebee',
+  amber: '#f57f17',
+  amberDark: '#e65100',
+  amberSoft: '#fff8e1',
+  purple: '#6a1b9a',
+  purpleSoft: '#f3e5f5',
+  navy: '#263238',
+  cardShadow: '0 1px 3px rgba(0,0,0,0.08)',
+  cardShadowHover: '0 2px 6px rgba(0,0,0,0.1)',
 };
 
 const inputBase = {
   width: '100%',
-  padding: '10px 14px',
-  borderRadius: '8px',
-  border: `1.5px solid ${theme.border}`,
-  fontSize: '0.86rem',
+  padding: '7px 10px',
+  borderRadius: '4px',
+  border: `1px solid ${theme.border}`,
+  fontSize: '13px',
   color: theme.text,
   background: theme.canvas,
   outline: 'none',
   boxSizing: 'border-box',
   fontFamily: 'inherit',
-  transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
 };
 
 const labelStyle = {
   display: 'block',
-  fontSize: '0.74rem',
-  fontWeight: 700,
+  fontSize: '12px',
+  fontWeight: 600,
   color: theme.textSub,
-  marginBottom: '6px',
-  textTransform: 'uppercase',
-  letterSpacing: '0.04em',
+  marginBottom: '4px',
 };
 
 const thStyle = {
-  padding: '11px 14px',
-  fontSize: '0.72rem',
-  fontWeight: 800,
-  color: '#ffffff',
-  background: '#1e293b',
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
+  padding: '8px 12px',
+  fontSize: '12px',
+  fontWeight: 600,
+  color: theme.textSub,
+  background: '#fafafa',
   whiteSpace: 'nowrap',
-  borderBottom: `2px solid ${theme.border}`,
+  borderBottom: `1px solid ${theme.border}`,
   textAlign: 'left',
 };
 
 const tdStyle = {
-  padding: '11px 14px',
-  fontSize: '0.84rem',
+  padding: '8px 12px',
+  fontSize: '13px',
   color: theme.text,
   borderBottom: `1px solid ${theme.borderLight}`,
   whiteSpace: 'nowrap',
@@ -81,20 +76,18 @@ const tdStyle = {
 
 
 const sheetThStyle = {
-  padding: '8px 10px',
-  fontSize: '0.7rem',
-  fontWeight: 800,
-  color: '#475569',
-  background: '#f8fafc',
-  textTransform: 'uppercase',
-  letterSpacing: '0.04em',
+  padding: '6px 8px',
+  fontSize: '11px',
+  fontWeight: 600,
+  color: '#757575',
+  background: '#fafafa',
   whiteSpace: 'nowrap',
 };
 
 const sheetTdStyle = {
-  padding: '6px 8px',
-  fontSize: '0.78rem',
-  color: '#0f172a',
+  padding: '5px 8px',
+  fontSize: '13px',
+  color: '#212121',
   whiteSpace: 'nowrap',
   verticalAlign: 'middle',
 };
@@ -102,14 +95,13 @@ const sheetTdStyle = {
 const sheetInputBase = {
   width: '100%',
   padding: '4px 6px',
-  borderRadius: '5px',
-  border: '1.5px solid #cbd5e1',
-  fontSize: '0.8rem',
+  borderRadius: '3px',
+  border: '1px solid #bdbdbd',
+  fontSize: '13px',
   outline: 'none',
   boxSizing: 'border-box',
   fontFamily: 'inherit',
   textAlign: 'right',
-  transition: 'border-color 0.15s ease, background 0.15s ease',
 };
 
 const TABS = [
@@ -132,7 +124,7 @@ function highlightMatch(text, query) {
   return (
     <>
       {text.substring(0, index)}
-      <span style={{ background: '#fef08a', color: '#854d0e', padding: '1px 3px', borderRadius: '3px', fontWeight: 900 }}>
+      <span style={{ background: '#fff9c4', color: '#212121', padding: '1px 2px', borderRadius: '2px', fontWeight: 700 }}>
         {text.substring(index, index + q.length)}
       </span>
       {text.substring(index + q.length)}
@@ -971,9 +963,9 @@ export default function RawMaterialTallyPage() {
           maxWidth: '100%',
           minHeight: '100vh',
           background: theme.bg,
-          padding: '20px 28px',
+          padding: '16px 24px',
           boxSizing: 'border-box',
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
         }}
       >
         {/* Toast Alert */}
@@ -991,7 +983,7 @@ export default function RawMaterialTallyPage() {
               background: toast.type === 'success' ? theme.greenSoft : theme.redSoft,
               color: toast.type === 'success' ? theme.greenDark : theme.redDark,
               border: `1.5px solid ${toast.type === 'success' ? '#86efac' : '#fca5a5'}`,
-              boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
               maxWidth: '440px',
             }}
           >
@@ -1014,7 +1006,7 @@ export default function RawMaterialTallyPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <h1
                 style={{
-                  fontSize: '1.35rem',
+                  fontSize: '20px',
                   fontWeight: 800,
                   color: theme.text,
                   margin: 0,
@@ -1069,87 +1061,72 @@ export default function RawMaterialTallyPage() {
           {/* Card 1: Valuation */}
           <div
             style={{
-              background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
-              borderRadius: '12px',
-              padding: '18px 22px',
-              border: '1px solid #bbf7d0',
+              background: theme.canvas,
+              borderRadius: '6px',
+              padding: '14px 16px',
+              border: `1px solid ${theme.border}`,
               boxShadow: theme.cardShadow,
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: theme.greenDark, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: theme.textSub }}>
                 Inventory Valuation
               </span>
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, background: '#dcfce7', color: theme.greenDark, padding: '2px 8px', borderRadius: '10px' }}>
-                LIVE
-              </span>
+
             </div>
-            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: theme.text, marginTop: '4px', letterSpacing: '-0.02em' }}>
+            <div style={{ fontSize: '22px', fontWeight: 700, color: theme.text, marginTop: '4px' }}>
               {totalValuationFormatted}
             </div>
-            <div style={{ fontSize: '0.75rem', color: theme.textSub, marginTop: '4px' }}>
-              Factory floor stock across {materials.length} raw materials
+            <div style={{ fontSize: '12px', color: theme.textSub, marginTop: '2px' }}>
+              {materials.length} raw materials
             </div>
           </div>
 
           {/* Card 2: Line Stoppage Risk */}
           <div
             style={{
-              background: criticalCount > 0 ? 'linear-gradient(135deg, #ffffff 0%, #fef2f2 100%)' : theme.canvas,
-              borderRadius: '12px',
-              padding: '18px 22px',
-              border: `1px solid ${criticalCount > 0 ? '#fecaca' : theme.border}`,
+              background: theme.canvas,
+              borderRadius: '6px',
+              padding: '14px 16px',
+              border: `1px solid ${theme.border}`,
               boxShadow: theme.cardShadow,
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: criticalCount > 0 ? theme.redDark : theme.textSub, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Stoppage Risk Items
+              <span style={{ fontSize: '12px', fontWeight: 600, color: theme.textSub }}>
+                Low Stock Items
               </span>
-              <span
-                style={{
-                  fontSize: '0.68rem',
-                  fontWeight: 800,
-                  background: criticalCount > 0 ? theme.redSoft : theme.greenSoft,
-                  color: criticalCount > 0 ? theme.redDark : theme.greenDark,
-                  padding: '2px 8px',
-                  borderRadius: '10px',
-                }}
-              >
-                {criticalCount > 0 ? 'IMMEDIATE PO' : 'SECURE'}
-              </span>
+
             </div>
-            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: criticalCount > 0 ? theme.red : theme.text, marginTop: '4px', letterSpacing: '-0.02em' }}>
-              {criticalCount} <span style={{ fontSize: '0.9rem', fontWeight: 600, color: theme.textSub }}>items &lt; 7 days</span>
+            <div style={{ fontSize: '22px', fontWeight: 700, color: criticalCount > 0 ? theme.red : theme.text, marginTop: '4px' }}>
+              {criticalCount} <span style={{ fontSize: '13px', fontWeight: 500, color: theme.textSub }}>critical</span>
             </div>
-            <div style={{ fontSize: '0.75rem', color: theme.textSub, marginTop: '4px' }}>
-              {lowCount} additional items in low buffer threshold
+            <div style={{ fontSize: '12px', color: theme.textSub, marginTop: '2px' }}>
+              {lowCount} items low stock
             </div>
           </div>
 
           {/* Card 3: Daily Burn Rate */}
           <div
             style={{
-              background: 'linear-gradient(135deg, #ffffff 0%, #eff6ff 100%)',
-              borderRadius: '12px',
-              padding: '18px 22px',
-              border: '1px solid #bfdbfe',
+              background: theme.canvas,
+              borderRadius: '6px',
+              padding: '14px 16px',
+              border: `1px solid ${theme.border}`,
               boxShadow: theme.cardShadow,
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: theme.primaryDark, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Factory Burn Rate
+              <span style={{ fontSize: '12px', fontWeight: 600, color: theme.textSub }}>
+                Daily Usage
               </span>
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, background: '#dbeafe', color: theme.primaryDark, padding: '2px 8px', borderRadius: '10px' }}>
-                30D VELOCITY
-              </span>
+
             </div>
-            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: theme.text, marginTop: '4px', letterSpacing: '-0.02em' }}>
-              {totalDailyBurn.toLocaleString(undefined, { maximumFractionDigits: 0 })} <span style={{ fontSize: '0.9rem', fontWeight: 600, color: theme.textSub }}>Kg / Day</span>
+            <div style={{ fontSize: '22px', fontWeight: 700, color: theme.text, marginTop: '4px' }}>
+              {totalDailyBurn.toLocaleString(undefined, { maximumFractionDigits: 0 })} <span style={{ fontSize: '13px', fontWeight: 500, color: theme.textSub }}>Kg/Day</span>
             </div>
-            <div style={{ fontSize: '0.75rem', color: theme.textSub, marginTop: '4px' }}>
-              Total compounding and mixing line consumption
+            <div style={{ fontSize: '12px', color: theme.textSub, marginTop: '2px' }}>
+              Avg. daily consumption (30 days)
             </div>
           </div>
 
@@ -1157,19 +1134,17 @@ export default function RawMaterialTallyPage() {
           <div
             style={{
               background: theme.canvas,
-              borderRadius: '12px',
-              padding: '18px 22px',
+              borderRadius: '6px',
+              padding: '14px 16px',
               border: `1px solid ${theme.border}`,
               boxShadow: theme.cardShadow,
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: theme.textSub, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Earliest Depletion Item
+              <span style={{ fontSize: '12px', fontWeight: 600, color: theme.textSub }}>
+                Next Reorder
               </span>
-              <span style={{ fontSize: '0.68rem', fontWeight: 800, background: theme.purpleSoft, color: theme.purple, padding: '2px 8px', borderRadius: '10px' }}>
-                NEXT PO
-              </span>
+
             </div>
             {forecastData.forecast[0] ? (
               <>
