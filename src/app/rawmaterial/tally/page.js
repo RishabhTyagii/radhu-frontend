@@ -105,14 +105,14 @@ const sheetInputBase = {
 };
 
 const TABS = [
-  { id: 'bulk', label: 'Daily Sheet' },
-  { id: 'datewise', label: 'Date-wise View' },
-  { id: 'forecast', label: 'Run-Out Forecast' },
-  { id: 'ledger', label: 'Stock Ledger' },
-  { id: 'passbook', label: 'Material Passbook' },
-  { id: 'stock', label: 'Current Inventory' },
-  { id: 'entry', label: 'Single Entry' },
-  { id: 'setup', label: 'Master Setup' },
+  { id: 'bulk', label: 'Daily Stock Sheet', icon: '📋' },
+  { id: 'datewise', label: 'Date-wise Movements', icon: '📅' },
+  { id: 'passbook', label: 'Material Passbook', icon: '📒' },
+  { id: 'forecast', label: 'Run-Out Forecast', icon: '⚡' },
+  { id: 'ledger', label: 'Stock Ledger', icon: '📊' },
+  { id: 'stock', label: 'Current Inventory', icon: '🏭' },
+  { id: 'entry', label: 'Single Entry', icon: '✏️' },
+  { id: 'setup', label: 'Master Setup', icon: '⚙️' },
 ];
 
 
@@ -558,6 +558,32 @@ export default function RawMaterialTallyPage() {
   const [loadingPassbook, setLoadingPassbook] = useState(false);
   const [passbookFrom, setPassbookFrom] = useState('');
   const [passbookTo, setPassbookTo] = useState('');
+  const [passbookTableSearch, setPassbookTableSearch] = useState('');
+
+  const handlePassbookQuickDate = (type) => {
+    const cur = new Date();
+    const today = cur.toISOString().split('T')[0];
+    if (type === 'today') {
+      setPassbookFrom(today);
+      setPassbookTo(today);
+    } else if (type === 'this_month') {
+      const start = new Date(cur.getFullYear(), cur.getMonth(), 1).toISOString().split('T')[0];
+      setPassbookFrom(start);
+      setPassbookTo(today);
+    } else if (type === 'last_month') {
+      const start = new Date(cur.getFullYear(), cur.getMonth() - 1, 1).toISOString().split('T')[0];
+      const end = new Date(cur.getFullYear(), cur.getMonth(), 0).toISOString().split('T')[0];
+      setPassbookFrom(start);
+      setPassbookTo(end);
+    } else if (type === 'last_30_days') {
+      const start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      setPassbookFrom(start);
+      setPassbookTo(today);
+    } else if (type === 'all_time') {
+      setPassbookFrom('');
+      setPassbookTo('');
+    }
+  };
 
   // Date-wise View State
   const [datewiseDate, setDatewiseDate] = useState('2026-10-22');
@@ -684,6 +710,16 @@ export default function RawMaterialTallyPage() {
       setLoadingDatewise(false);
     }
   }, []);
+
+  const handleDatewiseStep = (delta) => {
+    const d = new Date(datewiseDate);
+    if (!isNaN(d.getTime())) {
+      d.setDate(d.getDate() + delta);
+      const nextStr = d.toISOString().split('T')[0];
+      setDatewiseDate(nextStr);
+      fetchDatewiseSheet(nextStr);
+    }
+  };
 
   useEffect(() => {
     fetchBaseData();
@@ -903,6 +939,18 @@ export default function RawMaterialTallyPage() {
     }
   }
 
+  const filteredPassbookTransactions = useMemo(() => {
+    if (!passbookData?.transactions) return [];
+    if (!passbookTableSearch.trim()) return passbookData.transactions;
+    const q = passbookTableSearch.trim().toLowerCase();
+    return passbookData.transactions.filter((t) =>
+      (t.particulars && t.particulars.toLowerCase().includes(q)) ||
+      (t.supplier_name && t.supplier_name.toLowerCase().includes(q)) ||
+      (t.bill_challan_no && t.bill_challan_no.toLowerCase().includes(q)) ||
+      (t.date && t.date.toLowerCase().includes(q))
+    );
+  }, [passbookData?.transactions, passbookTableSearch]);
+
   function openPassbookFor(materialId) {
     const mId = String(materialId);
     setSelectedPassbookMatId(mId);
@@ -962,10 +1010,11 @@ export default function RawMaterialTallyPage() {
           width: '100%',
           maxWidth: '100%',
           minHeight: '100vh',
-          background: theme.bg,
-          padding: '16px 24px',
+          background: '#f8fafc',
+          color: '#0f172a',
+          padding: '24px 28px',
           boxSizing: 'border-box',
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         }}
       >
         {/* Toast Alert */}
@@ -991,38 +1040,88 @@ export default function RawMaterialTallyPage() {
           </div>
         )}
 
-        {/* ── Page Header & Quick Controls ─────────────────────────────────── */}
+        {/* ── Page Header & Quick Controls (Cycle Tyre Style) ────────────────── */}
         <div
           style={{
             display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '20px',
             flexWrap: 'wrap',
-            gap: '14px',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '16px',
+            marginBottom: '20px',
+            background: '#ffffff',
+            padding: '18px 24px',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
           }}
         >
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <h1
-                style={{
-                  fontSize: '20px',
-                  fontWeight: 800,
-                  color: theme.text,
-                  margin: 0,
-                  letterSpacing: '-0.025em',
-                }}
-              >
-                Raw Material Management
-              </h1>
-
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div
+              style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '20px',
+                boxShadow: '0 4px 10px rgba(37,99,235,0.2)',
+              }}
+            >
+              <i className="fas fa-boxes-stacked"></i>
             </div>
-            <p style={{ color: theme.textSub, margin: '4px 0 0', fontSize: '0.86rem' }}>
-              Daily stock entry, passbook, inventory &amp; forecasting
-            </p>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <h1 style={{ fontSize: '22px', fontWeight: '800', margin: 0, color: '#0f172a', letterSpacing: '-0.02em' }}>
+                  Raw Material Intelligence & Ledgers
+                </h1>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    background: '#eff6ff',
+                    color: '#2563eb',
+                    padding: '3px 9px',
+                    borderRadius: '20px',
+                    border: '1px solid #bfdbfe',
+                  }}
+                >
+                  Live ERP Sync
+                </span>
+              </div>
+              <p style={{ margin: '3px 0 0 0', fontSize: '13px', color: '#64748b' }}>
+                Factory Stock Matrix • Daily Movement Register • Material Passbooks & AI Forecast
+              </p>
+            </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => window.print()}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '9px 16px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                background: '#ffffff',
+                color: '#334155',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = '#ffffff')}
+            >
+              <i className="fas fa-print" style={{ color: '#64748b' }}></i> Print Statement
+            </button>
             <button
               onClick={() => {
                 fetchBaseData();
@@ -1030,30 +1129,37 @@ export default function RawMaterialTallyPage() {
                 if (tab === 'forecast') fetchForecast();
                 if (tab === 'passbook') fetchPassbook(selectedPassbookMatId);
                 if (tab === 'datewise') fetchDatewiseSheet(datewiseDate);
-                showToast('success', 'Data refreshed');
+                if (tab === 'bulk') fetchDailySheet(sheetDate);
+                showToast('success', 'Real-time telemetry refreshed');
               }}
               style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
                 padding: '9px 18px',
-                background: theme.canvas,
-                color: theme.textMuted,
-                border: `1.5px solid ${theme.border}`,
                 borderRadius: '8px',
-                fontSize: '0.82rem',
-                fontWeight: 700,
+                border: 'none',
+                background: '#2563eb',
+                color: '#ffffff',
+                fontSize: '13px',
+                fontWeight: '600',
                 cursor: 'pointer',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                boxShadow: '0 2px 6px rgba(37,99,235,0.25)',
+                transition: 'all 0.15s ease',
               }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = '#1d4ed8')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = '#2563eb')}
             >
-              ↻ Refresh
+              <i className="fas fa-sync-alt"></i> Refresh Telemetry
             </button>
           </div>
         </div>
 
-        {/* ── Executive Telemetry Cards (Full Width 4-Col Grid) ─────────────── */}
+        {/* ── Executive Telemetry Cards (4 Stat Cards) ───────────────────────── */}
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
             gap: '16px',
             marginBottom: '20px',
           }}
@@ -1061,142 +1167,213 @@ export default function RawMaterialTallyPage() {
           {/* Card 1: Valuation */}
           <div
             style={{
-              background: theme.canvas,
-              borderRadius: '6px',
-              padding: '14px 16px',
-              border: `1px solid ${theme.border}`,
-              boxShadow: theme.cardShadow,
+              background: '#ffffff',
+              padding: '18px 22px',
+              borderRadius: '14px',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: theme.textSub }}>
+              <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Inventory Valuation
               </span>
-
+              <span
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  background: '#f1f5f9',
+                  color: '#475569',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '13px',
+                }}
+              >
+                <i className="fas fa-coins"></i>
+              </span>
             </div>
-            <div style={{ fontSize: '22px', fontWeight: 700, color: theme.text, marginTop: '4px' }}>
+            <div style={{ fontSize: '26px', fontWeight: '800', color: '#0f172a', marginTop: '8px', letterSpacing: '-0.02em' }}>
               {totalValuationFormatted}
             </div>
-            <div style={{ fontSize: '12px', color: theme.textSub, marginTop: '2px' }}>
-              {materials.length} raw materials
+            <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
+              Factory floor stock across {materials.length} raw materials
             </div>
           </div>
 
           {/* Card 2: Line Stoppage Risk */}
           <div
             style={{
-              background: theme.canvas,
-              borderRadius: '6px',
-              padding: '14px 16px',
-              border: `1px solid ${theme.border}`,
-              boxShadow: theme.cardShadow,
+              background: '#ffffff',
+              padding: '18px 22px',
+              borderRadius: '14px',
+              border: `1px solid ${criticalCount > 0 ? '#fee2e2' : '#e2e8f0'}`,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: theme.textSub }}>
-                Low Stock Items
+              <span style={{ fontSize: '11px', fontWeight: '800', color: criticalCount > 0 ? '#dc2626' : '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Stoppage Risk Items
               </span>
-
+              <span
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  background: criticalCount > 0 ? '#fee2e2' : '#f1f5f9',
+                  color: criticalCount > 0 ? '#dc2626' : '#475569',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '13px',
+                }}
+              >
+                <i className="fas fa-triangle-exclamation"></i>
+              </span>
             </div>
-            <div style={{ fontSize: '22px', fontWeight: 700, color: criticalCount > 0 ? theme.red : theme.text, marginTop: '4px' }}>
-              {criticalCount} <span style={{ fontSize: '13px', fontWeight: 500, color: theme.textSub }}>critical</span>
+            <div style={{ fontSize: '26px', fontWeight: '800', color: criticalCount > 0 ? '#dc2626' : '#0f172a', marginTop: '8px', letterSpacing: '-0.02em' }}>
+              {criticalCount} <span style={{ fontSize: '13px', fontWeight: '500', color: '#64748b' }}>items &lt; 7 days</span>
             </div>
-            <div style={{ fontSize: '12px', color: theme.textSub, marginTop: '2px' }}>
-              {lowCount} items low stock
+            <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
+              {lowCount} additional items in low buffer threshold
             </div>
           </div>
 
           {/* Card 3: Daily Burn Rate */}
           <div
             style={{
-              background: theme.canvas,
-              borderRadius: '6px',
-              padding: '14px 16px',
-              border: `1px solid ${theme.border}`,
-              boxShadow: theme.cardShadow,
+              background: '#ffffff',
+              padding: '18px 22px',
+              borderRadius: '14px',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: theme.textSub }}>
-                Daily Usage
+              <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Factory Burn Rate
               </span>
-
+              <span
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  background: '#f1f5f9',
+                  color: '#475569',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '13px',
+                }}
+              >
+                <i className="fas fa-fire"></i>
+              </span>
             </div>
-            <div style={{ fontSize: '22px', fontWeight: 700, color: theme.text, marginTop: '4px' }}>
-              {totalDailyBurn.toLocaleString(undefined, { maximumFractionDigits: 0 })} <span style={{ fontSize: '13px', fontWeight: 500, color: theme.textSub }}>Kg/Day</span>
+            <div style={{ fontSize: '26px', fontWeight: '800', color: '#0f172a', marginTop: '8px', letterSpacing: '-0.02em' }}>
+              {totalDailyBurn.toLocaleString(undefined, { maximumFractionDigits: 0 })} <span style={{ fontSize: '13px', fontWeight: '500', color: '#64748b' }}>Kg / Day</span>
             </div>
-            <div style={{ fontSize: '12px', color: theme.textSub, marginTop: '2px' }}>
-              Avg. daily consumption (30 days)
+            <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
+              Compounding & mixing line 30-day velocity
             </div>
           </div>
 
           {/* Card 4: Earliest Run-Out Alert */}
           <div
             style={{
-              background: theme.canvas,
-              borderRadius: '6px',
-              padding: '14px 16px',
-              border: `1px solid ${theme.border}`,
-              boxShadow: theme.cardShadow,
+              background: '#ffffff',
+              padding: '18px 22px',
+              borderRadius: '14px',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: theme.textSub }}>
-                Next Reorder
+              <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Earliest Depletion Item
               </span>
-
+              <span
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  background: '#ede9fe',
+                  color: '#6d28d9',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '13px',
+                }}
+              >
+                <i className="fas fa-clock"></i>
+              </span>
             </div>
             {forecastData.forecast[0] ? (
               <>
-                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: theme.text, marginTop: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a', marginTop: '8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {forecastData.forecast[0].material_name}
                 </div>
-                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: theme.red, marginTop: '4px' }}>
-                  {forecastData.forecast[0].days_left !== null ? `${forecastData.forecast[0].days_left} Days Left` : 'Exhausted'} • {forecastData.forecast[0].run_out_date}
+                <div style={{ fontSize: '12px', fontWeight: '700', color: '#dc2626', marginTop: '4px' }}>
+                  {forecastData.forecast[0].days_left !== null ? `${forecastData.forecast[0].days_left} Days Left` : 'Exhausted'} • Run-out {forecastData.forecast[0].run_out_date}
                 </div>
               </>
             ) : (
-              <div style={{ fontSize: '1rem', color: theme.textFaint, marginTop: '8px' }}>No forecast data</div>
+              <div style={{ fontSize: '14px', color: '#94a3b8', marginTop: '8px' }}>No depletion alerts</div>
             )}
           </div>
         </div>
 
-        {/* ── Tab Navigation ─── */}
+        {/* ── Tab Navigation (Smooth Modern Pill Switcher) ────────────────── */}
         <div
           style={{
             display: 'flex',
-            gap: '0',
-            borderBottom: '2px solid #e2e8f0',
-            marginBottom: '24px',
+            gap: '6px',
+            background: '#ffffff',
+            padding: '6px',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            marginBottom: '20px',
             overflowX: 'auto',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
           }}
         >
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              style={{
-                padding: '10px 16px',
-                border: 'none',
-                borderBottom: tab === t.id ? '2px solid #2563eb' : '2px solid transparent',
-                fontWeight: tab === t.id ? 700 : 500,
-                fontSize: '0.84rem',
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                background: 'transparent',
-                color: tab === t.id ? '#2563eb' : '#64748b',
-                whiteSpace: 'nowrap',
-                marginBottom: '-2px',
-                transition: 'color 0.15s, border-color 0.15s',
-              }}
-            >
-              {t.label}
-            </button>
-          ))}
+          {TABS.map((t) => {
+            const isActive = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '9px 16px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  fontWeight: isActive ? 700 : 600,
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  background: isActive ? '#2563eb' : 'transparent',
+                  color: isActive ? '#ffffff' : '#475569',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.15s ease',
+                  boxShadow: isActive ? '0 2px 6px rgba(37,99,235,0.25)' : 'none',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) e.currentTarget.style.background = '#f1f5f9';
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                <span>{t.icon}</span>
+                <span>{t.label}</span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* ════════════════════════════════════════════════════════════════════ */}
-        {/* TAB 1: RUN-OUT FORECASTER (10/10 Interactive Visual Dashboard)       */}
         {/* ════════════════════════════════════════════════════════════════════ */}
         {tab === 'forecast' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
@@ -2235,235 +2412,1223 @@ export default function RawMaterialTallyPage() {
           </div>
         )}
 
-        {/* ══════ DATE-WISE SHEET VIEW ══════ */}
-        {tab === 'datewise' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {/* Controls */}
-            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 20px' }}>
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.73rem', fontWeight: 600, color: '#64748b', marginBottom: '5px' }}>Date</label>
-                  <input type="date" value={datewiseDate} onChange={(e) => { setDatewiseDate(e.target.value); fetchDatewiseSheet(e.target.value); }}
-                    style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '7px', fontSize: '0.85rem', color: '#0f172a', outline: 'none', fontFamily: 'inherit' }} />
-                </div>
-                <div style={{ flex: 1, maxWidth: '300px' }}>
-                  <label style={{ display: 'block', fontSize: '0.73rem', fontWeight: 600, color: '#64748b', marginBottom: '5px' }}>Search</label>
-                  <input type="text" placeholder="Search material..." value={datewiseSearch} onChange={(e) => setDatewiseSearch(e.target.value)}
-                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '7px', fontSize: '0.84rem', color: '#0f172a', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
-                </div>
-                <button onClick={() => fetchDatewiseSheet(datewiseDate)}
-                  style={{ padding: '8px 18px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '7px', fontSize: '0.84rem', fontWeight: 600, cursor: 'pointer' }}>
-                  Load
-                </button>
-              </div>
-            </div>
+                {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* TAB: DATE-WISE MOVEMENT REGISTER (ENTRIES ONLY)                    */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {tab === 'datewise' && (() => {
+          const allDatewiseSections = [
+            ...(datewiseData?.left_sections || []),
+            ...(datewiseData?.right_sections || []),
+          ];
+          let serialCount = 0;
+          const enteredItems = [];
+          allDatewiseSections.forEach((sec) => {
+            (sec.items || []).forEach((it) => {
+              const inQ = Number(it.received_quantity || 0);
+              const outQ = Number(it.used_quantity || 0);
+              // STRICT REQUIREMENT: ONLY show items with Inward or Used entry on this date!
+              if (inQ <= 0 && outQ <= 0) return;
 
-            {/* Nav + status */}
-            {datewiseData && (
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a' }}>{datewiseDate}</span>
-                <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 600, background: datewiseData.is_saved ? '#dcfce7' : '#fef3c7', color: datewiseData.is_saved ? '#15803d' : '#b45309' }}>
-                  {datewiseData.is_saved ? 'Saved' : 'Auto'}
-                </span>
-                {datewiseData.prev_date && (
-                  <button onClick={() => fetchDatewiseSheet(datewiseData.prev_date)}
-                    style={{ padding: '4px 12px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', color: '#334155' }}>
-                    ◀ {datewiseData.prev_date}
-                  </button>
-                )}
-                {datewiseData.next_date && (
-                  <button onClick={() => fetchDatewiseSheet(datewiseData.next_date)}
-                    style={{ padding: '4px 12px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', color: '#334155' }}>
-                    {datewiseData.next_date} ▶
-                  </button>
-                )}
-              </div>
-            )}
-
-            {loadingDatewise && <div style={{ textAlign: 'center', padding: '48px', color: '#94a3b8' }}>Loading...</div>}
-
-            {!loadingDatewise && datewiseData && (() => {
-              const allSections = [...(datewiseData.left_sections || []), ...(datewiseData.right_sections || [])];
-              let serial = 0;
-              const enteredItems = [];
-              allSections.forEach((sec) => {
-                sec.items.forEach((it) => {
-                  if (!(it.received_quantity > 0 || it.used_quantity > 0 || it.closing > 0)) return;
-                  const q = datewiseSearch.trim().toLowerCase();
-                  if (q && !it.material_name.toLowerCase().includes(q) && !sec.group_name.toLowerCase().includes(q)) return;
-                  serial++;
-                  enteredItems.push({ ...it, group_name: sec.group_name, serial });
-                });
+              const q = datewiseSearch.trim().toLowerCase();
+              if (q && !it.material_name.toLowerCase().includes(q) && !sec.group_name.toLowerCase().includes(q)) return;
+              serialCount++;
+              enteredItems.push({
+                ...it,
+                group_name: sec.group_name,
+                serial: serialCount,
+                inQ,
+                outQ,
+                net: inQ - outQ,
               });
+            });
+          });
 
-              if (enteredItems.length === 0) {
-                return <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '48px', textAlign: 'center', color: '#94a3b8' }}>
-                  {datewiseSearch ? 'No matching items with entries.' : 'No entries for this date.'}
-                </div>;
-              }
+          const totalInwardDay = enteredItems.reduce((acc, it) => acc + it.inQ, 0);
+          const totalUsedDay = enteredItems.reduce((acc, it) => acc + it.outQ, 0);
+          const netDayMovement = totalInwardDay - totalUsedDay;
 
-              const thSt = { padding: '10px 14px', fontSize: '0.73rem', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap', borderBottom: '1px solid #e2e8f0', textAlign: 'left' };
-              return (
-                <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
-                  <div style={{ padding: '12px 18px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.83rem', fontWeight: 700, color: '#0f172a' }}>{enteredItems.length} items with entries</span>
-                    <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Inward: <strong style={{ color: '#16a34a' }}>+{enteredItems.reduce((s, it) => s + Number(it.received_quantity || 0), 0).toFixed(2)}</strong></span>
-                    <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Used: <strong style={{ color: '#dc2626' }}>-{enteredItems.reduce((s, it) => s + Number(it.used_quantity || 0), 0).toFixed(2)}</strong></span>
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* CONTROLS & DATE NAVIGATION TOOLBAR */}
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '14px',
+                  border: '1px solid #e2e8f0',
+                  padding: '18px 22px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                  {/* Left: Date Step Navigation */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'inline-flex', borderRadius: '8px', border: '1px solid #cbd5e1', overflow: 'hidden' }}>
+                      <button
+                        onClick={() => handleDatewiseStep(-1)}
+                        title="Previous Day"
+                        style={{
+                          padding: '8px 14px',
+                          background: '#f8fafc',
+                          border: 'none',
+                          borderRight: '1px solid #cbd5e1',
+                          color: '#334155',
+                          fontSize: '13px',
+                          fontWeight: '700',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                        }}
+                      >
+                        <i className="fas fa-chevron-left"></i> Prev Day
+                      </button>
+                      <input
+                        type="date"
+                        value={datewiseDate}
+                        onChange={(e) => {
+                          setDatewiseDate(e.target.value);
+                          fetchDatewiseSheet(e.target.value);
+                        }}
+                        style={{
+                          padding: '8px 14px',
+                          border: 'none',
+                          background: '#ffffff',
+                          fontSize: '14px',
+                          fontWeight: '700',
+                          color: '#0f172a',
+                          outline: 'none',
+                          fontFamily: 'inherit',
+                          cursor: 'pointer',
+                        }}
+                      />
+                      <button
+                        onClick={() => handleDatewiseStep(1)}
+                        title="Next Day"
+                        style={{
+                          padding: '8px 14px',
+                          background: '#f8fafc',
+                          border: 'none',
+                          borderLeft: '1px solid #cbd5e1',
+                          color: '#334155',
+                          fontSize: '13px',
+                          fontWeight: '700',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                        }}
+                      >
+                        Next Day <i className="fas fa-chevron-right"></i>
+                      </button>
+                    </div>
+
+                    {/* Quick jump to today */}
+                    <button
+                      onClick={() => {
+                        const cur = new Date().toISOString().split('T')[0];
+                        setDatewiseDate(cur);
+                        fetchDatewiseSheet(cur);
+                      }}
+                      style={{
+                        padding: '8px 14px',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        background: '#ffffff',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        color: '#475569',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Today
+                    </button>
+
+                    {/* Status badge */}
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '6px 12px',
+                        borderRadius: '20px',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        background: datewiseData?.is_saved ? '#dcfce7' : '#fef3c7',
+                        color: datewiseData?.is_saved ? '#15803d' : '#b45309',
+                        border: `1px solid ${datewiseData?.is_saved ? '#bbf7d0' : '#fde68a'}`,
+                      }}
+                    >
+                      <i className={`fas ${datewiseData?.is_saved ? 'fa-check-circle' : 'fa-clock'}`}></i>
+                      {datewiseData?.is_saved ? 'Saved Day Register' : 'Draft / Unsaved'}
+                    </span>
                   </div>
+
+                  {/* Right: Quick Search in Date Sheet */}
+                  <div style={{ position: 'relative', width: '280px' }}>
+                    <i
+                      className="fas fa-search"
+                      style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '13px' }}
+                    ></i>
+                    <input
+                      type="text"
+                      placeholder="Filter active materials..."
+                      value={datewiseSearch}
+                      onChange={(e) => setDatewiseSearch(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '9px 34px 9px 34px',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '13px',
+                        color: '#0f172a',
+                        background: '#ffffff',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                        fontFamily: 'inherit',
+                      }}
+                    />
+                    {datewiseSearch && (
+                      <button
+                        onClick={() => setDatewiseSearch('')}
+                        style={{
+                          position: 'absolute',
+                          right: '10px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          color: '#94a3b8',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                        }}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* 4 SUMMARY STAT CARDS (EXACT CYCLE-TYRE STYLE) */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+                  gap: '16px',
+                }}
+              >
+                {/* Card 1: Active Materials */}
+                <div
+                  style={{
+                    background: '#ffffff',
+                    padding: '18px 22px',
+                    borderRadius: '14px',
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Materials Moved
+                    </span>
+                    <span
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        background: '#f1f5f9',
+                        color: '#475569',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '13px',
+                      }}
+                    >
+                      <i className="fas fa-boxes-stacked"></i>
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '26px', fontWeight: '800', color: '#0f172a', marginTop: '8px', letterSpacing: '-0.02em' }}>
+                    {loadingDatewise ? '...' : enteredItems.length} <span style={{ fontSize: '13px', fontWeight: '500', color: '#64748b' }}>items with entries</span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
+                    Filtered from 96 total catalog items
+                  </div>
+                </div>
+
+                {/* Card 2: Total Inward (+) */}
+                <div
+                  style={{
+                    background: '#ffffff',
+                    padding: '18px 22px',
+                    borderRadius: '14px',
+                    border: '1px solid #dcfce7',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11px', fontWeight: '800', color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Day Inward (+)
+                    </span>
+                    <span
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        background: '#dcfce7',
+                        color: '#16a34a',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '13px',
+                      }}
+                    >
+                      <i className="fas fa-arrow-down"></i>
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '26px', fontWeight: '800', color: '#16a34a', marginTop: '8px', letterSpacing: '-0.02em' }}>
+                    {loadingDatewise ? '...' : `+${totalInwardDay.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#16a34a', marginTop: '4px' }}>
+                    Total receipts & inward supplies
+                  </div>
+                </div>
+
+                {/* Card 3: Total Used (-) */}
+                <div
+                  style={{
+                    background: '#ffffff',
+                    padding: '18px 22px',
+                    borderRadius: '14px',
+                    border: '1px solid #fee2e2',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11px', fontWeight: '800', color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Day Outward / Used (-)
+                    </span>
+                    <span
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        background: '#fee2e2',
+                        color: '#dc2626',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '13px',
+                      }}
+                    >
+                      <i className="fas fa-arrow-up"></i>
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '26px', fontWeight: '800', color: '#dc2626', marginTop: '8px', letterSpacing: '-0.02em' }}>
+                    {loadingDatewise ? '...' : `-${totalUsedDay.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px' }}>
+                    Factory consumption & compounding
+                  </div>
+                </div>
+
+                {/* Card 4: Net Day Movement */}
+                <div
+                  style={{
+                    background: 'linear-gradient(135deg, #1e293b, #0f172a)',
+                    padding: '18px 22px',
+                    borderRadius: '14px',
+                    border: '1px solid #334155',
+                    color: '#ffffff',
+                    boxShadow: '0 4px 10px rgba(15,23,42,0.12)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Net Daily Movement
+                    </span>
+                    <span
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        background: 'rgba(255,255,255,0.1)',
+                        color: '#38bdf8',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '13px',
+                      }}
+                    >
+                      <i className="fas fa-exchange-alt"></i>
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '26px', fontWeight: '800', color: netDayMovement >= 0 ? '#38bdf8' : '#f87171', marginTop: '8px', letterSpacing: '-0.02em' }}>
+                    {loadingDatewise ? '...' : `${netDayMovement >= 0 ? '+' : ''}${netDayMovement.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
+                    Inward minus factory usage
+                  </div>
+                </div>
+              </div>
+
+              {/* MOVEMENTS STATEMENT TABLE */}
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '14px',
+                  border: '1px solid #e2e8f0',
+                  overflow: 'hidden',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                }}
+              >
+                {/* Statement Subheader */}
+                <div
+                  style={{
+                    background: '#f8fafc',
+                    padding: '14px 22px',
+                    borderBottom: '1px solid #e2e8f0',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '12px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.01em' }}>
+                      Movement Register for {datewiseDate}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        background: '#eff6ff',
+                        color: '#2563eb',
+                        padding: '3px 10px',
+                        borderRadius: '12px',
+                        border: '1px solid #bfdbfe',
+                      }}
+                    >
+                      {enteredItems.length} items entered
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#64748b' }}>
+                    Showing only materials with inward (+) or outward (-) activity on this date
+                  </div>
+                </div>
+
+                {loadingDatewise ? (
+                  <div style={{ padding: '60px 20px', textAlign: 'center', color: '#64748b' }}>
+                    <i className="fas fa-circle-notch fa-spin" style={{ fontSize: '28px', color: '#2563eb', marginBottom: '12px' }}></i>
+                    <div style={{ fontSize: '14px', fontWeight: '600' }}>Loading day movements...</div>
+                  </div>
+                ) : enteredItems.length === 0 ? (
+                  <div style={{ padding: '60px 20px', textAlign: 'center' }}>
+                    <div
+                      style={{
+                        width: '60px',
+                        height: '60px',
+                        borderRadius: '50%',
+                        background: '#f1f5f9',
+                        color: '#94a3b8',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '24px',
+                        margin: '0 auto 16px auto',
+                      }}
+                    >
+                      <i className="fas fa-calendar-xmark"></i>
+                    </div>
+                    <div style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a' }}>
+                      No Raw Material Entries on {datewiseDate}
+                    </div>
+                    <p style={{ fontSize: '13px', color: '#64748b', maxWidth: '440px', margin: '6px auto 16px auto' }}>
+                      None of the 96 materials had received (inward) or used (outward) quantities entered for this date.
+                    </p>
+                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                      <button
+                        onClick={() => handleDatewiseStep(-1)}
+                        style={{
+                          padding: '8px 16px',
+                          borderRadius: '8px',
+                          border: '1px solid #cbd5e1',
+                          background: '#ffffff',
+                          fontSize: '13px',
+                          fontWeight: '600',
+                          color: '#334155',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        ◀ Check Previous Day
+                      </button>
+                      <button
+                        onClick={() => handleDatewiseStep(1)}
+                        style={{
+                          padding: '8px 16px',
+                          borderRadius: '8px',
+                          border: '1px solid #cbd5e1',
+                          background: '#ffffff',
+                          fontSize: '13px',
+                          fontWeight: '600',
+                          color: '#334155',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Check Next Day ▶
+                      </button>
+                    </div>
+                  </div>
+                ) : (
                   <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <thead><tr style={{ background: '#f1f5f9' }}>
-                        <th style={thSt}>S.No</th><th style={thSt}>Category</th><th style={thSt}>Material</th>
-                        <th style={{ ...thSt, textAlign: 'right' }}>Opening</th><th style={{ ...thSt, textAlign: 'right' }}>Inward (+)</th>
-                        <th style={{ ...thSt, textAlign: 'right' }}>Used (-)</th><th style={{ ...thSt, textAlign: 'right' }}>Closing</th><th style={thSt}>Unit</th>
-                      </tr></thead>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                      <thead>
+                        <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                          <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>S.No</th>
+                          <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Category</th>
+                          <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Material Name</th>
+                          <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Opening Stock</th>
+                          <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: '800', color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Inward (+)</th>
+                          <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: '800', color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Used / Out (-)</th>
+                          <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: '800', color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Closing Stock</th>
+                          <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Unit</th>
+                          <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center' }}>Passbook</th>
+                        </tr>
+                      </thead>
                       <tbody>
                         {enteredItems.map((it, idx) => (
-                          <tr key={it.material_id} style={{ background: idx % 2 === 0 ? '#fff' : '#fafbfd', borderBottom: '1px solid #f1f5f9' }}>
-                            <td style={{ padding: '9px 14px', fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>{it.serial}</td>
-                            <td style={{ padding: '9px 14px', fontSize: '0.75rem' }}><span style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: '10px', fontWeight: 600, color: '#64748b' }}>{it.group_name}</span></td>
-                            <td style={{ padding: '9px 14px', fontSize: '0.85rem', fontWeight: 600, color: '#0f172a' }}>{highlightMatch(it.material_name, datewiseSearch)}</td>
-                            <td style={{ padding: '9px 14px', fontSize: '0.84rem', textAlign: 'right', color: '#334155' }}>{Number(it.opening || 0).toFixed(2)}</td>
-                            <td style={{ padding: '9px 14px', fontSize: '0.84rem', textAlign: 'right', fontWeight: 700, color: Number(it.received_quantity) > 0 ? '#16a34a' : '#cbd5e1' }}>{Number(it.received_quantity) > 0 ? '+' + Number(it.received_quantity).toFixed(2) : '—'}</td>
-                            <td style={{ padding: '9px 14px', fontSize: '0.84rem', textAlign: 'right', fontWeight: 700, color: Number(it.used_quantity) > 0 ? '#dc2626' : '#cbd5e1' }}>{Number(it.used_quantity) > 0 ? '-' + Number(it.used_quantity).toFixed(2) : '—'}</td>
-                            <td style={{ padding: '9px 14px', fontSize: '0.88rem', textAlign: 'right', fontWeight: 800, color: '#0f172a' }}>{Number(it.closing || 0).toFixed(2)}</td>
-                            <td style={{ padding: '9px 14px', fontSize: '0.78rem', color: '#64748b' }}>{it.unit}</td>
+                          <tr
+                            key={it.material_id}
+                            style={{
+                              borderBottom: '1px solid #f1f5f9',
+                              background: idx % 2 === 0 ? '#ffffff' : '#fafafa',
+                              transition: 'background 0.1s ease',
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = '#f1f5f9')}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = idx % 2 === 0 ? '#ffffff' : '#fafafa')}
+                          >
+                            <td style={{ padding: '13px 16px', fontWeight: '700', color: '#64748b', fontSize: '13px' }}>
+                              #{it.serial}
+                            </td>
+                            <td style={{ padding: '13px 16px' }}>
+                              <span
+                                style={{
+                                  display: 'inline-block',
+                                  padding: '3px 9px',
+                                  borderRadius: '6px',
+                                  fontSize: '11px',
+                                  fontWeight: '700',
+                                  background: '#f1f5f9',
+                                  color: '#334155',
+                                  border: '1px solid #e2e8f0',
+                                }}
+                              >
+                                {it.group_name}
+                              </span>
+                            </td>
+                            <td style={{ padding: '13px 16px', fontWeight: '700', color: '#0f172a', fontSize: '14px' }}>
+                              {highlightMatch(it.material_name, datewiseSearch)}
+                            </td>
+                            <td style={{ padding: '13px 16px', textAlign: 'right', color: '#475569', fontSize: '13px', fontWeight: '600' }}>
+                              {Number(it.opening || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                            <td style={{ padding: '13px 16px', textAlign: 'right' }}>
+                              {it.inQ > 0 ? (
+                                <span
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    padding: '3px 9px',
+                                    borderRadius: '6px',
+                                    fontSize: '12px',
+                                    fontWeight: '700',
+                                    background: '#dcfce7',
+                                    color: '#15803d',
+                                    border: '1px solid #bbf7d0',
+                                  }}
+                                >
+                                  <i className="fas fa-plus" style={{ fontSize: '10px' }}></i>
+                                  {it.inQ.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                              ) : (
+                                <span style={{ color: '#cbd5e1' }}>—</span>
+                              )}
+                            </td>
+                            <td style={{ padding: '13px 16px', textAlign: 'right' }}>
+                              {it.outQ > 0 ? (
+                                <span
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    padding: '3px 9px',
+                                    borderRadius: '6px',
+                                    fontSize: '12px',
+                                    fontWeight: '700',
+                                    background: '#fee2e2',
+                                    color: '#b91c1c',
+                                    border: '1px solid #fecaca',
+                                  }}
+                                >
+                                  <i className="fas fa-minus" style={{ fontSize: '10px' }}></i>
+                                  {it.outQ.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                              ) : (
+                                <span style={{ color: '#cbd5e1' }}>—</span>
+                              )}
+                            </td>
+                            <td style={{ padding: '13px 16px', textAlign: 'right', fontWeight: '800', fontSize: '14px', color: '#0f172a' }}>
+                              {Number(it.closing || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                            <td style={{ padding: '13px 16px', fontSize: '12px', fontWeight: '600', color: '#64748b' }}>
+                              {it.unit}
+                            </td>
+                            <td style={{ padding: '13px 16px', textAlign: 'center' }}>
+                              <button
+                                onClick={() => openPassbookFor(it.material_id)}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  padding: '6px 12px',
+                                  borderRadius: '6px',
+                                  border: '1px solid #cbd5e1',
+                                  background: '#ffffff',
+                                  fontSize: '12px',
+                                  fontWeight: '600',
+                                  color: '#2563eb',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s ease',
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = '#eff6ff';
+                                  e.currentTarget.style.borderColor = '#93c5fd';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = '#ffffff';
+                                  e.currentTarget.style.borderColor = '#cbd5e1';
+                                }}
+                              >
+                                <i className="fas fa-book-open"></i> Passbook
+                              </button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
-                </div>
-              );
-            })()}
-          </div>
-        )}
-
-        {/* ══════ MATERIAL PASSBOOK ══════ */}
-        {tab === 'passbook' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {/* Selector */}
-            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 20px' }}>
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                <div style={{ flex: 1, minWidth: '240px' }}>
-                  <label style={{ display: 'block', fontSize: '0.73rem', fontWeight: 600, color: '#64748b', marginBottom: '5px' }}>Material</label>
-                  <select value={selectedPassbookMatId} onChange={(e) => { const id = e.target.value; setSelectedPassbookMatId(id); if (id) fetchPassbook(id); }}
-                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '7px', fontSize: '0.85rem', color: '#0f172a', outline: 'none', fontFamily: 'inherit' }}>
-                    <option value="">— Select Material —</option>
-                    {groups.map((g) => (
-                      <optgroup key={g.id} label={g.name}>
-                        {materials.filter((m) => m.group_id === g.id).map((m) => (
-                          <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.73rem', fontWeight: 600, color: '#64748b', marginBottom: '5px' }}>From</label>
-                  <input type="date" value={passbookFrom} onChange={(e) => setPassbookFrom(e.target.value)}
-                    style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '7px', fontSize: '0.85rem', color: '#0f172a', outline: 'none', fontFamily: 'inherit' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.73rem', fontWeight: 600, color: '#64748b', marginBottom: '5px' }}>To</label>
-                  <input type="date" value={passbookTo} onChange={(e) => setPassbookTo(e.target.value)}
-                    style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '7px', fontSize: '0.85rem', color: '#0f172a', outline: 'none', fontFamily: 'inherit' }} />
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button onClick={() => fetchPassbook(selectedPassbookMatId)}
-                    style={{ padding: '8px 18px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '7px', fontSize: '0.84rem', fontWeight: 600, cursor: 'pointer' }}>
-                    View
-                  </button>
-                  {selectedPassbookMatId && (
-                    <a href={`https://api.radhuerp.site/api/rawmaterial/materials/${selectedPassbookMatId}/passbook/export-excel/`}
-                      target="_blank" rel="noopener noreferrer"
-                      style={{ padding: '8px 16px', background: '#15803d', color: '#fff', textDecoration: 'none', borderRadius: '7px', fontSize: '0.84rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}>
-                      Excel
-                    </a>
-                  )}
-                </div>
+                )}
               </div>
             </div>
-
-            {/* Material Info */}
-            {passbookData?.material && (
-              <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 20px', display: 'flex', gap: '24px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <div>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{passbookData.material.group_name}</div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', marginTop: '2px' }}>{passbookData.material.name}</div>
-                  <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>Unit: {passbookData.material.unit}</div>
-                </div>
-                <div style={{ height: '44px', width: '1px', background: '#e2e8f0' }} />
-                {[
-                  { label: 'Opening', val: Number(passbookData.summary?.opening_balance || 0).toFixed(2), c: '#0f172a' },
-                  { label: 'Inward', val: '+' + Number(passbookData.summary?.total_inward || 0).toFixed(2), c: '#16a34a' },
-                  { label: 'Used', val: '-' + Number(passbookData.summary?.total_used || 0).toFixed(2), c: '#dc2626' },
-                  { label: 'Closing', val: Number(passbookData.summary?.closing_balance || 0).toFixed(2), c: '#2563eb' },
-                ].map((kpi) => (
-                  <div key={kpi.label}>
-                    <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' }}>{kpi.label}</div>
-                    <div style={{ fontSize: '1rem', fontWeight: 700, color: kpi.c, marginTop: '1px' }}>{kpi.val}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Transaction Table */}
-            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
-              <div style={{ padding: '12px 18px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: '10px', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#0f172a' }}>Transactions</span>
-                {passbookData?.transactions && <span style={{ fontSize: '0.78rem', color: '#64748b' }}>{passbookData.transactions.length} records</span>}
-              </div>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead><tr style={{ background: '#f1f5f9' }}>
-                    {['Date', 'Particulars', 'Supplier', 'Bill/Challan'].map(h => (
-                      <th key={h} style={{ padding: '10px 14px', fontSize: '0.73rem', fontWeight: 600, color: '#64748b', textAlign: 'left', whiteSpace: 'nowrap', borderBottom: '1px solid #e2e8f0' }}>{h}</th>
-                    ))}
-                    {['Inward (+)', 'Rate', 'Cost', 'Used (-)', 'Balance'].map(h => (
-                      <th key={h} style={{ padding: '10px 14px', fontSize: '0.73rem', fontWeight: 600, color: '#64748b', textAlign: 'right', whiteSpace: 'nowrap', borderBottom: '1px solid #e2e8f0' }}>{h}</th>
-                    ))}
-                  </tr></thead>
-                  <tbody>
-                    {loadingPassbook ? (
-                      <tr><td colSpan={9} style={{ padding: '48px', textAlign: 'center', color: '#94a3b8' }}>Loading...</td></tr>
-                    ) : !passbookData || passbookData.transactions?.length === 0 ? (
-                      <tr><td colSpan={9} style={{ padding: '48px', textAlign: 'center', color: '#94a3b8' }}>
-                        {selectedPassbookMatId ? 'No transactions found.' : 'Select a material to view passbook.'}
-                      </td></tr>
-                    ) : (
-                      passbookData.transactions.map((t, idx) => (
-                        <tr key={t.id} style={{ background: idx % 2 === 0 ? '#fff' : '#fafbfd', borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '9px 14px', fontSize: '0.82rem', fontWeight: 600, color: '#0f172a', whiteSpace: 'nowrap' }}>{t.date}</td>
-                          <td style={{ padding: '9px 14px', fontSize: '0.82rem', color: '#334155' }}>{t.particulars}</td>
-                          <td style={{ padding: '9px 14px', fontSize: '0.78rem', color: '#64748b' }}>{t.supplier_name || '—'}</td>
-                          <td style={{ padding: '9px 14px', fontSize: '0.78rem', color: '#64748b' }}>{t.bill_challan_no || '—'}</td>
-                          <td style={{ padding: '9px 14px', fontSize: '0.84rem', textAlign: 'right', fontWeight: 600, color: t.received > 0 ? '#16a34a' : '#cbd5e1' }}>
-                            {t.received > 0 ? '+' + Number(t.received).toFixed(2) : '—'}
-                          </td>
-                          <td style={{ padding: '9px 14px', fontSize: '0.82rem', textAlign: 'right', color: '#64748b' }}>
-                            {t.rate > 0 ? Number(t.rate).toFixed(2) : '—'}
-                          </td>
-                          <td style={{ padding: '9px 14px', fontSize: '0.82rem', textAlign: 'right', color: '#15803d' }}>
-                            {t.cost > 0 ? Number(t.cost).toLocaleString('en-IN') : '—'}
-                          </td>
-                          <td style={{ padding: '9px 14px', fontSize: '0.84rem', textAlign: 'right', fontWeight: 600, color: t.used > 0 ? '#dc2626' : '#cbd5e1' }}>
-                            {t.used > 0 ? '-' + Number(t.used).toFixed(2) : '—'}
-                          </td>
-                          <td style={{ padding: '9px 14px', fontSize: '0.86rem', textAlign: 'right', fontWeight: 700, color: t.closing < 0 ? '#dc2626' : '#0f172a' }}>
-                            {Number(t.closing || 0).toFixed(2)} <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{passbookData?.material?.unit || ''}</span>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* TAB: MATERIAL PASSBOOK (EXACT CYCLE-TYRE TRANSACTIONS STYLE)         */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {tab === 'passbook' && (() => {
+          const selectedMatObj = materials.find((m) => String(m.id) === String(selectedPassbookMatId)) || passbookData?.material;
+
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* CONTROLS & FILTER TOOLBAR */}
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '14px',
+                  border: '1px solid #e2e8f0',
+                  padding: '18px 22px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                }}
+              >
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '18px', alignItems: 'flex-end' }}>
+                  {/* Select Material */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                      Select Raw Material
+                    </label>
+                    <select
+                      value={selectedPassbookMatId}
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        setSelectedPassbookMatId(id);
+                        if (id) fetchPassbook(id);
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        background: '#ffffff',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: selectedPassbookMatId ? '#0f172a' : '#94a3b8',
+                        outline: 'none',
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                      }}
+                    >
+                      <option value="">-- Choose Raw Material Statement --</option>
+                      {groups.map((g) => (
+                        <optgroup key={g.id} label={g.name}>
+                          {materials
+                            .filter((m) => m.group_id === g.id)
+                            .map((m) => (
+                              <option key={m.id} value={m.id}>
+                                {m.name} ({m.unit})
+                              </option>
+                            ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Date Range: From & To */}
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                        From Date
+                      </label>
+                      <input
+                        type="date"
+                        value={passbookFrom}
+                        onChange={(e) => setPassbookFrom(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '9px 12px',
+                          borderRadius: '8px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '13px',
+                          color: '#0f172a',
+                          background: '#ffffff',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                          fontFamily: 'inherit',
+                        }}
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                        To Date
+                      </label>
+                      <input
+                        type="date"
+                        value={passbookTo}
+                        onChange={(e) => setPassbookTo(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '9px 12px',
+                          borderRadius: '8px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '13px',
+                          color: '#0f172a',
+                          background: '#ffffff',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                          fontFamily: 'inherit',
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Actions & Excel Export */}
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => fetchPassbook(selectedPassbookMatId)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '10px 18px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: '#2563eb',
+                        color: '#ffffff',
+                        fontSize: '13px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 6px rgba(37,99,235,0.25)',
+                      }}
+                    >
+                      <i className="fas fa-search"></i> Query Passbook
+                    </button>
+                    {selectedPassbookMatId && (
+                      <a
+                        href={`https://api.radhuerp.site/api/rawmaterial/materials/${selectedPassbookMatId}/passbook/export-excel/`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '10px 18px',
+                          borderRadius: '8px',
+                          border: 'none',
+                          background: '#059669',
+                          color: '#ffffff',
+                          textDecoration: 'none',
+                          fontSize: '13px',
+                          fontWeight: '700',
+                          boxShadow: '0 2px 6px rgba(5,150,105,0.25)',
+                        }}
+                      >
+                        <i className="fas fa-file-excel"></i> Export Excel
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                {/* Quick Date Presets */}
+                <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #f1f5f9', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Quick Range:
+                  </span>
+                  {[
+                    { label: 'Today', type: 'today' },
+                    { label: 'This Month', type: 'this_month' },
+                    { label: 'Last Month', type: 'last_month' },
+                    { label: 'Last 30 Days', type: 'last_30_days' },
+                    { label: 'All Time', type: 'all_time' },
+                  ].map((p) => (
+                    <button
+                      key={p.type}
+                      onClick={() => {
+                        handlePassbookQuickDate(p.type);
+                        setTimeout(() => fetchPassbook(selectedPassbookMatId), 50);
+                      }}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        border: '1px solid #cbd5e1',
+                        background: '#f8fafc',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        color: '#475569',
+                        cursor: 'pointer',
+                        transition: 'all 0.1s ease',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#e2e8f0')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = '#f8fafc')}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 4 SUMMARY STAT CARDS (EXACT CYCLE-TYRE TRANSACTIONS STYLE) */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+                  gap: '16px',
+                }}
+              >
+                {/* Card 1: Opening Balance */}
+                <div
+                  style={{
+                    background: '#ffffff',
+                    padding: '18px 22px',
+                    borderRadius: '14px',
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Opening Balance
+                    </span>
+                    <span
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        background: '#f1f5f9',
+                        color: '#475569',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '13px',
+                      }}
+                    >
+                      <i className="fas fa-history"></i>
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '26px', fontWeight: '800', color: '#0f172a', marginTop: '8px', letterSpacing: '-0.02em' }}>
+                    {loadingPassbook ? '...' : Number(passbookData?.summary?.opening_balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span style={{ fontSize: '13px', fontWeight: '500', color: '#64748b' }}>{selectedMatObj?.unit || ''}</span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
+                    As of {passbookFrom || 'Start'} (B/F)
+                  </div>
+                </div>
+
+                {/* Card 2: Total Inward (+) */}
+                <div
+                  style={{
+                    background: '#ffffff',
+                    padding: '18px 22px',
+                    borderRadius: '14px',
+                    border: '1px solid #dcfce7',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11px', fontWeight: '800', color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Total Inward (+)
+                    </span>
+                    <span
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        background: '#dcfce7',
+                        color: '#16a34a',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '13px',
+                      }}
+                    >
+                      <i className="fas fa-arrow-down"></i>
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '26px', fontWeight: '800', color: '#16a34a', marginTop: '8px', letterSpacing: '-0.02em' }}>
+                    {loadingPassbook ? '...' : `+${Number(passbookData?.summary?.total_inward || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} <span style={{ fontSize: '13px', fontWeight: '500', color: '#15803d' }}>{selectedMatObj?.unit || ''}</span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#16a34a', marginTop: '4px' }}>
+                    Receipts & Purchases Inflow
+                  </div>
+                </div>
+
+                {/* Card 3: Total Outward (-) */}
+                <div
+                  style={{
+                    background: '#ffffff',
+                    padding: '18px 22px',
+                    borderRadius: '14px',
+                    border: '1px solid #fee2e2',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11px', fontWeight: '800', color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Total Outward / Used (-)
+                    </span>
+                    <span
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        background: '#fee2e2',
+                        color: '#dc2626',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '13px',
+                      }}
+                    >
+                      <i className="fas fa-arrow-up"></i>
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '26px', fontWeight: '800', color: '#dc2626', marginTop: '8px', letterSpacing: '-0.02em' }}>
+                    {loadingPassbook ? '...' : `-${Number(passbookData?.summary?.total_used || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} <span style={{ fontSize: '13px', fontWeight: '500', color: '#b91c1c' }}>{selectedMatObj?.unit || ''}</span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px' }}>
+                    Factory Consumption Outflow
+                  </div>
+                </div>
+
+                {/* Card 4: Net Running Balance */}
+                <div
+                  style={{
+                    background: 'linear-gradient(135deg, #1e293b, #0f172a)',
+                    padding: '18px 22px',
+                    borderRadius: '14px',
+                    border: '1px solid #334155',
+                    color: '#ffffff',
+                    boxShadow: '0 4px 10px rgba(15,23,42,0.12)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Closing Running Balance
+                    </span>
+                    <span
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        background: 'rgba(255,255,255,0.1)',
+                        color: '#38bdf8',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '13px',
+                      }}
+                    >
+                      <i className="fas fa-coins"></i>
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '26px', fontWeight: '800', color: '#38bdf8', marginTop: '8px', letterSpacing: '-0.02em' }}>
+                    {loadingPassbook ? '...' : Number(passbookData?.summary?.closing_balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span style={{ fontSize: '13px', fontWeight: '500', color: '#94a3b8' }}>{selectedMatObj?.unit || ''}</span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
+                    Current Available Stock
+                  </div>
+                </div>
+              </div>
+
+              {/* TRANSACTIONS STATEMENT TABLE */}
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '14px',
+                  border: '1px solid #e2e8f0',
+                  overflow: 'hidden',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                }}
+              >
+                {/* Statement Subheader */}
+                <div
+                  style={{
+                    background: '#f8fafc',
+                    padding: '14px 22px',
+                    borderBottom: '1px solid #e2e8f0',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '12px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.01em' }}>
+                      Transaction History
+                    </span>
+                    {selectedMatObj && (
+                      <span
+                        style={{
+                          fontSize: '12px',
+                          fontWeight: '700',
+                          background: '#eff6ff',
+                          color: '#2563eb',
+                          padding: '3px 10px',
+                          borderRadius: '12px',
+                          border: '1px solid #bfdbfe',
+                        }}
+                      >
+                        {selectedMatObj.name} ({selectedMatObj.unit})
+                      </span>
+                    )}
+                    <span style={{ fontSize: '12px', color: '#64748b' }}>
+                      {filteredPassbookTransactions.length} records found
+                    </span>
+                  </div>
+
+                  <div style={{ position: 'relative', width: '280px' }}>
+                    <i
+                      className="fas fa-search"
+                      style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '13px' }}
+                    ></i>
+                    <input
+                      type="text"
+                      placeholder="Search transactions..."
+                      value={passbookTableSearch}
+                      onChange={(e) => setPassbookTableSearch(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '8px 30px 8px 34px',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '13px',
+                        color: '#0f172a',
+                        background: '#ffffff',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                        fontFamily: 'inherit',
+                      }}
+                    />
+                    {passbookTableSearch && (
+                      <button
+                        onClick={() => setPassbookTableSearch('')}
+                        style={{
+                          position: 'absolute',
+                          right: '10px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          color: '#94a3b8',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                        }}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {loadingPassbook ? (
+                  <div style={{ padding: '60px 20px', textAlign: 'center', color: '#64748b' }}>
+                    <i className="fas fa-circle-notch fa-spin" style={{ fontSize: '28px', color: '#2563eb', marginBottom: '12px' }}></i>
+                    <div style={{ fontSize: '14px', fontWeight: '600' }}>Loading material statement ledger...</div>
+                  </div>
+                ) : !selectedPassbookMatId ? (
+                  <div style={{ padding: '60px 20px', textAlign: 'center', color: '#64748b' }}>
+                    <i className="fas fa-hand-pointer" style={{ fontSize: '32px', color: '#94a3b8', marginBottom: '12px' }}></i>
+                    <div style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a' }}>Please select a raw material above</div>
+                    <p style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>
+                      Choose any material to inspect its full opening, inward purchase bills, daily consumption and running balance statement.
+                    </p>
+                  </div>
+                ) : filteredPassbookTransactions.length === 0 ? (
+                  <div style={{ padding: '60px 20px', textAlign: 'center', color: '#64748b' }}>
+                    <i className="fas fa-file-invoice" style={{ fontSize: '32px', color: '#94a3b8', marginBottom: '12px' }}></i>
+                    <div style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a' }}>No transaction history found</div>
+                    <p style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>
+                      No stock entries or purchase receipts match the selected date range.
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                      <thead>
+                        <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                          <th style={{ padding: '13px 18px', fontSize: '11px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date</th>
+                          <th style={{ padding: '13px 18px', fontSize: '11px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Type</th>
+                          <th style={{ padding: '13px 18px', fontSize: '11px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Particulars / Narration</th>
+                          <th style={{ padding: '13px 18px', fontSize: '11px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Supplier / Party</th>
+                          <th style={{ padding: '13px 18px', fontSize: '11px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Bill / Challan</th>
+                          <th style={{ padding: '13px 18px', fontSize: '11px', fontWeight: '800', color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Inward (+)</th>
+                          <th style={{ padding: '13px 18px', fontSize: '11px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Unit Rate</th>
+                          <th style={{ padding: '13px 18px', fontSize: '11px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Total Cost</th>
+                          <th style={{ padding: '13px 18px', fontSize: '11px', fontWeight: '800', color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Outward (-)</th>
+                          <th style={{ padding: '13px 18px', fontSize: '11px', fontWeight: '800', color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Running Balance</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredPassbookTransactions.map((t, idx) => {
+                          const isInward = Number(t.received || 0) > 0;
+                          const isOutward = Number(t.used || 0) > 0;
+
+                          return (
+                            <tr
+                              key={t.id || idx}
+                              style={{
+                                borderBottom: '1px solid #f1f5f9',
+                                background: idx % 2 === 0 ? '#ffffff' : '#fafafa',
+                                transition: 'background 0.1s ease',
+                              }}
+                              onMouseEnter={(e) => (e.currentTarget.style.background = '#f1f5f9')}
+                              onMouseLeave={(e) => (e.currentTarget.style.background = idx % 2 === 0 ? '#ffffff' : '#fafafa')}
+                            >
+                              <td style={{ padding: '13px 18px', fontWeight: '700', color: '#0f172a', fontSize: '13px', whiteSpace: 'nowrap' }}>
+                                {t.date}
+                              </td>
+                              <td style={{ padding: '13px 18px' }}>
+                                {isInward && (
+                                  <span
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '5px',
+                                      padding: '3px 9px',
+                                      borderRadius: '6px',
+                                      fontSize: '11px',
+                                      fontWeight: '700',
+                                      background: '#dcfce7',
+                                      color: '#15803d',
+                                      border: '1px solid #bbf7d0',
+                                    }}
+                                  >
+                                    <i className="fas fa-arrow-down"></i> Inward
+                                  </span>
+                                )}
+                                {isOutward && (
+                                  <span
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '5px',
+                                      padding: '3px 9px',
+                                      borderRadius: '6px',
+                                      fontSize: '11px',
+                                      fontWeight: '700',
+                                      background: '#fee2e2',
+                                      color: '#b91c1c',
+                                      border: '1px solid #fecaca',
+                                    }}
+                                  >
+                                    <i className="fas fa-arrow-up"></i> Outward
+                                  </span>
+                                )}
+                                {!isInward && !isOutward && (
+                                  <span
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '5px',
+                                      padding: '3px 9px',
+                                      borderRadius: '6px',
+                                      fontSize: '11px',
+                                      fontWeight: '700',
+                                      background: '#f1f5f9',
+                                      color: '#475569',
+                                    }}
+                                  >
+                                    Balance B/F
+                                  </span>
+                                )}
+                              </td>
+                              <td style={{ padding: '13px 18px', fontSize: '13px', color: '#334155', fontWeight: '500' }}>
+                                {t.particulars || '—'}
+                              </td>
+                              <td style={{ padding: '13px 18px', fontSize: '13px', color: '#475569' }}>
+                                {t.supplier_name || '—'}
+                              </td>
+                              <td style={{ padding: '13px 18px', fontSize: '12px', color: '#64748b' }}>
+                                {t.bill_challan_no || '—'}
+                              </td>
+                              <td style={{ padding: '13px 18px', textAlign: 'right', fontWeight: '700', color: '#16a34a', fontSize: '13px' }}>
+                                {isInward ? `+${Number(t.received).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                              </td>
+                              <td style={{ padding: '13px 18px', textAlign: 'right', color: '#64748b', fontSize: '13px' }}>
+                                {Number(t.rate || 0) > 0 ? `₹${Number(t.rate).toFixed(2)}` : '—'}
+                              </td>
+                              <td style={{ padding: '13px 18px', textAlign: 'right', color: '#15803d', fontWeight: '600', fontSize: '13px' }}>
+                                {Number(t.cost || 0) > 0 ? `₹${Number(t.cost).toLocaleString('en-IN')}` : '—'}
+                              </td>
+                              <td style={{ padding: '13px 18px', textAlign: 'right', fontWeight: '700', color: '#dc2626', fontSize: '13px' }}>
+                                {isOutward ? `-${Number(t.used).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                              </td>
+                              <td
+                                style={{
+                                  padding: '13px 18px',
+                                  textAlign: 'right',
+                                  fontWeight: '800',
+                                  fontSize: '14px',
+                                  color: Number(t.closing || 0) < 0 ? '#dc2626' : '#0f172a',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {Number(t.closing || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
+                                <span style={{ fontSize: '11px', fontWeight: '500', color: '#64748b' }}>{selectedMatObj?.unit || ''}</span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+
+{/* ════════════════════════════════════════════════════════════════════ */}
         {/* TAB 5: CURRENT INVENTORY                                             */}
         {/* ════════════════════════════════════════════════════════════════════ */}
         {tab === 'stock' && (
