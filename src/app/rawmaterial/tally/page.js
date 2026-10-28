@@ -113,13 +113,14 @@ const sheetInputBase = {
 };
 
 const TABS = [
-  { id: 'bulk', label: 'Daily Stock Sheet', badge: 'Factory Matrix' },
-  { id: 'forecast', label: 'Run-Out Forecaster', badge: 'AI Predict' },
-  { id: 'ledger', label: 'Stock Ledger', badge: null },
-  { id: 'passbook', label: 'Material Passbook', badge: null },
-  { id: 'stock', label: 'Current Inventory', badge: null },
-  { id: 'entry', label: 'Single Transaction', badge: null },
-  { id: 'setup', label: 'Master Setup', badge: null },
+  { id: 'bulk', label: 'Daily Sheet', icon: '📋' },
+  { id: 'datewise', label: 'Date-wise View', icon: '📅' },
+  { id: 'forecast', label: 'Run-Out Forecast', icon: '⚡' },
+  { id: 'ledger', label: 'Stock Ledger', icon: '📊' },
+  { id: 'passbook', label: 'Material Passbook', icon: '📒' },
+  { id: 'stock', label: 'Current Inventory', icon: '🏭' },
+  { id: 'entry', label: 'Single Entry', icon: '✏️' },
+  { id: 'setup', label: 'Master Setup', icon: '⚙️' },
 ];
 
 
@@ -566,6 +567,12 @@ export default function RawMaterialTallyPage() {
   const [passbookFrom, setPassbookFrom] = useState('');
   const [passbookTo, setPassbookTo] = useState('');
 
+  // Date-wise Sheet State
+  const [datewiseDate, setDatewiseDate] = useState('2026-10-22');
+  const [datewiseData, setDatewiseData] = useState(null);
+  const [loadingDatewise, setLoadingDatewise] = useState(false);
+  const [datewiseSearch, setDatewiseSearch] = useState('');
+
   // Single Entry Form
   const [entryForm, setEntryForm] = useState({
     material_id: '',
@@ -671,6 +678,21 @@ export default function RawMaterialTallyPage() {
     }
   }, [passbookFrom, passbookTo]);
 
+  const fetchDatewiseSheet = useCallback(async (targetDate) => {
+    setLoadingDatewise(true);
+    try {
+      const res = await apiGet(`/rawmaterial/daily-sheet/?date=${targetDate}`);
+      if (res && res.date) {
+        setDatewiseData(res);
+        setDatewiseDate(res.date);
+      }
+    } catch (e) {
+      showToast('error', 'Failed to load date-wise sheet.');
+    } finally {
+      setLoadingDatewise(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchBaseData();
   }, [fetchBaseData]);
@@ -679,7 +701,8 @@ export default function RawMaterialTallyPage() {
     if (tab === 'ledger') fetchLedger();
     if (tab === 'forecast') fetchForecast();
     if (tab === 'passbook' && selectedPassbookMatId) fetchPassbook(selectedPassbookMatId);
-  }, [tab, fetchLedger, fetchForecast, fetchPassbook, selectedPassbookMatId]);
+    if (tab === 'datewise') fetchDatewiseSheet(datewiseDate);
+  }, [tab, fetchLedger, fetchForecast, fetchPassbook, selectedPassbookMatId, fetchDatewiseSheet, datewiseDate]);
 
   // Bulk shift row init
   useEffect(() => {
@@ -991,31 +1014,19 @@ export default function RawMaterialTallyPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <h1
                 style={{
-                  fontSize: '1.75rem',
-                  fontWeight: 900,
+                  fontSize: '1.35rem',
+                  fontWeight: 800,
                   color: theme.text,
                   margin: 0,
-                  letterSpacing: '-0.025em',
+                  letterSpacing: '-0.02em',
                 }}
               >
-                Raw Material Intelligence & Tally Cards
+                Raw Material Management
               </h1>
-              <span
-                style={{
-                  padding: '3px 10px',
-                  borderRadius: '20px',
-                  background: '#10b98115',
-                  color: theme.greenDark,
-                  fontSize: '0.72rem',
-                  fontWeight: 800,
-                  letterSpacing: '0.04em',
-                }}
-              >
-                LIVE ERP SYNC
-              </span>
+
             </div>
             <p style={{ color: theme.textSub, margin: '4px 0 0', fontSize: '0.86rem' }}>
-              Autonomous 30-Day Depletion Analytics • Inward Purchase Valuation • Daily Shift Reconciliation
+              Daily stock entry, passbook, inventory &amp; forecasting
             </p>
           </div>
 
@@ -1026,1264 +1037,273 @@ export default function RawMaterialTallyPage() {
                 if (tab === 'ledger') fetchLedger();
                 if (tab === 'forecast') fetchForecast();
                 if (tab === 'passbook') fetchPassbook(selectedPassbookMatId);
-                showToast('success', 'Real-time telemetry refreshed');
+                if (tab === 'datewise') fetchDatewiseSheet(datewiseDate);
+                showToast('success', 'Data refreshed');
               }}
               style={{
-                padding: '9px 18px',
+                padding: '8px 16px',
                 background: theme.canvas,
                 color: theme.textMuted,
-                border: `1.5px solid ${theme.border}`,
-                borderRadius: '8px',
-                fontSize: '0.82rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-              }}
-            >
-              Refresh Telemetry
-            </button>
-          </div>
-        </div>
-
-        {/* ── Executive Telemetry Cards (Full Width 4-Col Grid) ─────────────── */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: '16px',
-            marginBottom: '20px',
-          }}
-        >
-          {/* Card 1: Valuation */}
-          <div
-            style={{
-              background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
-              borderRadius: '12px',
-              padding: '18px 22px',
-              border: '1px solid #bbf7d0',
-              boxShadow: theme.cardShadow,
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: theme.greenDark, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Inventory Valuation
-              </span>
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, background: '#dcfce7', color: theme.greenDark, padding: '2px 8px', borderRadius: '10px' }}>
-                LIVE
-              </span>
-            </div>
-            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: theme.text, marginTop: '4px', letterSpacing: '-0.02em' }}>
-              {totalValuationFormatted}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: theme.textSub, marginTop: '4px' }}>
-              Factory floor stock across {materials.length} raw materials
-            </div>
-          </div>
-
-          {/* Card 2: Line Stoppage Risk */}
-          <div
-            style={{
-              background: criticalCount > 0 ? 'linear-gradient(135deg, #ffffff 0%, #fef2f2 100%)' : theme.canvas,
-              borderRadius: '12px',
-              padding: '18px 22px',
-              border: `1px solid ${criticalCount > 0 ? '#fecaca' : theme.border}`,
-              boxShadow: theme.cardShadow,
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: criticalCount > 0 ? theme.redDark : theme.textSub, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Stoppage Risk Items
-              </span>
-              <span
-                style={{
-                  fontSize: '0.68rem',
-                  fontWeight: 800,
-                  background: criticalCount > 0 ? theme.redSoft : theme.greenSoft,
-                  color: criticalCount > 0 ? theme.redDark : theme.greenDark,
-                  padding: '2px 8px',
-                  borderRadius: '10px',
-                }}
-              >
-                {criticalCount > 0 ? 'IMMEDIATE PO' : 'SECURE'}
-              </span>
-            </div>
-            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: criticalCount > 0 ? theme.red : theme.text, marginTop: '4px', letterSpacing: '-0.02em' }}>
-              {criticalCount} <span style={{ fontSize: '0.9rem', fontWeight: 600, color: theme.textSub }}>items &lt; 7 days</span>
-            </div>
-            <div style={{ fontSize: '0.75rem', color: theme.textSub, marginTop: '4px' }}>
-              {lowCount} additional items in low buffer threshold
-            </div>
-          </div>
-
-          {/* Card 3: Daily Burn Rate */}
-          <div
-            style={{
-              background: 'linear-gradient(135deg, #ffffff 0%, #eff6ff 100%)',
-              borderRadius: '12px',
-              padding: '18px 22px',
-              border: '1px solid #bfdbfe',
-              boxShadow: theme.cardShadow,
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: theme.primaryDark, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Factory Burn Rate
-              </span>
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, background: '#dbeafe', color: theme.primaryDark, padding: '2px 8px', borderRadius: '10px' }}>
-                30D VELOCITY
-              </span>
-            </div>
-            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: theme.text, marginTop: '4px', letterSpacing: '-0.02em' }}>
-              {totalDailyBurn.toLocaleString(undefined, { maximumFractionDigits: 0 })} <span style={{ fontSize: '0.9rem', fontWeight: 600, color: theme.textSub }}>Kg / Day</span>
-            </div>
-            <div style={{ fontSize: '0.75rem', color: theme.textSub, marginTop: '4px' }}>
-              Total compounding and mixing line consumption
-            </div>
-          </div>
-
-          {/* Card 4: Earliest Run-Out Alert */}
-          <div
-            style={{
-              background: theme.canvas,
-              borderRadius: '12px',
-              padding: '18px 22px',
-              border: `1px solid ${theme.border}`,
-              boxShadow: theme.cardShadow,
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: theme.textSub, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Earliest Depletion Item
-              </span>
-              <span style={{ fontSize: '0.68rem', fontWeight: 800, background: theme.purpleSoft, color: theme.purple, padding: '2px 8px', borderRadius: '10px' }}>
-                NEXT PO
-              </span>
-            </div>
-            {forecastData.forecast[0] ? (
-              <>
-                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: theme.text, marginTop: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {forecastData.forecast[0].material_name}
-                </div>
-                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: theme.red, marginTop: '4px' }}>
-                  {forecastData.forecast[0].days_left !== null ? `${forecastData.forecast[0].days_left} Days Left` : 'Exhausted'} • {forecastData.forecast[0].run_out_date}
-                </div>
-              </>
-            ) : (
-              <div style={{ fontSize: '1rem', color: theme.textFaint, marginTop: '8px' }}>No forecast data</div>
-            )}
-          </div>
-        </div>
-
-        {/* ── Sleek Segmented Tab Switcher (Stripe/Apple Style) ─────────────── */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '6px',
-            background: '#e2e8f080',
-            padding: '5px',
-            borderRadius: '10px',
-            width: 'fit-content',
-            marginBottom: '20px',
-            flexWrap: 'wrap',
-          }}
-        >
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '9px 18px',
-                borderRadius: '8px',
-                border: 'none',
-                fontWeight: 700,
-                fontSize: '0.83rem',
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                background: tab === t.id ? theme.canvas : 'transparent',
-                color: tab === t.id ? theme.text : theme.textSub,
-                boxShadow: tab === t.id ? '0 2px 8px rgba(15,23,42,0.08)' : 'none',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <span>{t.label}</span>
-              {t.badge && (
-                <span
-                  style={{
-                    fontSize: '0.62rem',
-                    fontWeight: 800,
-                    padding: '2px 6px',
-                    borderRadius: '10px',
-                    background: tab === t.id ? '#2563eb15' : '#cbd5e160',
-                    color: tab === t.id ? theme.primary : theme.textSub,
-                  }}
-                >
-                  {t.badge}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-
-        {/* ════════════════════════════════════════════════════════════════════ */}
-        {/* TAB 1: RUN-OUT FORECASTER (10/10 Interactive Visual Dashboard)       */}
-        {/* ════════════════════════════════════════════════════════════════════ */}
-        {tab === 'forecast' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-            {/* Filter Control Bar */}
-            <div
-              style={{
-                background: theme.canvas,
-                borderRadius: '10px',
                 border: `1px solid ${theme.border}`,
-                padding: '14px 20px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '14px',
-                boxShadow: theme.cardShadow,
+                borderRadius: '7px',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                cursor: 'pointer',
               }}
             >
-              {/* Category Filter Pills */}
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {[
-                  { id: 'ALL', label: 'All Raw Materials', count: forecastData.forecast.length, color: theme.text },
-                  { id: 'CRITICAL', label: 'Critical Risk (< 7d)', count: criticalCount, color: theme.redDark, bg: theme.redSoft },
-                  { id: 'LOW', label: 'Low Buffer (7-15d)', count: lowCount, color: theme.amberDark, bg: theme.amberSoft },
-                  { id: 'HEALTHY', label: 'Healthy Supply (> 15d)', count: healthyCount, color: theme.greenDark, bg: theme.greenSoft },
-                ].map((f) => (
-                  <button
-                    key={f.id}
-                    onClick={() => setForecastFilter(f.id)}
-                    style={{
-                      padding: '7px 14px',
-                      borderRadius: '8px',
-                      border: forecastFilter === f.id ? `2px solid ${f.color}` : `1px solid ${theme.border}`,
-                      background: forecastFilter === f.id ? (f.bg || '#f1f5f9') : theme.canvas,
-                      color: forecastFilter === f.id ? f.color : theme.textSub,
-                      fontSize: '0.8rem',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    <span>{f.label}</span>
-                    <span
-                      style={{
-                        padding: '1px 7px',
-                        borderRadius: '10px',
-                        background: '#00000010',
-                        fontSize: '0.7rem',
-                      }}
-                    >
-                      {f.count}
-                    </span>
-                  </button>
-                ))}
-              </div>
+              ↻ Refresh
+            </button>
+          </div>
+        </div>
 
-              {/* Search + View Toggle */}
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                <div style={{ width: '240px' }}>
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* TAB: DATE-WISE SHEET VIEW                                              */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {tab === 'datewise' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+            {/* ── Controls Row ─────────────────────────────────────────────── */}
+            <div style={{ background: theme.canvas, border: `1px solid ${theme.border}`, borderRadius: '10px', padding: '16px 20px' }}>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: theme.textSub, marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Select Date
+                  </label>
                   <input
-                    type="text"
-                    placeholder="Search material or group..."
-                    style={{ ...inputBase, padding: '7px 12px', fontSize: '0.8rem' }}
-                    value={forecastSearch}
-                    onChange={(e) => setForecastSearch(e.target.value)}
+                    type="date"
+                    value={datewiseDate}
+                    onChange={(e) => {
+                      setDatewiseDate(e.target.value);
+                      fetchDatewiseSheet(e.target.value);
+                    }}
+                    style={{
+                      padding: '8px 12px',
+                      border: `1px solid ${theme.border}`,
+                      borderRadius: '7px',
+                      fontSize: '0.85rem',
+                      color: theme.text,
+                      background: theme.canvas,
+                      outline: 'none',
+                      fontFamily: 'inherit',
+                    }}
                   />
                 </div>
-
-                <div
-                  style={{
-                    display: 'flex',
-                    background: '#f1f5f9',
-                    borderRadius: '6px',
-                    padding: '3px',
-                    border: `1px solid ${theme.border}`,
-                  }}
-                >
-                  <button
-                    onClick={() => setForecastViewMode('CARDS')}
-                    style={{
-                      padding: '5px 12px',
-                      borderRadius: '4px',
-                      border: 'none',
-                      fontSize: '0.75rem',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      background: forecastViewMode === 'CARDS' ? theme.canvas : 'transparent',
-                      color: forecastViewMode === 'CARDS' ? theme.text : theme.textSub,
-                      boxShadow: forecastViewMode === 'CARDS' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                    }}
-                  >
-                    Card Grid
-                  </button>
-                  <button
-                    onClick={() => setForecastViewMode('TABLE')}
-                    style={{
-                      padding: '5px 12px',
-                      borderRadius: '4px',
-                      border: 'none',
-                      fontSize: '0.75rem',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      background: forecastViewMode === 'TABLE' ? theme.canvas : 'transparent',
-                      color: forecastViewMode === 'TABLE' ? theme.text : theme.textSub,
-                      boxShadow: forecastViewMode === 'TABLE' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                    }}
-                  >
-                    Dense Table
-                  </button>
+                <div style={{ flex: 1, maxWidth: '340px' }}>
+                  <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: theme.textSub, marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Search Items
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.85rem', color: theme.textFaint }}>🔍</span>
+                    <input
+                      type="text"
+                      placeholder="Search by material name..."
+                      value={datewiseSearch}
+                      onChange={(e) => setDatewiseSearch(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '8px 32px 8px 32px',
+                        border: `1px solid ${theme.border}`,
+                        borderRadius: '7px',
+                        fontSize: '0.84rem',
+                        color: theme.text,
+                        background: theme.canvas,
+                        outline: 'none',
+                        fontFamily: 'inherit',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    {datewiseSearch && (
+                      <button
+                        onClick={() => setDatewiseSearch('')}
+                        style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: theme.textFaint, fontSize: '1rem', lineHeight: 1 }}
+                      >✕</button>
+                    )}
+                  </div>
                 </div>
+                <button
+                  onClick={() => fetchDatewiseSheet(datewiseDate)}
+                  style={{ padding: '8px 18px', background: theme.primary, color: '#fff', border: 'none', borderRadius: '7px', fontSize: '0.84rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  Load Sheet
+                </button>
               </div>
             </div>
 
-            {/* ── View 1: Visual Interactive Cards (10/10 Design) ─────────── */}
-            {forecastViewMode === 'CARDS' && (
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
-                  gap: '16px',
-                }}
-              >
-                {loadingForecast ? (
-                  <div style={{ gridColumn: '1 / -1', padding: '60px', textAlign: 'center', color: theme.textFaint }}>
-                    Calculating 30-day velocity telemetry...
-                  </div>
-                ) : filteredForecast.length === 0 ? (
-                  <div style={{ gridColumn: '1 / -1', padding: '60px', textAlign: 'center', color: theme.textFaint, background: theme.canvas, borderRadius: '10px', border: `1px solid ${theme.border}` }}>
-                    No materials matched the selected urgency filter.
-                  </div>
-                ) : (
-                  filteredForecast.map((item) => {
-                    const isCritical = item.status === 'OUT OF STOCK' || item.status === 'CRITICAL';
-                    const isLow = item.status === 'LOW BUFFER';
-                    const isOver = item.status === 'OVERSTOCKED';
-
-                    // Progress bar calculation (% of minimum safety buffer)
-                    const bufferRatio = item.minimum_stock > 0
-                      ? Math.min(100, Math.max(5, (item.closing_stock / item.minimum_stock) * 50))
-                      : Math.min(100, (item.closing_stock / 1000) * 50);
-
-                    const cardBorderColor = isCritical
-                      ? '#fca5a5'
-                      : isLow
-                      ? '#fcd34d'
-                      : theme.border;
-
-                    const barColor = isCritical
-                      ? '#ef4444'
-                      : isLow
-                      ? '#f59e0b'
-                      : isOver
-                      ? '#3b82f6'
-                      : '#10b981';
-
-                    return (
-                      <div
-                        key={item.material_id}
-                        style={{
-                          background: theme.canvas,
-                          borderRadius: '12px',
-                          border: `1.5px solid ${cardBorderColor}`,
-                          padding: '18px 20px',
-                          boxShadow: isCritical ? '0 4px 16px rgba(239, 68, 68, 0.08)' : theme.cardShadow,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'space-between',
-                          gap: '14px',
-                          position: 'relative',
-                          overflow: 'hidden',
-                        }}
-                      >
-                        {/* Top Accent Strip */}
-                        <div
-                          style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            height: '4px',
-                            background: barColor,
-                          }}
-                        />
-
-                        {/* Top: Category + Status Badge */}
-                        <div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: theme.textSub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                              {item.group_name}
-                            </span>
-                            <span
-                              style={{
-                                padding: '3px 9px',
-                                borderRadius: '12px',
-                                background: isCritical ? theme.redSoft : isLow ? theme.amberSoft : isOver ? theme.primarySoft : theme.greenSoft,
-                                color: item.status_color,
-                                fontSize: '0.68rem',
-                                fontWeight: 800,
-                                letterSpacing: '0.04em',
-                              }}
-                            >
-                              {item.status}
-                            </span>
-                          </div>
-
-                          <div style={{ fontSize: '1.05rem', fontWeight: 900, color: theme.text, lineHeight: 1.3 }}>
-                            {item.material_name}
-                          </div>
-                        </div>
-
-                        {/* Middle: Big Stock Numbers & Countdown */}
-                        <div
-                          style={{
-                            display: 'grid',
-                            gridTemplateColumns: '1.2fr 1fr',
-                            gap: '12px',
-                            background: '#f8fafc',
-                            borderRadius: '8px',
-                            padding: '12px 14px',
-                            border: `1px solid ${theme.border}`,
-                          }}
-                        >
-                          <div>
-                            <div style={{ fontSize: '0.68rem', fontWeight: 700, color: theme.textSub, textTransform: 'uppercase' }}>
-                              Closing Stock
-                            </div>
-                            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: isCritical ? theme.red : theme.text, marginTop: '2px' }}>
-                              {Number(item.closing_stock).toFixed(1)} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: theme.textSub }}>{item.unit}</span>
-                            </div>
-                            <div style={{ fontSize: '0.7rem', color: theme.textFaint, marginTop: '2px' }}>
-                              Valuation: Rs {Number(item.valuation).toLocaleString()}
-                            </div>
-                          </div>
-
-                          <div style={{ borderLeft: `1px solid ${theme.border}`, paddingLeft: '12px' }}>
-                            <div style={{ fontSize: '0.68rem', fontWeight: 700, color: theme.textSub, textTransform: 'uppercase' }}>
-                              Days Remaining
-                            </div>
-                            <div
-                              style={{
-                                fontSize: '1.35rem',
-                                fontWeight: 900,
-                                color: isCritical ? theme.red : isLow ? theme.amber : theme.green,
-                                marginTop: '2px',
-                              }}
-                            >
-                              {item.days_left !== null ? `${item.days_left}d` : '365d+'}
-                            </div>
-                            <div style={{ fontSize: '0.7rem', color: theme.textFaint, marginTop: '2px' }}>
-                              Exhaust: {item.run_out_date}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Visual Depletion Progress Meter */}
-                        <div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 700, marginBottom: '5px' }}>
-                            <span style={{ color: theme.textSub }}>Burn Velocity: {item.daily_velocity} {item.unit}/day</span>
-                            <span style={{ color: barColor }}>Min Buffer: {item.minimum_stock} {item.unit}</span>
-                          </div>
-                          <div
-                            style={{
-                              width: '100%',
-                              height: '7px',
-                              borderRadius: '4px',
-                              background: '#e2e8f0',
-                              overflow: 'hidden',
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: `${bufferRatio}%`,
-                                height: '100%',
-                                background: barColor,
-                                borderRadius: '4px',
-                                transition: 'width 0.4s ease',
-                              }}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Bottom: Reorder Recommendation + Action Buttons */}
-                        <div
-                          style={{
-                            paddingTop: '10px',
-                            borderTop: `1px solid ${theme.border}`,
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                          }}
-                        >
-                          <div>
-                            <div style={{ fontSize: '0.68rem', color: theme.textFaint, fontWeight: 700, textTransform: 'uppercase' }}>
-                              Recommended PO Qty
-                            </div>
-                            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: item.recommended_reorder > 0 ? theme.red : theme.greenDark }}>
-                              {item.recommended_reorder > 0 ? `+${item.recommended_reorder.toLocaleString()} ${item.unit}` : 'Stock Sufficient'}
-                            </div>
-                          </div>
-
-                          <button
-                            onClick={() => openPassbookFor(item.material_id)}
-                            style={{
-                              padding: '7px 14px',
-                              background: theme.canvas,
-                              color: theme.primaryDark,
-                              border: `1.5px solid #bfdbfe`,
-                              borderRadius: '6px',
-                              fontSize: '0.75rem',
-                              fontWeight: 800,
-                              cursor: 'pointer',
-                              boxShadow: '0 1px 2px rgba(37,99,235,0.06)',
-                            }}
-                          >
-                            Passbook
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })
+            {/* ── Sheet Info Bar ───────────────────────────────────────────── */}
+            {datewiseData && (
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: theme.text }}>
+                  📅 {datewiseDate}
+                </span>
+                <span style={{
+                  padding: '3px 10px',
+                  borderRadius: '20px',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  background: datewiseData.is_saved ? theme.greenSoft : theme.amberSoft,
+                  color: datewiseData.is_saved ? theme.greenDark : theme.amberDark,
+                }}>
+                  {datewiseData.is_saved ? '✓ Saved Sheet' : '⚡ Auto-Generated'}
+                </span>
+                {datewiseData.prev_date && (
+                  <button
+                    onClick={() => fetchDatewiseSheet(datewiseData.prev_date)}
+                    style={{ padding: '4px 12px', background: theme.canvas, border: `1px solid ${theme.border}`, borderRadius: '6px', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', color: theme.textMuted }}
+                  >
+                    ◀ {datewiseData.prev_date}
+                  </button>
+                )}
+                {datewiseData.next_date && (
+                  <button
+                    onClick={() => fetchDatewiseSheet(datewiseData.next_date)}
+                    style={{ padding: '4px 12px', background: theme.canvas, border: `1px solid ${theme.border}`, borderRadius: '6px', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', color: theme.textMuted }}
+                  >
+                    {datewiseData.next_date} ▶
+                  </button>
                 )}
               </div>
             )}
 
-            {/* ── View 2: High-Density Dense Table View ───────────────────── */}
-            {forecastViewMode === 'TABLE' && (
-              <div style={{ background: theme.canvas, borderRadius: '10px', border: `1px solid ${theme.border}`, overflow: 'hidden', boxShadow: theme.cardShadow }}>
-                <div style={{ overflowX: 'auto', maxHeight: '70vh' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1050px' }}>
-                    <thead>
-                      <tr>
-                        <th style={thStyle}>Material Name</th>
-                        <th style={thStyle}>Category</th>
-                        <th style={{ ...thStyle, textAlign: 'right' }}>Closing Stock</th>
-                        <th style={{ ...thStyle, textAlign: 'right' }}>Burn Rate (Day)</th>
-                        <th style={{ ...thStyle, textAlign: 'right' }}>Days Left</th>
-                        <th style={{ ...thStyle, width: '150px' }}>Depletion Meter</th>
-                        <th style={thStyle}>Run-Out Date</th>
-                        <th style={{ ...thStyle, textAlign: 'center' }}>Health</th>
-                        <th style={{ ...thStyle, textAlign: 'right' }}>Suggested PO</th>
-                        <th style={{ ...thStyle, textAlign: 'right' }}>Valuation</th>
-                        <th style={{ ...thStyle, textAlign: 'center' }}>Statement</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredForecast.map((f, idx) => {
-                        const isCrit = f.status === 'OUT OF STOCK' || f.status === 'CRITICAL';
-                        const isLow = f.status === 'LOW BUFFER';
-                        const barColor = isCrit ? '#ef4444' : isLow ? '#f59e0b' : '#10b981';
-                        const ratio = f.minimum_stock > 0
-                          ? Math.min(100, Math.max(5, (f.closing_stock / f.minimum_stock) * 50))
-                          : 50;
+            {/* ── Loading ──────────────────────────────────────────────────── */}
+            {loadingDatewise && (
+              <div style={{ textAlign: 'center', padding: '48px', color: theme.textFaint, fontSize: '0.88rem' }}>
+                Loading sheet...
+              </div>
+            )}
 
-                        return (
-                          <tr key={f.material_id} style={{ background: idx % 2 === 0 ? theme.canvas : '#fafbfc' }}>
-                            <td style={{ ...tdStyle, fontWeight: 700, color: theme.text }}>{f.material_name}</td>
-                            <td style={{ ...tdStyle, color: theme.textSub, fontSize: '0.78rem' }}>{f.group_name}</td>
-                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 800, color: isCrit ? theme.red : theme.text }}>
-                              {Number(f.closing_stock).toFixed(1)} {f.unit}
+            {/* ── Sheet Table ──────────────────────────────────────────────── */}
+            {!loadingDatewise && datewiseData && (() => {
+              // Collect all items that have actual entries (inward > 0 OR used > 0 OR closing > 0)
+              const allSections = [
+                ...(datewiseData.left_sections || []),
+                ...(datewiseData.right_sections || []),
+              ];
+              let serial = 0;
+              const enteredItems = [];
+              allSections.forEach((sec) => {
+                sec.items.forEach((it) => {
+                  const hasEntry = (it.received_quantity > 0 || it.used_quantity > 0 || it.closing > 0);
+                  if (!hasEntry) return;
+                  const q = datewiseSearch.trim().toLowerCase();
+                  if (q && !it.material_name.toLowerCase().includes(q) && !sec.group_name.toLowerCase().includes(q)) return;
+                  serial++;
+                  enteredItems.push({ ...it, group_name: sec.group_name, serial });
+                });
+              });
+
+              if (enteredItems.length === 0) {
+                return (
+                  <div style={{ background: theme.canvas, border: `1px solid ${theme.border}`, borderRadius: '10px', padding: '48px', textAlign: 'center', color: theme.textFaint }}>
+                    {datewiseSearch ? `No items matching "${datewiseSearch}" with stock entries on this date.` : 'No stock entries recorded for this date.'}
+                  </div>
+                );
+              }
+
+              return (
+                <div style={{ background: theme.canvas, border: `1px solid ${theme.border}`, borderRadius: '10px', overflow: 'hidden' }}>
+                  {/* Summary bar */}
+                  <div style={{ padding: '12px 18px', background: '#f8fafc', borderBottom: `1px solid ${theme.border}`, display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: theme.text }}>
+                      {enteredItems.length} item{enteredItems.length !== 1 ? 's' : ''} with entries
+                    </span>
+                    <span style={{ fontSize: '0.78rem', color: theme.textSub }}>
+                      Inward: <strong style={{ color: theme.green }}>+{enteredItems.reduce((s, it) => s + Number(it.received_quantity || 0), 0).toFixed(2)}</strong>
+                    </span>
+                    <span style={{ fontSize: '0.78rem', color: theme.textSub }}>
+                      Used: <strong style={{ color: theme.red }}>-{enteredItems.reduce((s, it) => s + Number(it.used_quantity || 0), 0).toFixed(2)}</strong>
+                    </span>
+                    <span style={{ fontSize: '0.78rem', color: theme.textSub }}>
+                      Closing Stock: <strong style={{ color: theme.text }}>{enteredItems.reduce((s, it) => s + Number(it.closing || 0), 0).toFixed(2)}</strong>
+                    </span>
+                  </div>
+
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ background: '#f1f5f9' }}>
+                          <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, color: theme.textSub, textAlign: 'left', whiteSpace: 'nowrap', borderBottom: `1px solid ${theme.border}` }}>S.No</th>
+                          <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, color: theme.textSub, textAlign: 'left', whiteSpace: 'nowrap', borderBottom: `1px solid ${theme.border}` }}>Category</th>
+                          <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, color: theme.textSub, textAlign: 'left', whiteSpace: 'nowrap', borderBottom: `1px solid ${theme.border}` }}>Material</th>
+                          <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, color: theme.textSub, textAlign: 'right', whiteSpace: 'nowrap', borderBottom: `1px solid ${theme.border}` }}>Opening</th>
+                          <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, color: theme.textSub, textAlign: 'right', whiteSpace: 'nowrap', borderBottom: `1px solid ${theme.border}` }}>Inward (+)</th>
+                          <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, color: theme.textSub, textAlign: 'right', whiteSpace: 'nowrap', borderBottom: `1px solid ${theme.border}` }}>Used (-)</th>
+                          <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, color: theme.textSub, textAlign: 'right', whiteSpace: 'nowrap', borderBottom: `1px solid ${theme.border}` }}>Closing</th>
+                          <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, color: theme.textSub, textAlign: 'left', whiteSpace: 'nowrap', borderBottom: `1px solid ${theme.border}` }}>Unit</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {enteredItems.map((it, idx) => (
+                          <tr key={it.material_id} style={{ background: idx % 2 === 0 ? theme.canvas : '#fafbfd', borderBottom: `1px solid ${theme.borderLight}` }}>
+                            <td style={{ padding: '9px 14px', fontSize: '0.78rem', color: theme.textFaint, fontWeight: 700 }}>
+                              {it.serial}
                             </td>
-                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: theme.red }}>
-                              {f.daily_velocity} {f.unit}
-                            </td>
-                            <td
-                              style={{
-                                ...tdStyle,
-                                textAlign: 'right',
-                                fontWeight: 900,
-                                fontSize: '0.92rem',
-                                color: f.days_left !== null && f.days_left <= 7 ? theme.red : f.days_left <= 15 ? theme.amber : theme.green,
-                              }}
-                            >
-                              {f.days_left !== null ? `${f.days_left}d` : '365d+'}
-                            </td>
-                            <td style={tdStyle}>
-                              <div style={{ width: '100%', height: '6px', borderRadius: '3px', background: '#e2e8f0', overflow: 'hidden' }}>
-                                <div style={{ width: `${ratio}%`, height: '100%', background: barColor }} />
-                              </div>
-                            </td>
-                            <td style={{ ...tdStyle, fontSize: '0.8rem', color: theme.textSub }}>{f.run_out_date}</td>
-                            <td style={{ ...tdStyle, textAlign: 'center' }}>
-                              <span
-                                style={{
-                                  padding: '2px 8px',
-                                  borderRadius: '10px',
-                                  fontSize: '0.68rem',
-                                  fontWeight: 800,
-                                  background: isCrit ? theme.redSoft : isLow ? theme.amberSoft : theme.greenSoft,
-                                  color: f.status_color,
-                                }}
-                              >
-                                {f.status}
+                            <td style={{ padding: '9px 14px', fontSize: '0.75rem', color: theme.textSub }}>
+                              <span style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: '10px', fontWeight: 600 }}>
+                                {it.group_name}
                               </span>
                             </td>
-                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 800, color: f.recommended_reorder > 0 ? theme.red : theme.textFaint }}>
-                              {f.recommended_reorder > 0 ? `+${f.recommended_reorder.toLocaleString()} ${f.unit}` : 'OK'}
+                            <td style={{ padding: '9px 14px', fontSize: '0.85rem', fontWeight: 600, color: theme.text }}>
+                              {highlightMatch(it.material_name, datewiseSearch)}
                             </td>
-                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: theme.greenDark }}>
-                              Rs {Number(f.valuation).toLocaleString()}
+                            <td style={{ padding: '9px 14px', fontSize: '0.84rem', textAlign: 'right', color: theme.textMuted }}>
+                              {Number(it.opening || 0).toFixed(2)}
                             </td>
-                            <td style={{ ...tdStyle, textAlign: 'center' }}>
-                              <button
-                                onClick={() => openPassbookFor(f.material_id)}
-                                style={{
-                                  padding: '4px 10px',
-                                  background: theme.canvas,
-                                  border: `1px solid ${theme.borderDark}`,
-                                  borderRadius: '4px',
-                                  fontSize: '0.72rem',
-                                  fontWeight: 700,
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                Passbook
-                              </button>
+                            <td style={{ padding: '9px 14px', fontSize: '0.84rem', textAlign: 'right', fontWeight: 700, color: Number(it.received_quantity) > 0 ? theme.green : theme.textFaint }}>
+                              {Number(it.received_quantity) > 0 ? `+${Number(it.received_quantity).toFixed(2)}` : '—'}
+                            </td>
+                            <td style={{ padding: '9px 14px', fontSize: '0.84rem', textAlign: 'right', fontWeight: 700, color: Number(it.used_quantity) > 0 ? theme.red : theme.textFaint }}>
+                              {Number(it.used_quantity) > 0 ? `-${Number(it.used_quantity).toFixed(2)}` : '—'}
+                            </td>
+                            <td style={{ padding: '9px 14px', fontSize: '0.88rem', textAlign: 'right', fontWeight: 800, color: theme.text }}>
+                              {Number(it.closing || 0).toFixed(2)}
+                            </td>
+                            <td style={{ padding: '9px 14px', fontSize: '0.78rem', color: theme.textSub }}>
+                              {it.unit}
                             </td>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         )}
 
         {/* ════════════════════════════════════════════════════════════════════ */}
-        {/* TAB 2: STOCK LEDGER                                                  */}
+        {/* TAB: MATERIAL PASSBOOK                                              */}
         {/* ════════════════════════════════════════════════════════════════════ */}
-        {tab === 'ledger' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* Filter Bar */}
-            <div style={{ background: theme.canvas, borderRadius: '10px', border: `1px solid ${theme.border}`, padding: '16px 20px', boxShadow: theme.cardShadow }}>
-              <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                <div style={{ minWidth: '260px', flex: 1 }}>
-                  <label style={labelStyle}>Material Filter</label>
-                  <select
-                    style={inputBase}
-                    value={filterMat}
-                    onChange={(e) => setFilterMat(e.target.value)}
-                  >
-                    <option value="">All Materials ({materials.length})</option>
-                    {groups.map((g) => (
-                      <optgroup key={g.id} label={g.name}>
-                        {materials
-                          .filter((m) => m.group_id === g.id)
-                          .map((m) => (
-                            <option key={m.id} value={m.id}>
-                              {m.name} ({m.unit})
-                            </option>
-                          ))}
-                      </optgroup>
-                    ))}
-                  </select>
-                </div>
-
-                <div style={{ minWidth: '160px' }}>
-                  <label style={labelStyle}>From Date</label>
-                  <input
-                    type="date"
-                    style={inputBase}
-                    value={filterFrom}
-                    onChange={(e) => setFilterFrom(e.target.value)}
-                  />
-                </div>
-
-                <div style={{ minWidth: '160px' }}>
-                  <label style={labelStyle}>To Date</label>
-                  <input
-                    type="date"
-                    style={inputBase}
-                    value={filterTo}
-                    onChange={(e) => setFilterTo(e.target.value)}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    onClick={fetchLedger}
-                    style={{
-                      padding: '10px 20px',
-                      background: theme.primary,
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontWeight: 800,
-                      fontSize: '0.84rem',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Filter Ledger
-                  </button>
-                  <button
-                    onClick={() => {
-                      setFilterMat('');
-                      setFilterFrom('');
-                      setFilterTo('');
-                    }}
-                    style={{
-                      padding: '10px 16px',
-                      background: '#f1f5f9',
-                      color: theme.textMuted,
-                      border: `1px solid ${theme.border}`,
-                      borderRadius: '8px',
-                      fontWeight: 700,
-                      fontSize: '0.84rem',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Reset
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Table */}
-            <div style={{ background: theme.canvas, borderRadius: '10px', border: `1px solid ${theme.border}`, overflow: 'hidden', boxShadow: theme.cardShadow }}>
-              <div
-                style={{
-                  padding: '14px 20px',
-                  borderBottom: `1px solid ${theme.border}`,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
-              >
-                <div style={{ fontWeight: 800, fontSize: '0.92rem', color: theme.text }}>
-                  Transaction History & Inward Challans
-                </div>
-                <span style={{ fontSize: '0.78rem', color: theme.textSub, fontWeight: 700 }}>
-                  Showing {entries.length} entries
-                </span>
-              </div>
-
-              <div style={{ overflowX: 'auto', maxHeight: '68vh' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1100px' }}>
-                  <thead>
-                    <tr>
-                      <th style={thStyle}>Date</th>
-                      <th style={thStyle}>Category</th>
-                      <th style={thStyle}>Material</th>
-                      <th style={{ ...thStyle, textAlign: 'right' }}>Opening</th>
-                      <th style={{ ...thStyle, textAlign: 'right' }}>Inward (+)</th>
-                      <th style={thStyle}>Supplier / Challan Reference</th>
-                      <th style={{ ...thStyle, textAlign: 'right' }}>Purchase Rate</th>
-                      <th style={{ ...thStyle, textAlign: 'right' }}>Total Inward Cost</th>
-                      <th style={{ ...thStyle, textAlign: 'right' }}>Used (-)</th>
-                      <th style={{ ...thStyle, textAlign: 'right' }}>Closing Stock</th>
-                      <th style={{ ...thStyle, textAlign: 'center' }}>Passbook</th>
-                      <th style={{ ...thStyle, textAlign: 'center' }}></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loadingLedger ? (
-                      <tr>
-                        <td colSpan={12} style={{ ...tdStyle, textAlign: 'center', padding: '40px', color: theme.textFaint }}>
-                          Loading stock records...
-                        </td>
-                      </tr>
-                    ) : entries.length === 0 ? (
-                      <tr>
-                        <td colSpan={12} style={{ ...tdStyle, textAlign: 'center', padding: '48px', color: theme.textFaint }}>
-                          No entries found for selected filter criteria.
-                        </td>
-                      </tr>
-                    ) : (
-                      entries.map((e, idx) => {
-                        const isToday = e.date === todayStr;
-                        const rowBg = isToday ? '#faf5ff' : idx % 2 === 0 ? theme.canvas : '#fafbfc';
-                        const borderLeft = isToday ? `4px solid ${theme.purple}` : `4px solid transparent`;
-
-                        return (
-                          <tr key={e.id} style={{ background: rowBg, borderLeft }}>
-                            <td style={{ ...tdStyle, fontWeight: isToday ? 800 : 600, color: isToday ? theme.purple : theme.textMuted }}>
-                              {e.date}
-                              {isToday && (
-                                <span style={{ padding: '2px 6px', borderRadius: '8px', background: theme.purpleSoft, color: theme.purple, marginLeft: '6px', fontSize: '0.62rem', fontWeight: 800 }}>
-                                  TODAY
-                                </span>
-                              )}
-                            </td>
-                            <td style={{ ...tdStyle, fontSize: '0.78rem', color: theme.textSub }}>{e.group_name}</td>
-                            <td style={{ ...tdStyle, fontWeight: 700, color: theme.text }}>{e.material_name}</td>
-                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, color: theme.primary }}>
-                              {Number(e.opening).toFixed(2)}
-                            </td>
-                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: theme.green }}>
-                              {Number(e.received_quantity) > 0 ? `+${Number(e.received_quantity).toFixed(2)}` : '0.00'}
-                            </td>
-                            <td style={{ ...tdStyle, fontSize: '0.78rem' }}>
-                              {e.supplier_name ? (
-                                <div>
-                                  <div style={{ fontWeight: 700, color: theme.text }}>{e.supplier_name}</div>
-                                  {e.bill_challan_no && (
-                                    <div style={{ color: theme.textSub, fontSize: '0.7rem' }}>Challan #{e.bill_challan_no}</div>
-                                  )}
-                                </div>
-                              ) : (
-                                <span style={{ color: theme.textFaint }}>—</span>
-                              )}
-                            </td>
-                            <td style={{ ...tdStyle, textAlign: 'right', color: theme.textSub }}>
-                              {e.rate_per_unit > 0 ? `Rs ${Number(e.rate_per_unit).toFixed(2)}` : '—'}
-                            </td>
-                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: theme.greenDark }}>
-                              {e.total_cost > 0 ? `Rs ${Number(e.total_cost).toLocaleString()}` : '—'}
-                            </td>
-                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: theme.red }}>
-                              {Number(e.used_quantity) > 0 ? `-${Number(e.used_quantity).toFixed(2)}` : '0.00'}
-                            </td>
-                            <td
-                              style={{
-                                ...tdStyle,
-                                textAlign: 'right',
-                                fontWeight: 900,
-                                fontSize: '0.92rem',
-                                color: Number(e.closing) < 0 ? theme.red : theme.text,
-                              }}
-                            >
-                              {Number(e.closing).toFixed(2)} {e.unit}
-                            </td>
-                            <td style={{ ...tdStyle, textAlign: 'center' }}>
-                              <button
-                                onClick={() => openPassbookFor(e.material_id)}
-                                style={{
-                                  padding: '4px 10px',
-                                  background: theme.primarySoft,
-                                  color: theme.primaryDark,
-                                  border: '1px solid #bfdbfe',
-                                  borderRadius: '4px',
-                                  fontSize: '0.7rem',
-                                  fontWeight: 800,
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                View
-                              </button>
-                            </td>
-                            <td style={{ ...tdStyle, textAlign: 'center' }}>
-                              <button
-                                onClick={() => handleDeleteEntry(e.id)}
-                                style={{
-                                  padding: '4px 8px',
-                                  background: theme.redSoft,
-                                  color: theme.red,
-                                  border: 'none',
-                                  borderRadius: '4px',
-                                  fontSize: '0.68rem',
-                                  fontWeight: 700,
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                Del
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ════════════════════════════════════════════════════════════════════ */}
-        {/* TAB 3: BULK SHIFT ENTRY (High-Speed Daily Grid)                      */}
-        {/* ════════════════════════════════════════════════════════════════════ */}
-        {tab === 'bulk' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* Top Toolbar */}
-            <div style={{ background: theme.canvas, borderRadius: '12px', border: `1px solid ${theme.border}`, padding: '18px 22px', boxShadow: theme.cardShadow }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-                
-                {/* Left: Title & Date Navigation */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontSize: '1.08rem', fontWeight: 900, color: theme.navy, letterSpacing: '-0.01em' }}>
-                        Raw Materials Stock Position Sheet
-                      </span>
-                      {sheetData?.is_saved ? (
-                        <span style={{ padding: '3px 9px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800, background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0' }}>
-                          ✓ Saved Sheet
-                        </span>
-                      ) : (
-                        <span style={{ padding: '3px 9px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800, background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a' }}>
-                          ⚡ New Sheet
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: '0.76rem', color: theme.textSub, marginTop: '2px' }}>
-                      Exact factory closing sheet: Rubbers, Carbon & Oils (Left) | Fillers, Fabrics, Valves & Engineering (Right)
-                    </div>
-                  </div>
-
-                  {/* Date Navigation Strip */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f1f5f9', padding: '4px 6px', borderRadius: '8px', border: `1px solid ${theme.border}` }}>
-                    <button
-                      type="button"
-                      disabled={!sheetData?.previous_date || loadingSheet}
-                      onClick={() => sheetData?.previous_date && setSheetDate(sheetData.previous_date)}
-                      style={{
-                        padding: '6px 10px',
-                        background: sheetData?.previous_date ? '#ffffff' : '#f8fafc',
-                        border: `1px solid ${theme.border}`,
-                        borderRadius: '6px',
-                        fontSize: '0.76rem',
-                        fontWeight: 700,
-                        cursor: sheetData?.previous_date ? 'pointer' : 'not-allowed',
-                        color: sheetData?.previous_date ? theme.text : theme.textFaint,
-                      }}
-                      title="Previous day sheet"
-                    >
-                      ◀ Prev
-                    </button>
-
-                    <input
-                      type="date"
-                      value={sheetDate}
-                      onChange={(e) => setSheetDate(e.target.value)}
-                      style={{
-                        padding: '6px 10px',
-                        borderRadius: '6px',
-                        border: `1px solid ${theme.border}`,
-                        fontSize: '0.82rem',
-                        fontWeight: 800,
-                        color: theme.navy,
-                        background: '#ffffff',
-                        outline: 'none',
-                      }}
-                    />
-
-                    <button
-                      type="button"
-                      disabled={!sheetData?.next_date || loadingSheet}
-                      onClick={() => sheetData?.next_date && setSheetDate(sheetData.next_date)}
-                      style={{
-                        padding: '6px 10px',
-                        background: sheetData?.next_date ? '#ffffff' : '#f8fafc',
-                        border: `1px solid ${theme.border}`,
-                        borderRadius: '6px',
-                        fontSize: '0.76rem',
-                        fontWeight: 700,
-                        cursor: sheetData?.next_date ? 'pointer' : 'not-allowed',
-                        color: sheetData?.next_date ? theme.text : theme.textFaint,
-                      }}
-                      title="Next day sheet"
-                    >
-                      Next ▶
-                    </button>
-
-                    <select
-                      value={sheetDate}
-                      onChange={(e) => setSheetDate(e.target.value)}
-                      style={{
-                        padding: '6px 10px',
-                        borderRadius: '6px',
-                        border: `1px solid ${theme.border}`,
-                        fontSize: '0.78rem',
-                        fontWeight: 700,
-                        color: theme.text,
-                        background: '#ffffff',
-                        outline: 'none',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <option value={sheetDate}>Jump: {sheetDate}</option>
-                      {sheetData?.available_dates?.map((d) => (
-                        <option key={d} value={d}>
-                          {d} (Saved)
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Right: Export & Save Buttons */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                  <a
-                    href={`https://api.radhuerp.site/api/rawmaterial/daily-sheet/export-excel/?date=${sheetDate}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '9px 16px',
-                      background: '#ffffff',
-                      color: '#047857',
-                      border: '1.5px solid #10b981',
-                      borderRadius: '8px',
-                      fontWeight: 800,
-                      fontSize: '0.82rem',
-                      textDecoration: 'none',
-                      boxShadow: '0 1px 3px rgba(16,185,129,0.1)',
-                    }}
-                  >
-                    📥 Export Excel
-                  </a>
-
-                  <button
-                    onClick={handleSaveDailySheet}
-                    disabled={savingSheet}
-                    style={{
-                      padding: '10px 22px',
-                      background: savingSheet ? theme.textFaint : '#15803d',
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontWeight: 800,
-                      fontSize: '0.84rem',
-                      cursor: savingSheet ? 'not-allowed' : 'pointer',
-                      boxShadow: '0 2px 8px rgba(21,128,61,0.25)',
-                    }}
-                  >
-                    {savingSheet ? 'Saving Sheet...' : `Save Day Sheet (${Object.keys(modifiedItems).length} modified)`}
-                  </button>
-                </div>
-              </div>
-
-              {/* KPI Strip */}
-              {sheetData?.kpis && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', marginTop: '16px', paddingTop: '14px', borderTop: `1px solid ${theme.borderLight}` }}>
-                  <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: `1px solid ${theme.border}` }}>
-                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: theme.textSub, textTransform: 'uppercase' }}>Materials</div>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 900, color: theme.navy }}>{sheetData.kpis.total_materials} Items</div>
-                  </div>
-                  <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: `1px solid ${theme.border}` }}>
-                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: theme.textSub, textTransform: 'uppercase' }}>Opening Qty</div>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 900, color: theme.primary }}>{Number(sheetData.kpis.total_opening).toLocaleString('en-IN')}</div>
-                  </div>
-                  <div style={{ background: '#f0fdf4', padding: '8px 12px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
-                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#15803d', textTransform: 'uppercase' }}>Day Inward (+)</div>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#15803d' }}>+{Number(sheetData.kpis.total_received).toLocaleString('en-IN')}</div>
-                  </div>
-                  <div style={{ background: '#fef2f2', padding: '8px 12px', borderRadius: '8px', border: '1px solid #fecaca' }}>
-                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#b91c1c', textTransform: 'uppercase' }}>Day Used (-)</div>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#b91c1c' }}>-{Number(sheetData.kpis.total_used).toLocaleString('en-IN')}</div>
-                  </div>
-                  <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: `1px solid ${theme.border}` }}>
-                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: theme.textSub, textTransform: 'uppercase' }}>Closing Qty</div>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 900, color: theme.navy }}>{Number(sheetData.kpis.total_closing).toLocaleString('en-IN')}</div>
-                  </div>
-                  <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: `1px solid ${theme.border}` }}>
-                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: theme.textSub, textTransform: 'uppercase' }}>Total Weight (Kg)</div>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#7c3aed' }}>{Number(sheetData.kpis.total_kg).toLocaleString('en-IN')} Kg</div>
-                  </div>
-                </div>
-              )}
-
-              {/* 🔍 ACTIVE SEARCH & FILTER CONTROL BAR */}
-              <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: `1px solid ${theme.borderLight}`, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                  
-                  {/* Active Search Input */}
-                  <div style={{ position: 'relative', flex: 1, minWidth: '280px' }}>
-                    <input
-                      type="text"
-                      placeholder="Type to actively search material name or unit (e.g. RSS, Clay, Diesel, Wax, NTC, Resin)..."
-                      value={sheetSearch}
-                      onChange={(e) => setSheetSearch(e.target.value)}
-                      style={{
-                        ...inputBase,
-                        padding: '10px 38px 10px 14px',
-                        fontSize: '0.86rem',
-                        borderRadius: '8px',
-                        borderColor: sheetSearch ? theme.primary : theme.border,
-                        boxShadow: sheetSearch ? '0 0 0 3px rgba(37,99,235,0.1)' : 'none',
-                      }}
-                    />
-                    {sheetSearch && (
-                      <button
-                        type="button"
-                        onClick={() => setSheetSearch('')}
-                        style={{
-                          position: 'absolute',
-                          right: '10px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          background: 'none',
-                          border: 'none',
-                          color: theme.textSub,
-                          cursor: 'pointer',
-                          fontSize: '0.9rem',
-                          fontWeight: 800,
-                          padding: '4px',
-                        }}
-                        title="Clear search"
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Active Matches Counter */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span
-                      style={{
-                        padding: '8px 14px',
-                        borderRadius: '8px',
-                        fontSize: '0.8rem',
-                        fontWeight: 800,
-                        background: sheetSearch || sheetStatusFilter !== 'ALL' || sheetCategoryFilter !== 'ALL' ? '#eff6ff' : '#f1f5f9',
-                        color: sheetSearch || sheetStatusFilter !== 'ALL' || sheetCategoryFilter !== 'ALL' ? theme.primaryDark : theme.textSub,
-                        border: `1px solid ${sheetSearch || sheetStatusFilter !== 'ALL' || sheetCategoryFilter !== 'ALL' ? '#bfdbfe' : theme.border}`,
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      Showing: <strong>{totalMatchesCount}</strong> of 96 items
-                    </span>
-
-                    {(sheetSearch || sheetStatusFilter !== 'ALL' || sheetCategoryFilter !== 'ALL') && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSheetSearch('');
-                          setSheetCategoryFilter('ALL');
-                          setSheetStatusFilter('ALL');
-                        }}
-                        style={{
-                          padding: '8px 12px',
-                          borderRadius: '8px',
-                          fontSize: '0.78rem',
-                          fontWeight: 700,
-                          background: '#ffffff',
-                          color: '#dc2626',
-                          border: '1px solid #fca5a5',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Reset All Filters
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Filter Pills: Sections & Status */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                  
-                  {/* Category Filter Pills */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: theme.textSub, textTransform: 'uppercase', marginRight: '4px' }}>
-                      Section:
-                    </span>
-                    {['ALL', 'Rubbers', 'Chemical & Carbon', 'Processing Oils', 'Fillers', 'Other Main', 'Tube Valve', 'Boiler', 'Engineering', 'Miscellaneous'].map((cat) => {
-                      const isActive = sheetCategoryFilter === cat;
-                      return (
-                        <button
-                          key={cat}
-                          type="button"
-                          onClick={() => setSheetCategoryFilter(cat)}
-                          style={{
-                            padding: '4px 10px',
-                            borderRadius: '6px',
-                            fontSize: '0.74rem',
-                            fontWeight: isActive ? 800 : 600,
-                            background: isActive ? '#0f172a' : '#f1f5f9',
-                            color: isActive ? '#ffffff' : theme.textSub,
-                            border: `1px solid ${isActive ? '#0f172a' : theme.border}`,
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease',
-                          }}
-                        >
-                          {cat === 'ALL' ? 'All Sections (9)' : cat}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Status Filters */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: theme.textSub, textTransform: 'uppercase', marginRight: '4px' }}>
-                      Status:
-                    </span>
-                    {[
-                      { id: 'ALL', label: 'All Stock' },
-                      { id: 'IN_STOCK', label: 'With Stock (> 0)' },
-                      { id: 'MODIFIED', label: `Modified (${Object.keys(modifiedItems).length})` },
-                      { id: 'ZERO', label: 'Zero Stock (= 0)' },
-                    ].map((st) => {
-                      const isActive = sheetStatusFilter === st.id;
-                      const isModTag = st.id === 'MODIFIED' && Object.keys(modifiedItems).length > 0;
-                      return (
-                        <button
-                          key={st.id}
-                          type="button"
-                          onClick={() => setSheetStatusFilter(st.id)}
-                          style={{
-                            padding: '4px 10px',
-                            borderRadius: '6px',
-                            fontSize: '0.74rem',
-                            fontWeight: isActive ? 800 : 600,
-                            background: isActive ? (isModTag ? '#1d4ed8' : '#0f172a') : (isModTag ? '#dbeafe' : '#f1f5f9'),
-                            color: isActive ? '#ffffff' : (isModTag ? '#1e40af' : theme.textSub),
-                            border: `1px solid ${isActive ? (isModTag ? '#1d4ed8' : '#0f172a') : (isModTag ? '#93c5fd' : theme.border)}`,
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease',
-                          }}
-                        >
-                          {st.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                </div>
-              </div>
-            </div>
-
-            {/* DUAL-COLUMN FACTORY SHEET */}
-            {loadingSheet ? (
-              <div style={{ padding: '60px', textAlign: 'center', color: theme.textSub, fontWeight: 700 }}>
-                Loading Daily Stock Sheet for {sheetDate}...
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(560px, 1fr))', gap: '16px', alignItems: 'start' }}>
-                
-                {/* LEFT COLUMN: RUBBERS, CHEMICAL & CARBON, PROCESSING OILS */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {sheetData?.left_sections?.map((sec) => renderSheetSection(sec))}
-                </div>
-
-                {/* RIGHT COLUMN: FILLERS, OTHER MAIN, TUBE VALVE, BOILER, ENGINEERING, MISCELLANEOUS */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {sheetData?.right_sections?.map((sec) => renderSheetSection(sec))}
-                </div>
-
-              </div>
-            )}
-          </div>
-        )}
-
         {tab === 'passbook' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* Top Selector Card */}
-            <div style={{ background: theme.canvas, borderRadius: '10px', border: `1px solid ${theme.border}`, padding: '16px 20px', boxShadow: theme.cardShadow }}>
-              <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                <div style={{ minWidth: '320px', flex: 1 }}>
-                  <label style={labelStyle}>Select Material Statement</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+            {/* ── Selector Row ─────────────────────────────────────────────── */}
+            <div style={{ background: theme.canvas, border: `1px solid ${theme.border}`, borderRadius: '10px', padding: '16px 20px' }}>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: '260px' }}>
+                  <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: theme.textSub, marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Material
+                  </label>
                   <select
-                    style={inputBase}
                     value={selectedPassbookMatId}
                     onChange={(e) => {
                       const id = e.target.value;
                       setSelectedPassbookMatId(id);
                       if (id) fetchPassbook(id);
                     }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: `1px solid ${theme.border}`,
+                      borderRadius: '7px',
+                      fontSize: '0.85rem',
+                      color: theme.text,
+                      background: theme.canvas,
+                      outline: 'none',
+                      fontFamily: 'inherit',
+                    }}
                   >
-                    <option value="">-- Choose Raw Material Statement --</option>
+                    <option value="">— Select Material —</option>
                     {groups.map((g) => (
                       <optgroup key={g.id} label={g.name}>
                         {materials
@@ -2298,175 +1318,123 @@ export default function RawMaterialTallyPage() {
                   </select>
                 </div>
 
-                <div style={{ minWidth: '160px' }}>
-                  <label style={labelStyle}>From Date</label>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: theme.textSub, marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>From</label>
                   <input
                     type="date"
-                    style={inputBase}
                     value={passbookFrom}
                     onChange={(e) => setPassbookFrom(e.target.value)}
+                    style={{ padding: '8px 12px', border: `1px solid ${theme.border}`, borderRadius: '7px', fontSize: '0.85rem', color: theme.text, background: theme.canvas, outline: 'none', fontFamily: 'inherit' }}
                   />
                 </div>
 
-                <div style={{ minWidth: '160px' }}>
-                  <label style={labelStyle}>To Date</label>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: theme.textSub, marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>To</label>
                   <input
                     type="date"
-                    style={inputBase}
                     value={passbookTo}
                     onChange={(e) => setPassbookTo(e.target.value)}
+                    style={{ padding: '8px 12px', border: `1px solid ${theme.border}`, borderRadius: '7px', fontSize: '0.85rem', color: theme.text, background: theme.canvas, outline: 'none', fontFamily: 'inherit' }}
                   />
                 </div>
 
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button
                     onClick={() => fetchPassbook(selectedPassbookMatId)}
-                    style={{
-                      padding: '10px 18px',
-                      background: theme.primary,
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontWeight: 800,
-                      fontSize: '0.84rem',
-                      cursor: 'pointer',
-                    }}
+                    style={{ padding: '8px 18px', background: theme.primary, color: '#fff', border: 'none', borderRadius: '7px', fontSize: '0.84rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
                   >
-                    Query Passbook
+                    View Passbook
                   </button>
                   {selectedPassbookMatId && (
                     <a
                       href={`https://api.radhuerp.site/api/rawmaterial/materials/${selectedPassbookMatId}/passbook/export-excel/`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{
-                        padding: '10px 18px',
-                        background: theme.greenDark,
-                        color: '#ffffff',
-                        textDecoration: 'none',
-                        borderRadius: '8px',
-                        fontWeight: 800,
-                        fontSize: '0.84rem',
-                        display: 'inline-block',
-                      }}
+                      style={{ padding: '8px 16px', background: theme.greenDark, color: '#fff', textDecoration: 'none', borderRadius: '7px', fontSize: '0.84rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}
                     >
-                      Export Excel
+                      ↓ Excel
                     </a>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Passbook Info Header Card */}
+            {/* ── Material Info Strip ───────────────────────────────────────── */}
             {passbookData?.material && (
-              <div
-                style={{
-                  background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-                  borderRadius: '12px',
-                  padding: '18px 24px',
-                  color: '#ffffff',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: '16px',
-                  boxShadow: theme.cardShadow,
-                }}
-              >
+              <div style={{ background: theme.canvas, border: `1px solid ${theme.border}`, borderRadius: '10px', padding: '16px 20px', display: 'flex', gap: '24px', alignItems: 'center', flexWrap: 'wrap' }}>
                 <div>
-                  <div style={{ fontSize: '0.74rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    {passbookData.material.group_name}
-                  </div>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', marginTop: '2px' }}>
-                    {passbookData.material.name}
-                  </div>
-                  <div style={{ fontSize: '0.78rem', color: '#cbd5e1', marginTop: '4px' }}>
-                    Unit: {passbookData.material.unit} • Standard Purchase Rate: Rs {passbookData.material.standard_rate} • Min Buffer: {passbookData.material.minimum_stock} {passbookData.material.unit}
-                  </div>
+                  <div style={{ fontSize: '0.71rem', fontWeight: 700, color: theme.textSub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{passbookData.material.group_name}</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: theme.text, marginTop: '2px' }}>{passbookData.material.name}</div>
+                  <div style={{ fontSize: '0.78rem', color: theme.textSub, marginTop: '2px' }}>Unit: {passbookData.material.unit}</div>
                 </div>
-
-                <div style={{ display: 'flex', gap: '28px', alignItems: 'center' }}>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase' }}>Total Inward</div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#86efac' }}>
-                      +{passbookData.totals?.total_inward} {passbookData.material.unit}
+                <div style={{ height: '48px', width: '1px', background: theme.border }} />
+                <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+                  {[
+                    { label: 'Opening Balance', value: Number(passbookData.summary?.opening_balance || 0).toFixed(2), color: theme.text },
+                    { label: 'Total Inward', value: `+${Number(passbookData.summary?.total_inward || 0).toFixed(2)}`, color: theme.green },
+                    { label: 'Total Used', value: `-${Number(passbookData.summary?.total_used || 0).toFixed(2)}`, color: theme.red },
+                    { label: 'Closing Balance', value: Number(passbookData.summary?.closing_balance || 0).toFixed(2), color: theme.primary },
+                  ].map((kpi) => (
+                    <div key={kpi.label}>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 700, color: theme.textFaint, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{kpi.label}</div>
+                      <div style={{ fontSize: '1.05rem', fontWeight: 800, color: kpi.color, marginTop: '1px' }}>{kpi.value} <span style={{ fontSize: '0.72rem', fontWeight: 500, color: theme.textSub }}>{passbookData.material.unit}</span></div>
                     </div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase' }}>Total Consumption</div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#fca5a5' }}>
-                      -{passbookData.totals?.total_outward} {passbookData.material.unit}
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'right', paddingLeft: '20px', borderLeft: '1px solid #334155' }}>
-                    <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase' }}>Closing Balance</div>
-                    <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#ffffff' }}>
-                      {passbookData.material.current_stock} {passbookData.material.unit}
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
             )}
 
-            {/* Statement Table */}
-            <div style={{ background: theme.canvas, borderRadius: '10px', border: `1px solid ${theme.border}`, overflow: 'hidden', boxShadow: theme.cardShadow }}>
-              <div style={{ overflowX: 'auto', maxHeight: '68vh' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '950px' }}>
+            {/* ── Transactions Table ───────────────────────────────────────── */}
+            <div style={{ background: theme.canvas, border: `1px solid ${theme.border}`, borderRadius: '10px', overflow: 'hidden' }}>
+              <div style={{ padding: '12px 18px', background: '#f8fafc', borderBottom: `1px solid ${theme.border}` }}>
+                <span style={{ fontSize: '0.84rem', fontWeight: 700, color: theme.text }}>
+                  Transaction History
+                </span>
+                {passbookData?.transactions && (
+                  <span style={{ fontSize: '0.78rem', color: theme.textSub, marginLeft: '10px' }}>
+                    {passbookData.transactions.length} records
+                  </span>
+                )}
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
-                    <tr>
-                      <th style={thStyle}>Date</th>
-                      <th style={thStyle}>Transaction Description / Particulars</th>
-                      <th style={thStyle}>Supplier Details</th>
-                      <th style={thStyle}>Challan / Bill</th>
-                      <th style={{ ...thStyle, textAlign: 'right' }}>Inward Qty (+)</th>
-                      <th style={{ ...thStyle, textAlign: 'right' }}>Unit Rate</th>
-                      <th style={{ ...thStyle, textAlign: 'right' }}>Inward Cost</th>
-                      <th style={{ ...thStyle, textAlign: 'right' }}>Outward Qty (-)</th>
-                      <th style={{ ...thStyle, textAlign: 'right' }}>Running Balance</th>
+                    <tr style={{ background: '#f1f5f9' }}>
+                      {['Date', 'Particulars', 'Supplier', 'Bill/Challan', 'Inward (+)', 'Rate', 'Cost', 'Used (−)', 'Balance'].map((h) => (
+                        <th key={h} style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, color: theme.textSub, textAlign: h.includes('(') || h === 'Rate' || h === 'Cost' || h === 'Balance' ? 'right' : 'left', whiteSpace: 'nowrap', borderBottom: `1px solid ${theme.border}` }}>
+                          {h}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
                     {loadingPassbook ? (
-                      <tr>
-                        <td colSpan={9} style={{ ...tdStyle, textAlign: 'center', padding: '40px', color: theme.textFaint }}>
-                          Loading material passbook ledger...
-                        </td>
-                      </tr>
+                      <tr><td colSpan={9} style={{ padding: '48px', textAlign: 'center', color: theme.textFaint, fontSize: '0.86rem' }}>Loading...</td></tr>
                     ) : !passbookData || passbookData.transactions?.length === 0 ? (
-                      <tr>
-                        <td colSpan={9} style={{ ...tdStyle, textAlign: 'center', padding: '40px', color: theme.textFaint }}>
-                          No transaction history found for this raw material.
-                        </td>
-                      </tr>
+                      <tr><td colSpan={9} style={{ padding: '48px', textAlign: 'center', color: theme.textFaint, fontSize: '0.86rem' }}>
+                        {selectedPassbookMatId ? 'No transaction history found.' : 'Select a material above to view its passbook.'}
+                      </td></tr>
                     ) : (
                       passbookData.transactions.map((t, idx) => (
-                        <tr key={t.id} style={{ background: idx % 2 === 0 ? theme.canvas : '#fafbfc' }}>
-                          <td style={{ ...tdStyle, fontWeight: 700, color: theme.text }}>{t.date}</td>
-                          <td style={{ ...tdStyle, color: theme.textMuted }}>{t.particulars}</td>
-                          <td style={{ ...tdStyle, fontSize: '0.78rem' }}>{t.supplier_name || '—'}</td>
-                          <td style={{ ...tdStyle, fontSize: '0.78rem', color: theme.textSub }}>{t.bill_challan_no || '—'}</td>
-                          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: theme.green }}>
+                        <tr key={t.id} style={{ background: idx % 2 === 0 ? theme.canvas : '#fafbfd', borderBottom: `1px solid ${theme.borderLight}` }}>
+                          <td style={{ padding: '9px 14px', fontSize: '0.82rem', fontWeight: 700, color: theme.text, whiteSpace: 'nowrap' }}>{t.date}</td>
+                          <td style={{ padding: '9px 14px', fontSize: '0.82rem', color: theme.textMuted }}>{t.particulars}</td>
+                          <td style={{ padding: '9px 14px', fontSize: '0.78rem', color: theme.textSub }}>{t.supplier_name || '—'}</td>
+                          <td style={{ padding: '9px 14px', fontSize: '0.78rem', color: theme.textSub }}>{t.bill_challan_no || '—'}</td>
+                          <td style={{ padding: '9px 14px', fontSize: '0.84rem', textAlign: 'right', fontWeight: 700, color: t.received > 0 ? theme.green : theme.textFaint }}>
                             {t.received > 0 ? `+${Number(t.received).toFixed(2)}` : '—'}
                           </td>
-                          <td style={{ ...tdStyle, textAlign: 'right', color: theme.textSub }}>
-                            {t.rate > 0 ? `Rs ${Number(t.rate).toFixed(2)}` : '—'}
+                          <td style={{ padding: '9px 14px', fontSize: '0.82rem', textAlign: 'right', color: theme.textSub }}>
+                            {t.rate > 0 ? `₹${Number(t.rate).toFixed(2)}` : '—'}
                           </td>
-                          <td style={{ ...tdStyle, textAlign: 'right', color: theme.greenDark, fontWeight: 600 }}>
-                            {t.cost > 0 ? `Rs ${Number(t.cost).toLocaleString()}` : '—'}
+                          <td style={{ padding: '9px 14px', fontSize: '0.82rem', textAlign: 'right', color: theme.greenDark }}>
+                            {t.cost > 0 ? `₹${Number(t.cost).toLocaleString('en-IN')}` : '—'}
                           </td>
-                          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: theme.red }}>
-                            {t.used > 0 ? `-${Number(t.used).toFixed(2)}` : '—'}
+                          <td style={{ padding: '9px 14px', fontSize: '0.84rem', textAlign: 'right', fontWeight: 700, color: t.used > 0 ? theme.red : theme.textFaint }}>
+                            {t.used > 0 ? `−${Number(t.used).toFixed(2)}` : '—'}
                           </td>
-                          <td
-                            style={{
-                              ...tdStyle,
-                              textAlign: 'right',
-                              fontWeight: 900,
-                              fontSize: '0.95rem',
-                              color: t.closing < 0 ? theme.red : theme.text,
-                            }}
-                          >
-                            {Number(t.closing || 0).toFixed(2)} {passbookData?.material?.unit || ''}
+                          <td style={{ padding: '9px 14px', fontSize: '0.88rem', textAlign: 'right', fontWeight: 800, color: t.closing < 0 ? theme.red : theme.text }}>
+                            {Number(t.closing || 0).toFixed(2)} <span style={{ fontSize: '0.7rem', fontWeight: 500, color: theme.textFaint }}>{passbookData?.material?.unit || ''}</span>
                           </td>
                         </tr>
                       ))
@@ -2477,6 +1445,7 @@ export default function RawMaterialTallyPage() {
             </div>
           </div>
         )}
+
 
         {/* ════════════════════════════════════════════════════════════════════ */}
         {/* TAB 5: CURRENT INVENTORY                                             */}
