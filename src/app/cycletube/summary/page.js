@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Navbar from '@/components/Navbar';
 import { apiGet, apiPost } from '@/lib/api';
+import * as XLSX from 'xlsx';
 
 const today = () => {
   const d = new Date();
@@ -118,6 +119,87 @@ export default function CycleTubeSummary() {
   const d0 = new Date(); d0.setDate(1);
   const [fromDate, setFromDate] = useState(d0.toISOString().split('T')[0]);
   const [toDate, setToDate] = useState(today());
+  const [sortOrder, setSortOrder] = useState('desc'); // 'desc' = Newest first (ulta), 'asc' = Oldest first (uper se niche)
+
+  const sortedRows = useMemo(() => {
+    return [...rows].sort((a, b) => {
+      const ta = new Date(a.date).getTime();
+      const tb = new Date(b.date).getTime();
+      return sortOrder === 'asc' ? ta - tb : tb - ta;
+    });
+  }, [rows, sortOrder]);
+
+  const handleExportExcel = () => {
+    if (!sortedRows.length) return;
+    const headers = [
+      'Date', 'Prod PCS', 'Valve Body Issued (KG)', 'Target Wt inc VB (KG)', 'Actual Wt Gross (KG)',
+      'Actual Wt Net Less (KG)', 'Variance (Wt)', 'Target Consmpt (KG)', 'Actual Comp (-Pck+VB)',
+      'Variance (Comp)', 'Actual Mix Compound (KG)', 'Variance (Mixing)', 'Jali (KG)',
+      'Die Wstg (KG)', 'Tube Cut (KG)', 'Total Waste (KG)'
+    ];
+
+    const dataRows = sortedRows.map(r => [
+      r.date,
+      parseInt(r.pcs || 0),
+      parseFloat(editMap[r.date]?.valve_body_issued ?? r.valve_body_issued ?? 0),
+      parseFloat(r.target_wt || 0),
+      parseFloat(editMap[r.date]?.actual_wt_gross ?? r.actual_wt_gross ?? 0),
+      parseFloat(r.actual_wt_net || 0),
+      parseFloat(r.variance_wt || 0),
+      parseFloat(r.target_consmpt || 0),
+      parseFloat(r.actual_comp_net || 0),
+      parseFloat(r.variance_comp || 0),
+      parseFloat(editMap[r.date]?.actual_mixing_compound ?? r.actual_mixing_compound ?? 0),
+      parseFloat(r.variance_mixing || 0),
+      parseFloat(editMap[r.date]?.jali ?? r.jali ?? 0),
+      parseFloat(editMap[r.date]?.die_wastage ?? r.die_wastage ?? 0),
+      parseFloat(editMap[r.date]?.tube_cutting ?? r.tube_cutting ?? 0),
+      parseFloat(editMap[r.date]?.total_tube_waste ?? r.total_tube_waste ?? 0)
+    ]);
+
+    const totalsRow = [
+      'TOTALS',
+      parseInt(totals.pcs || 0),
+      parseFloat(totals.valve_body_issued || 0),
+      parseFloat(totals.target_wt || 0),
+      parseFloat(totals.actual_wt_gross || 0),
+      parseFloat(totals.actual_wt_net || 0),
+      parseFloat(totals.variance_wt || 0),
+      parseFloat(totals.target_consmpt || 0),
+      parseFloat(totals.actual_comp_net || 0),
+      parseFloat(totals.variance_comp || 0),
+      parseFloat(totals.actual_mixing || 0),
+      parseFloat(totals.variance_mixing || 0),
+      parseFloat(totals.jali || 0),
+      parseFloat(totals.die_wastage || 0),
+      parseFloat(totals.tube_cutting || 0),
+      parseFloat(totals.total_tube_waste || 0)
+    ];
+
+    const aoa = [
+      [`Cycle Tube Daily Summary (${fromDate} to ${toDate}) - Sort: ${sortOrder === 'asc' ? 'Oldest to Newest (Uper se Niche)' : 'Newest to Oldest (Ulta)'}`],
+      [],
+      headers,
+      ...dataRows,
+      totalsRow
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = [
+      { wch: 14 }, { wch: 12 }, { wch: 22 }, { wch: 20 }, { wch: 20 },
+      { wch: 22 }, { wch: 14 }, { wch: 18 }, { wch: 20 }, { wch: 16 },
+      { wch: 24 }, { wch: 16 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 16 }
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Cycle Tube Summary');
+    const filename = `Cycle_Tube_Daily_Summary_${sortOrder}_${fromDate}_to_${toDate}.xlsx`;
+    XLSX.writeFile(wb, filename);
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -183,7 +265,55 @@ export default function CycleTubeSummary() {
 
   return (
     <>
+      <style>{`
+        @media print {
+          nav, .no-print {
+            display: none !important;
+          }
+          body {
+            background: #fff !important;
+            color: #000 !important;
+            padding: 0 !important;
+          }
+          .print-header {
+            display: block !important;
+            margin-bottom: 12px;
+          }
+          table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            page-break-inside: auto;
+          }
+          tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+          }
+          thead {
+            display: table-header-group !important;
+          }
+          tfoot {
+            display: table-footer-group !important;
+          }
+          th, td {
+            border: 1px solid #475569 !important;
+            padding: 5px 6px !important;
+            font-size: 8pt !important;
+          }
+        }
+        @media screen {
+          .print-header {
+            display: none !important;
+          }
+        }
+      `}</style>
       <Navbar />
+
+      <div className="print-header" style={{ padding: '10px 20px 0' }}>
+        <h2 style={{ margin: 0, fontSize: '1.2rem', color: '#0f172a' }}>🚴 Cycle Tube Daily Summary</h2>
+        <p style={{ margin: '3px 0 0', fontSize: '0.82rem', color: '#475569' }}>
+          Period: {fromDate} to {toDate} | Sort: {sortOrder === 'asc' ? 'Oldest to Newest (Uper se Niche)' : 'Newest to Oldest (Ulta)'} | Exported on: {new Date().toLocaleString('en-IN')}
+        </p>
+      </div>
 
       {toast && (
         <div style={{
@@ -202,20 +332,90 @@ export default function CycleTubeSummary() {
       <div style={{ background: '#f1f5f9', minHeight: '100vh', paddingBottom: 32 }}>
 
         {/* Top bar */}
-        <div style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }} className="no-print">
           <div>
             <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>🚴 Cycle Tube Summary</h1>
             <p style={{ margin: '2px 0 0', color: '#64748b', fontSize: '0.8rem' }}>Daily production summary — click yellow cells to edit</p>
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: '#f8fafc', padding: '6px 14px', borderRadius: 10, border: '1px solid #e2e8f0' }}>
-            <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} style={{ border: 'none', outline: 'none', color: '#334155', fontWeight: 600, background: 'transparent', fontSize: '0.88rem' }} />
-            <span style={{ color: '#cbd5e1', fontWeight: 700 }}>→</span>
-            <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} style={{ border: 'none', outline: 'none', color: '#334155', fontWeight: 600, background: 'transparent', fontSize: '0.88rem' }} />
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: '#f8fafc', padding: '6px 14px', borderRadius: 10, border: '1px solid #e2e8f0' }}>
+              <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} style={{ border: 'none', outline: 'none', color: '#334155', fontWeight: 600, background: 'transparent', fontSize: '0.88rem' }} />
+              <span style={{ color: '#cbd5e1', fontWeight: 700 }}>→</span>
+              <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} style={{ border: 'none', outline: 'none', color: '#334155', fontWeight: 600, background: 'transparent', fontSize: '0.88rem' }} />
+            </div>
+
+            {/* Sort Toggle Button */}
+            <button
+              onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+              title="Change date sorting order"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                background: '#fff',
+                border: '1.5px solid #cbd5e1',
+                borderRadius: 8,
+                padding: '7px 12px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                color: '#334155',
+                cursor: 'pointer',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+              }}
+            >
+              {sortOrder === 'asc' ? '⬆️ Date: Oldest First' : '⬇️ Date: Newest First'}
+            </button>
+
+            {/* Excel Export Button */}
+            <button
+              onClick={handleExportExcel}
+              disabled={!sortedRows.length}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                background: '#047857',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                padding: '7px 14px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: sortedRows.length ? 'pointer' : 'not-allowed',
+                opacity: sortedRows.length ? 1 : 0.6,
+                boxShadow: '0 1px 2px rgba(0,0,0,0.08)'
+              }}
+            >
+              📥 Export Excel
+            </button>
+
+            {/* Print Button */}
+            <button
+              onClick={handlePrint}
+              disabled={!sortedRows.length}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                background: '#0284c7',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                padding: '7px 14px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: sortedRows.length ? 'pointer' : 'not-allowed',
+                opacity: sortedRows.length ? 1 : 0.6,
+                boxShadow: '0 1px 2px rgba(0,0,0,0.08)'
+              }}
+            >
+              🖨️ Direct Print
+            </button>
           </div>
         </div>
 
         {/* Stats row */}
-        <div style={{ display: 'flex', gap: 12, padding: '14px 20px', overflowX: 'auto' }}>
+        <div style={{ display: 'flex', gap: 12, padding: '14px 20px', overflowX: 'auto' }} className="no-print">
           {stats.map((s, i) => (
             <div key={i} style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: 12, padding: '10px 18px', minWidth: 130, flexShrink: 0 }}>
               <div style={{ color: '#64748b', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.label}</div>
@@ -237,7 +437,15 @@ export default function CycleTubeSummary() {
                   <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
                     <tr>
                       {/* Fixed date col */}
-                      <TH align="left" rowSpan={2}>Date</TH>
+                      <TH align="left" rowSpan={2}>
+                        <div
+                          onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                          style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                          title="Click to toggle Date Sort"
+                        >
+                          Date <span style={{ color: '#0284c7', fontSize: '0.8rem' }}>{sortOrder === 'asc' ? '▲' : '▼'}</span>
+                        </div>
+                      </TH>
                       {/* Pcs */}
                       <TH color="#0369a1" rowSpan={2}>Prod<br/>PCS</TH>
                       {/* Weight block */}
@@ -271,7 +479,7 @@ export default function CycleTubeSummary() {
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map((r, i) => {
+                    {sortedRows.map((r, i) => {
                       const bg = i % 2 === 0 ? '#ffffff' : '#fafafa';
                       const v_wt = parseFloat(r.variance_wt);
                       const v_comp = parseFloat(r.variance_comp);

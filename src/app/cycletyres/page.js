@@ -2,7 +2,89 @@
 
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
-import { apiGet } from '@/lib/api';
+import { apiGet, apiPost } from '@/lib/api';
+
+function SkuCell({ item, onUpdate }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(item.sku || '');
+
+  useEffect(() => {
+    setVal(item.sku || '');
+  }, [item.sku]);
+
+  const save = () => {
+    setEditing(false);
+    if (val !== (item.sku || '')) {
+      onUpdate(item.id, val);
+    }
+  };
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        type="text"
+        value={val}
+        onChange={(e) => setVal(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') save();
+          if (e.key === 'Escape') {
+            setVal(item.sku || '');
+            setEditing(false);
+          }
+        }}
+        onBlur={save}
+        placeholder="Enter SKU"
+        style={{
+          width: '95px',
+          padding: '2px 6px',
+          fontSize: '0.74rem',
+          border: '1.5px solid #0284c7',
+          borderRadius: '4px',
+          outline: 'none',
+          background: '#fff',
+          fontWeight: 700,
+          color: '#0f172a'
+        }}
+      />
+    );
+  }
+
+  return (
+    <div
+      onClick={() => setEditing(true)}
+      title="Click to edit SKU"
+      style={{
+        cursor: 'pointer',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '4px',
+        padding: '2px 6px',
+        borderRadius: '4px',
+        border: '1px dashed transparent',
+        transition: 'all 0.15s'
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = '#94a3b8';
+        e.currentTarget.style.backgroundColor = '#f8fafc';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = 'transparent';
+        e.currentTarget.style.backgroundColor = 'transparent';
+      }}
+    >
+      <span style={{
+        fontFamily: 'monospace',
+        fontWeight: item.sku ? 700 : 500,
+        color: item.sku ? '#0284c7' : '#94a3b8',
+        fontSize: '0.74rem'
+      }}>
+        {item.sku || '+ SKU'}
+      </span>
+      <span style={{ fontSize: '0.65rem', color: '#94a3b8', opacity: 0.7 }}>✎</span>
+    </div>
+  );
+}
 
 export default function CycleTyresDashboard() {
   const [data, setData] = useState(null);
@@ -78,6 +160,24 @@ export default function CycleTyresDashboard() {
   };
 
   const rawItems = data?.items || [];
+
+  const handleUpdateSku = async (id, sku) => {
+    try {
+      const res = await apiPost('/cycletyres/items/update-sku/', { id, sku });
+      if (res) {
+        setData(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            items: (prev.items || []).map(item => item.id === id ? { ...item, sku } : item)
+          };
+        });
+      }
+    } catch (err) {
+      console.error('Failed to update SKU:', err);
+    }
+  };
+
   const isCGrade = (item) => (item.size || '').toLowerCase().includes('c-grade') || (item.brand || '').toLowerCase().includes('c-grade');
   const isRFM = (item) => (item.size || '').trim().toUpperCase() === 'RFM' || (item.brand || '').toLowerCase().includes('return from market');
   const cGradeItems = rawItems.filter(isCGrade);
@@ -88,6 +188,7 @@ export default function CycleTyresDashboard() {
     if (!debouncedSearch) return true;
     const term = debouncedSearch.toLowerCase();
     return (
+      (item.sku && item.sku.toLowerCase().includes(term)) ||
       (item.size && item.size.toLowerCase().includes(term)) ||
       (item.box_type && item.box_type.toLowerCase().includes(term)) ||
       (item.material && item.material.toLowerCase().includes(term)) ||
@@ -116,10 +217,12 @@ export default function CycleTyresDashboard() {
     const filename = `Cycle_Tyre_Dashboard_${selectedMonth || 'current'}_${new Date().toISOString().slice(0, 10)}.csv`;
 
     let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "SIZE,BOX TYPE,MATERIAL,BRAND,PREV CLOSING (1ST),PREV CLOSING (2ND),PROD (A=1ST),PROD (B=2ND),PROD (C=REJECTED),PROD (TOTAL),MONTH SALE (1ST),RFM,CLOSING (1ST),CLOSING (2ND),TOTAL STOCK (1ST+2ND+RFM)\n";
+    csvContent += "#,SKU,SIZE,BOX TYPE,MATERIAL,BRAND,PREV CLOSING (1ST),PREV CLOSING (2ND),PROD (A=1ST),PROD (B=2ND),PROD (C=REJECTED),PROD (TOTAL),MONTH SALE (1ST),RFM,CLOSING (1ST),CLOSING (2ND),TOTAL STOCK (1ST+2ND+RFM)\n";
 
-    items.forEach(item => {
+    items.forEach((item, idx) => {
       const row = [
+        idx + 1,
+        `"${item.sku || ''}"`,
         `"${item.size || ''}"`,
         `"${item.box_type || ''}"`,
         `"${item.material || ''}"`,
@@ -417,6 +520,7 @@ export default function CycleTyresDashboard() {
               <thead>
                 <tr style={{ backgroundColor: '#0f172a', color: '#ffffff', borderBottom: '1px solid #1e293b' }}>
                   <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800 , backgroundColor: '#0284c7' }}>#</th>
+                  <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800 , backgroundColor: '#0284c7', width: 95 }}>SKU</th>
                   <th style={{ padding: '12px 14px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800 , backgroundColor: '#0284c7' }}>SIZE</th>
                   <th style={{ padding: '12px 12px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800 , backgroundColor: '#0284c7' }}>PLY / TYPE</th>
                   <th style={{ padding: '12px 12px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800 , backgroundColor: '#0284c7' }}>BRAND</th>
@@ -438,7 +542,7 @@ export default function CycleTyresDashboard() {
               <tbody>
                 {items.length === 0 && (
                   <tr>
-                    <td colSpan="17" style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+                    <td colSpan="18" style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
                       No inventory records found for this period.
                     </td>
                   </tr>
@@ -451,6 +555,9 @@ export default function CycleTyresDashboard() {
                     onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = idx % 2 === 0 ? '#ffffff' : '#fcfcfd'; }}
                   >
                     <td style={{ padding: '8px 10px', borderRight: '1px solid #f1f5f9', color: '#94a3b8', fontSize: '0.72rem' }}>{idx + 1}</td>
+                    <td style={{ padding: '6px 8px', borderRight: '1px solid #f1f5f9', whiteSpace: 'nowrap' }}>
+                      <SkuCell item={item} onUpdate={handleUpdateSku} />
+                    </td>
                     <td style={{ padding: '8px 12px', borderRight: '1px solid #f1f5f9', fontWeight: 700, color: '#0f172a' }}>{item.size || '-'}</td>
                     <td style={{ padding: '8px 10px', borderRight: '1px solid #f1f5f9', color: '#475569' }}>
                       {item.material || ''} {item.box_type && item.box_type !== item.material ? `/ ${item.box_type}` : ''}
@@ -479,7 +586,7 @@ export default function CycleTyresDashboard() {
               {items.length > 0 && (
                 <tfoot>
                   <tr style={{ backgroundColor: '#0f172a', color: '#ffffff', fontWeight: 800 }}>
-                    <td colSpan="4" style={{ padding: '12px 14px', borderRight: '1px solid #334155', letterSpacing: '0.05em' }}>
+                    <td colSpan="5" style={{ padding: '12px 14px', borderRight: '1px solid #334155', letterSpacing: '0.05em' }}>
                       TOTALS ({items.length} items)
                     </td>
                     <td style={{ padding: '12px 10px', borderRight: '1px solid #334155', textAlign: 'right' }}>{totals.prev_closing_first ?? 0}</td>

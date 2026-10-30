@@ -8,6 +8,7 @@ import { apiPost } from '@/lib/api';
 export default function AddCycleTubeItem() {
   const router = useRouter();
   const [formData, setFormData] = useState({
+    sku: '',
     size: '',
     type: '',
     brand: '',
@@ -26,7 +27,7 @@ export default function AddCycleTubeItem() {
 
     if (res && res.ok) {
       setMessage({ type: 'success', text: `Cycle Tube "${res.data.size} ${res.data.type} ${res.data.brand}" added successfully!` });
-      setFormData({ size: '', type: '', brand: '', weight: '0.2809' });
+      setFormData({ sku: '', size: '', type: '', brand: '', weight: '0.2809' });
     } else {
       const errText = res?.data ? JSON.stringify(res.data) : 'Failed to add item';
       setMessage({ type: 'error', text: errText });
@@ -49,6 +50,17 @@ export default function AddCycleTubeItem() {
           )}
 
           <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label className="form-label">SKU Number (Optional)</label>
+              <input
+                type="text"
+                className="form-input"
+                value={formData.sku}
+                onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                placeholder="e.g. SKU-TB-2815"
+              />
+            </div>
+
             <div className="form-group">
               <label className="form-label">Size * (e.g. 28x1.5, 26x1.75)</label>
               <input

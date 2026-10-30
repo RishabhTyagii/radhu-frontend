@@ -2,7 +2,89 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Navbar from '@/components/Navbar';
-import { apiGet } from '@/lib/api';
+import { apiGet, apiPost } from '@/lib/api';
+
+function SkuCell({ item, onUpdate }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(item.sku || '');
+
+  useEffect(() => {
+    setVal(item.sku || '');
+  }, [item.sku]);
+
+  const save = () => {
+    setEditing(false);
+    if (val !== (item.sku || '')) {
+      onUpdate(item.id, val);
+    }
+  };
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        type="text"
+        value={val}
+        onChange={(e) => setVal(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') save();
+          if (e.key === 'Escape') {
+            setVal(item.sku || '');
+            setEditing(false);
+          }
+        }}
+        onBlur={save}
+        placeholder="Enter SKU"
+        style={{
+          width: '95px',
+          padding: '2px 6px',
+          fontSize: '0.74rem',
+          border: '1.5px solid #0284c7',
+          borderRadius: '4px',
+          outline: 'none',
+          background: '#fff',
+          fontWeight: 700,
+          color: '#0f172a'
+        }}
+      />
+    );
+  }
+
+  return (
+    <div
+      onClick={() => setEditing(true)}
+      title="Click to edit SKU"
+      style={{
+        cursor: 'pointer',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '4px',
+        padding: '2px 6px',
+        borderRadius: '4px',
+        border: '1px dashed transparent',
+        transition: 'all 0.15s'
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = '#94a3b8';
+        e.currentTarget.style.backgroundColor = '#f8fafc';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = 'transparent';
+        e.currentTarget.style.backgroundColor = 'transparent';
+      }}
+    >
+      <span style={{
+        fontFamily: 'monospace',
+        fontWeight: item.sku ? 700 : 500,
+        color: item.sku ? '#0284c7' : '#94a3b8',
+        fontSize: '0.74rem'
+      }}>
+        {item.sku || '+ SKU'}
+      </span>
+      <span style={{ fontSize: '0.65rem', color: '#94a3b8', opacity: 0.7 }}>✎</span>
+    </div>
+  );
+}
 
 export default function AutoTyreDashboard() {
   const [data, setData] = useState(null);
@@ -72,10 +154,29 @@ export default function AutoTyreDashboard() {
   };
 
   const rawItems = data?.items || [];
+
+  const handleUpdateSku = async (id, sku) => {
+    try {
+      const res = await apiPost('/stock/tyres/update-sku/', { id, sku });
+      if (res) {
+        setData(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            items: (prev.items || []).map(item => item.id === id ? { ...item, sku } : item)
+          };
+        });
+      }
+    } catch (err) {
+      console.error('Failed to update SKU:', err);
+    }
+  };
+
   const items = useMemo(() => {
     if (!debouncedSearch) return rawItems;
     const term = debouncedSearch.toLowerCase();
     return rawItems.filter(item =>
+      (item.sku || '').toLowerCase().includes(term) ||
       (item.tyre || '').toLowerCase().includes(term) ||
       (item.pattern || '').toLowerCase().includes(term) ||
       (item.type || '').toLowerCase().includes(term)
@@ -122,9 +223,10 @@ export default function AutoTyreDashboard() {
   const handleExportCSV = () => {
     if (!items || !items.length) return;
     const filename = `Auto_Tyre_Dashboard_${selectedMonth || 'current'}_${new Date().toISOString().slice(0, 10)}.csv`;
-    const headers = ['TYRE', 'PATTERN', 'TYPE', 'LAST CL (1ST)', 'LAST CL (2ND)', 'LAST CL (3RD)', 'PROD (TOTAL)', 'PROD (1ST)', 'PROD (2ND)', 'PROD (3RD)', 'SALE (1ST)', 'SALE (2ND)', 'SALE (3RD)', 'RFM', 'CLOSING (1ST)', 'CLOSING (2ND)', 'CLOSING (3RD)', 'TOTAL STOCK'];
-    const rows = items.map(item => [
-      `"${item.tyre}"`, `"${item.pattern}"`, `"${item.type}"`,
+    const headers = ['#', 'SKU', 'TYRE', 'PATTERN', 'TYPE', 'LAST CL (1ST)', 'LAST CL (2ND)', 'LAST CL (3RD)', 'PROD (TOTAL)', 'PROD (1ST)', 'PROD (2ND)', 'PROD (3RD)', 'SALE (1ST)', 'SALE (2ND)', 'SALE (3RD)', 'RFM', 'CLOSING (1ST)', 'CLOSING (2ND)', 'CLOSING (3RD)', 'TOTAL STOCK'];
+    const rows = items.map((item, idx) => [
+      idx + 1,
+      `"${item.sku || ''}"`, `"${item.tyre}"`, `"${item.pattern}"`, `"${item.type}"`,
       item.prev_closing_first, item.prev_closing_second, item.prev_closing_third,
       item.month_prod_total, item.month_prod_first, item.month_prod_second, item.month_prod_third,
       item.month_sale_first, item.month_sale_second, item.month_sale_third,
@@ -460,6 +562,7 @@ export default function AutoTyreDashboard() {
                 {/* TIER 1 HEADER: Unified Dark Slate Navy (#0f172a) with Crisp White (#ffffff) text */}
                 <tr style={{ backgroundColor: '#0f172a', color: '#ffffff', borderBottom: '1px solid #1e293b' }}>
                   <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800,  backgroundColor: '#0284c7', width: 40 }} rowSpan="2">#</th>
+                  <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800,  backgroundColor: '#0284c7', width: 95 }} rowSpan="2">SKU</th>
                   <th style={{ padding: '12px 14px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800,  backgroundColor: '#0284c7' }} rowSpan="2">TYRE</th>
                   <th style={{ padding: '12px 12px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800,  backgroundColor: '#0284c7' }} rowSpan="2">PATTERN</th>
                   <th style={{ padding: '12px 12px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800,  backgroundColor: '#0284c7' }} rowSpan="2">TYPE</th>
@@ -523,6 +626,9 @@ export default function AutoTyreDashboard() {
                       <td style={{ padding: '9px 10px', borderRight: '1px solid #f1f5f9', color: '#94a3b8', fontSize: '0.72rem', fontWeight: 600 }}>
                         {isExp ? '↳' : idx + 1}
                       </td>
+                      <td style={{ padding: '7px 8px', borderRight: '1px solid #f1f5f9', whiteSpace: 'nowrap' }}>
+                        {isExp ? '-' : <SkuCell item={item} onUpdate={handleUpdateSku} />}
+                      </td>
                       <td style={{ padding: '9px 14px', borderRight: '1px solid #f1f5f9', fontWeight: 800, color: '#0f172a' }}>
                         {item.tyre}
                       </td>
@@ -562,7 +668,7 @@ export default function AutoTyreDashboard() {
                 })}
                 {!items.length && (
                   <tr>
-                    <td colSpan="19" style={{ textAlign: 'center', padding: '50px', color: '#94a3b8' }}>
+                    <td colSpan="20" style={{ textAlign: 'center', padding: '50px', color: '#94a3b8' }}>
                       No inventory records found for this period.
                     </td>
                   </tr>
@@ -571,7 +677,7 @@ export default function AutoTyreDashboard() {
               {items.length > 0 && (
                 <tfoot>
                   <tr style={{ backgroundColor: '#0f172a', color: '#ffffff', fontWeight: 800 }}>
-                    <td colSpan="4" style={{ padding: '12px 14px', borderRight: '1px solid #1e293b', letterSpacing: '0.05em' }}>
+                    <td colSpan="5" style={{ padding: '12px 14px', borderRight: '1px solid #1e293b', letterSpacing: '0.05em' }}>
                       TOTALS
                     </td>
                     <td style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', textAlign: 'right' }}>{filteredTotals.prev_closing_first}</td>
@@ -597,7 +703,7 @@ export default function AutoTyreDashboard() {
                   </tr>
                   {(filteredTotals.export_closing > 0 || filteredTotals.export_sale > 0) && (
                     <tr style={{ backgroundColor: '#f8fafc', borderTop: '1px solid #cbd5e1', fontWeight: 700 }}>
-                      <td colSpan="4" style={{ padding: '10px 14px', borderRight: '1px solid #cbd5e1', color: '#64748b' }}>EXPORT ON HOLD</td>
+                      <td colSpan="5" style={{ padding: '10px 14px', borderRight: '1px solid #cbd5e1', color: '#64748b' }}>EXPORT ON HOLD</td>
                       <td colSpan="3" style={{ padding: '10px', borderRight: '1px solid #cbd5e1', textAlign: 'center', color: '#94a3b8' }}>-</td>
                       <td colSpan="4" style={{ padding: '10px', borderRight: '1px solid #cbd5e1', textAlign: 'center', color: '#94a3b8' }}>-</td>
                       <td style={{ padding: '10px', borderRight: '1px solid #cbd5e1', textAlign: 'right', color: '#2563eb' }}>{filteredTotals.export_sale || 0}</td>

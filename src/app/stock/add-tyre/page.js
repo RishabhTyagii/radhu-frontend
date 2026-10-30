@@ -9,6 +9,7 @@ export default function AddTyre() {
   const router = useRouter();
   const [msg, setMsg] = useState(null);
   const [form, setForm] = useState({
+    sku: '',
     tyre: '',
     pattern: '',
     type: 'TT',
@@ -47,6 +48,10 @@ export default function AddTyre() {
 
         <div className="card" style={{ maxWidth: '100%', margin: '0' }}>
           <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label className="form-label">SKU Number (Optional)</label>
+              <input type="text" className="form-input" name="sku" value={form.sku} onChange={handleChange} placeholder="e.g. SKU-AT-27518" />
+            </div>
             <div className="form-group">
               <label className="form-label">Tyre Name (e.g. 275-18)</label>
               <input type="text" className="form-input" name="tyre" value={form.tyre} onChange={handleChange} required />

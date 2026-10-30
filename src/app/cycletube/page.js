@@ -2,7 +2,89 @@
 
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
-import { apiGet } from '@/lib/api';
+import { apiGet, apiPost } from '@/lib/api';
+
+function SkuCell({ item, onUpdate }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(item.sku || '');
+
+  useEffect(() => {
+    setVal(item.sku || '');
+  }, [item.sku]);
+
+  const save = () => {
+    setEditing(false);
+    if (val !== (item.sku || '')) {
+      onUpdate(item.id, val);
+    }
+  };
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        type="text"
+        value={val}
+        onChange={(e) => setVal(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') save();
+          if (e.key === 'Escape') {
+            setVal(item.sku || '');
+            setEditing(false);
+          }
+        }}
+        onBlur={save}
+        placeholder="Enter SKU"
+        style={{
+          width: '95px',
+          padding: '2px 6px',
+          fontSize: '0.74rem',
+          border: '1.5px solid #0891b2',
+          borderRadius: '4px',
+          outline: 'none',
+          background: '#fff',
+          fontWeight: 700,
+          color: '#0f172a'
+        }}
+      />
+    );
+  }
+
+  return (
+    <div
+      onClick={() => setEditing(true)}
+      title="Click to edit SKU"
+      style={{
+        cursor: 'pointer',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '4px',
+        padding: '2px 6px',
+        borderRadius: '4px',
+        border: '1px dashed transparent',
+        transition: 'all 0.15s'
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = '#94a3b8';
+        e.currentTarget.style.backgroundColor = '#f8fafc';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = 'transparent';
+        e.currentTarget.style.backgroundColor = 'transparent';
+      }}
+    >
+      <span style={{
+        fontFamily: 'monospace',
+        fontWeight: item.sku ? 700 : 500,
+        color: item.sku ? '#0891b2' : '#94a3b8',
+        fontSize: '0.74rem'
+      }}>
+        {item.sku || '+ SKU'}
+      </span>
+      <span style={{ fontSize: '0.65rem', color: '#94a3b8', opacity: 0.7 }}>✎</span>
+    </div>
+  );
+}
 
 export default function CycleTubeDashboard() {
   const [data, setData] = useState(null);
@@ -79,10 +161,29 @@ export default function CycleTubeDashboard() {
   };
 
   const rawItems = data?.items || [];
+
+  const handleUpdateSku = async (id, sku) => {
+    try {
+      const res = await apiPost('/cycletube/items/update-sku/', { id, sku });
+      if (res) {
+        setData(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            items: (prev.items || []).map(item => item.id === id ? { ...item, sku } : item)
+          };
+        });
+      }
+    } catch (err) {
+      console.error('Failed to update SKU:', err);
+    }
+  };
+
   const items = rawItems.filter((item) => {
     if (!debouncedSearch) return true;
     const term = debouncedSearch.toLowerCase();
     return (
+      (item.sku && item.sku.toLowerCase().includes(term)) ||
       (item.size && item.size.toLowerCase().includes(term)) ||
       (item.type && item.type.toLowerCase().includes(term)) ||
       (item.brand && item.brand.toLowerCase().includes(term))
@@ -106,10 +207,12 @@ export default function CycleTubeDashboard() {
     const filename = `Cycle_Tube_Dashboard_${selectedMonth || 'current'}_${new Date().toISOString().slice(0, 10)}.csv`;
 
     let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "SIZE,TYPE,BRAND,PREV CLOSING,THIS MONTH PROD,THIS MONTH SALE,CLOSING STOCK,RFM STOCK,TOTAL STOCK\n";
+    csvContent += "#,SKU,SIZE,TYPE,BRAND,PREV CLOSING,THIS MONTH PROD,THIS MONTH SALE,CLOSING STOCK,RFM STOCK,TOTAL STOCK\n";
 
-    items.forEach(item => {
+    items.forEach((item, idx) => {
       const row = [
+        idx + 1,
+        `"${item.sku || ''}"`,
         `"${item.size || ''}"`,
         `"${item.type || ''}"`,
         `"${item.brand || ''}"`,
@@ -630,6 +733,7 @@ export default function CycleTubeDashboard() {
                     fontSize: '0.7rem',
                   }}>
                     <th style={{ padding: '10px 14px' }}>#</th>
+                    <th style={{ padding: '10px 14px', width: 95 }}>SKU</th>
                     <th style={{ padding: '10px 14px' }}>SIZE</th>
                     <th style={{ padding: '10px 14px' }}>TYPE</th>
                     <th style={{ padding: '10px 14px' }}>BRAND</th>
@@ -653,6 +757,9 @@ export default function CycleTubeDashboard() {
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
                       <td style={{ padding: '8px 14px', color: theme.text2, fontWeight: 600 }}>{idx + 1}</td>
+                      <td style={{ padding: '6px 10px', whiteSpace: 'nowrap' }}>
+                        <SkuCell item={item} onUpdate={handleUpdateSku} />
+                      </td>
                       <td style={{ padding: '8px 14px', fontWeight: 800, color: theme.text }}>{item.size}</td>
                       <td style={{ padding: '8px 14px' }}>
                         <span style={{
@@ -722,7 +829,7 @@ export default function CycleTubeDashboard() {
                       fontWeight: 900,
                       fontSize: '0.8rem',
                     }}>
-                      <td colSpan="4" style={{ padding: '12px 14px', color: theme.text }}>
+                      <td colSpan="5" style={{ padding: '12px 14px', color: theme.text }}>
                         TOTALS ({items.length} Items)
                       </td>
                       <td style={{ padding: '12px 14px', textAlign: 'right', color: theme.text }}>
