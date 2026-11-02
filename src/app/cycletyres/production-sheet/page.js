@@ -608,19 +608,19 @@ export default function CycleTyreProductionSheet() {
                   <tr style={{
                     borderBottom: `3px solid #3b82f6`,
                   }}>
-                    {['#', 'Tyre Item', 'Size', 'Material', 'Brand', 'All Curing', '1st Grade', '2nd Grade', 'Rejected'].map((header, idx) => {
-                      const colors = ['', '', '', '', '', '#6366f1', '#10b981', '#f59e0b', '#ef4444'];
+                    {['#', 'Code', 'Tyre Item', 'Size', 'Material', 'Brand', 'All Curing', '1st Grade', '2nd Grade', 'Rejected'].map((header, idx) => {
+                      const colors = ['', '', '', '', '', '', '#6366f1', '#10b981', '#f59e0b', '#ef4444'];
                       return (
                         <th key={idx} style={{
                           padding: isMobile ? '8px 10px' : '12px 16px',
-                          textAlign: idx >= 5 ? 'right' : 'left',
+                          textAlign: idx >= 6 ? 'right' : 'left',
                           fontWeight: 700,
                           fontSize: isMobile ? '0.65rem' : '0.75rem',
                           textTransform: 'uppercase',
                           letterSpacing: '0.5px',
-                          color: idx >= 5 ? colors[idx] : theme.text,
-                          borderBottom: idx >= 5 ? `2px solid ${colors[idx]}` : 'none',
-                          width: idx === 0 ? '5%' : idx === 1 ? '20%' : 'auto',
+                          color: idx >= 6 ? colors[idx] : theme.text,
+                          borderBottom: idx >= 6 ? `2px solid ${colors[idx]}` : 'none',
+                          width: idx === 0 ? '5%' : idx === 1 ? '10%' : idx === 2 ? '20%' : 'auto',
                         }}>
                           {header}
                         </th>
@@ -654,6 +654,24 @@ export default function CycleTyreProductionSheet() {
                       <td style={{ padding: isMobile ? '8px 10px' : '12px 16px', color: theme.text2, fontWeight: 600 }}>
                         {idx + 1}
                       </td>
+                      <td style={{ padding: isMobile ? '8px 10px' : '12px 16px' }}>
+                        {item.sku ? (
+                          <span style={{
+                            display: 'inline-block',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            backgroundColor: '#eff6ff',
+                            color: '#1d4ed8',
+                            border: '1px solid #bfdbfe'
+                          }}>
+                            {item.sku}
+                          </span>
+                        ) : (
+                          <span style={{ color: theme.text2 }}>-</span>
+                        )}
+                      </td>
                       <td style={{ padding: isMobile ? '8px 10px' : '12px 16px', fontWeight: 700, color: theme.text }}>
                         {item.tyre_name}
                       </td>
@@ -676,7 +694,7 @@ export default function CycleTyreProductionSheet() {
                   ))}
                   {!items.length && (
                     <tr>
-                      <td colSpan={9} style={{
+                      <td colSpan={10} style={{
                         textAlign: 'center',
                         padding: '50px 20px',
                         color: theme.text2,
@@ -704,7 +722,7 @@ export default function CycleTyreProductionSheet() {
                       borderBottom: `3px solid #3b82f6`,
                       fontWeight: 800,
                     }}>
-                      <td colSpan={5} style={{
+                      <td colSpan={6} style={{
                         padding: isMobile ? '8px 10px' : '12px 16px',
                         color: '#1e40af',
                         fontSize: isMobile ? '0.8rem' : '0.9rem',

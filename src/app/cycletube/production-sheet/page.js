@@ -180,6 +180,7 @@ export default function CycleTubeProductionSheet() {
                 <thead>
                   <tr style={{ background: '#1e293b', color: 'white' }}>
                     <th>S.No</th>
+                    <th>Code</th>
                     <th>Tube Name</th>
                     <th>Size</th>
                     <th>Type</th>
@@ -197,6 +198,24 @@ export default function CycleTubeProductionSheet() {
                   {data.map((item, idx) => (
                     <tr key={item.id}>
                       <td>{idx + 1}</td>
+                      <td>
+                        {item.sku ? (
+                          <span style={{
+                            display: 'inline-block',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            backgroundColor: '#eff6ff',
+                            color: '#1d4ed8',
+                            border: '1px solid #bfdbfe'
+                          }}>
+                            {item.sku}
+                          </span>
+                        ) : (
+                          <span style={{ color: '#94a3b8' }}>-</span>
+                        )}
+                      </td>
                       <td style={{ fontWeight: 'bold' }}>{item.tube_name}</td>
                       <td>{item.size}</td>
                       <td>{item.type}</td>
@@ -229,7 +248,7 @@ export default function CycleTubeProductionSheet() {
                   {data.length === 0 && (
                     <tr>
                       <td
-                        colSpan="8"
+                        colSpan="9"
                         style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}
                       >
                         No production data found for this period.
@@ -246,7 +265,7 @@ export default function CycleTubeProductionSheet() {
                         fontWeight: 'bold',
                       }}
                     >
-                      <td colSpan="5" style={{ textAlign: 'right' }}>
+                      <td colSpan="6" style={{ textAlign: 'right' }}>
                         GRAND TOTAL
                       </td>
                       <td style={{ textAlign: 'right', background: '#1d4ed8' }}>

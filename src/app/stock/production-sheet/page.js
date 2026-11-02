@@ -117,6 +117,7 @@ export default function ProductionSheet() {
                 <thead>
                   <tr>
                     {viewMode === 'date' && <th>Date</th>}
+                    <th>Code</th>
                     <th>Tyre Item</th>
                     <th>All Curing</th>
                     <th>Production</th>
@@ -132,6 +133,24 @@ export default function ProductionSheet() {
                   {items.map((item, idx) => (
                     <tr key={idx}>
                       {viewMode === 'date' && <td>{date}</td>}
+                      <td>
+                        {item.sku ? (
+                          <span style={{
+                            display: 'inline-block',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            backgroundColor: '#eff6ff',
+                            color: '#1d4ed8',
+                            border: '1px solid #bfdbfe'
+                          }}>
+                            {item.sku}
+                          </span>
+                        ) : (
+                          <span style={{ color: '#94a3b8' }}>-</span>
+                        )}
+                      </td>
                       <td style={{ fontWeight: 600 }}>{item.tyre_name}</td>
                       <td>{item.all_curing}</td>
                       <td>{item.production_tyre}</td>
@@ -152,7 +171,7 @@ export default function ProductionSheet() {
                 {data?.totals && (
                   <tfoot>
                     <tr style={{ background: 'var(--bg)', fontWeight: 'bold' }}>
-                      <td colSpan={viewMode === 'date' ? 2 : 1}>TOTALS</td>
+                      <td colSpan={viewMode === 'date' ? 3 : 2}>TOTALS</td>
                       <td>{data.totals.all_curing}</td>
                       <td>{data.totals.production_tyre}</td>
                       <td>{data.totals.repair}</td>
