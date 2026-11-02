@@ -117,11 +117,12 @@ export default function CycleTubeDashboard() {
     const filename = `Cycle_Tube_Dashboard_${selectedMonth || 'current'}_${new Date().toISOString().slice(0, 10)}.csv`;
 
     let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "#,SIZE,TYPE,BRAND,PREV CLOSING,THIS MONTH PROD,THIS MONTH SALE,CLOSING STOCK,RFM STOCK,TOTAL STOCK\n";
+    csvContent += "#,CODE,SIZE,TYPE,BRAND,PREV CLOSING,THIS MONTH PROD,THIS MONTH SALE,CLOSING STOCK,RFM STOCK,TOTAL STOCK\n";
 
     items.forEach((item, idx) => {
       const row = [
         idx + 1,
+        `"${item.sku || ''}"`,
         `"${item.size || ''}"`,
         `"${item.type || ''}"`,
         `"${item.brand || ''}"`,
@@ -642,6 +643,7 @@ export default function CycleTubeDashboard() {
                     fontSize: '0.7rem',
                   }}>
                     <th style={{ padding: '10px 14px' }}>#</th>
+                    <th style={{ padding: '10px 14px', width: 85 }}>CODE</th>
                     <th style={{ padding: '10px 14px' }}>SIZE</th>
                     <th style={{ padding: '10px 14px' }}>TYPE</th>
                     <th style={{ padding: '10px 14px' }}>BRAND</th>
@@ -665,6 +667,22 @@ export default function CycleTubeDashboard() {
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
                       <td style={{ padding: '8px 14px', color: theme.text2, fontWeight: 600 }}>{idx + 1}</td>
+                      <td style={{ padding: '6px 10px', whiteSpace: 'nowrap' }}>
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          fontFamily: 'monospace',
+                          letterSpacing: '0.04em',
+                          backgroundColor: darkMode ? '#064e3b33' : '#f0fdf4',
+                          color: darkMode ? '#34d399' : '#15803d',
+                          border: `1px solid ${darkMode ? '#05966955' : '#bbf7d0'}`,
+                        }}>
+                          {item.sku || '-'}
+                        </span>
+                      </td>
                       <td style={{ padding: '8px 14px', fontWeight: 800, color: theme.text }}>{item.size}</td>
                       <td style={{ padding: '8px 14px' }}>
                         <span style={{
@@ -720,7 +738,7 @@ export default function CycleTubeDashboard() {
                   ))}
                   {!items.length && (
                     <tr>
-                      <td colSpan="10" style={{ textAlign: 'center', padding: '40px', color: theme.text2 }}>
+                      <td colSpan="11" style={{ textAlign: 'center', padding: '40px', color: theme.text2 }}>
                         No cycle tube items found.
                       </td>
                     </tr>
@@ -734,7 +752,7 @@ export default function CycleTubeDashboard() {
                       fontWeight: 900,
                       fontSize: '0.8rem',
                     }}>
-                      <td colSpan="4" style={{ padding: '12px 14px', color: theme.text }}>
+                      <td colSpan="5" style={{ padding: '12px 14px', color: theme.text }}>
                         TOTALS ({items.length} Items)
                       </td>
                       <td style={{ padding: '12px 14px', textAlign: 'right', color: theme.text }}>

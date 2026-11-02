@@ -127,11 +127,12 @@ export default function CycleTyresDashboard() {
     const filename = `Cycle_Tyre_Dashboard_${selectedMonth || 'current'}_${new Date().toISOString().slice(0, 10)}.csv`;
 
     let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "#,SIZE,BOX TYPE,MATERIAL,BRAND,PREV CLOSING (1ST),PREV CLOSING (2ND),PROD (A=1ST),PROD (B=2ND),PROD (C=REJECTED),PROD (TOTAL),MONTH SALE (1ST),RFM,CLOSING (1ST),CLOSING (2ND),TOTAL STOCK (1ST+2ND+RFM)\n";
+    csvContent += "#,CODE,SIZE,BOX TYPE,MATERIAL,BRAND,PREV CLOSING (1ST),PREV CLOSING (2ND),PROD (A=1ST),PROD (B=2ND),PROD (C=REJECTED),PROD (TOTAL),MONTH SALE (1ST),RFM,CLOSING (1ST),CLOSING (2ND),TOTAL STOCK (1ST+2ND+RFM)\n";
 
     items.forEach((item, idx) => {
       const row = [
         idx + 1,
+        `"${item.sku || ''}"`,
         `"${item.size || ''}"`,
         `"${item.box_type || ''}"`,
         `"${item.material || ''}"`,
@@ -429,6 +430,7 @@ export default function CycleTyresDashboard() {
               <thead>
                 <tr style={{ backgroundColor: '#0f172a', color: '#ffffff', borderBottom: '1px solid #1e293b' }}>
                   <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800 , backgroundColor: '#0284c7' }}>#</th>
+                  <th style={{ padding: '12px 10px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800 , backgroundColor: '#0284c7', width: 75 }}>CODE</th>
                   <th style={{ padding: '12px 14px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800 , backgroundColor: '#0284c7' }}>SIZE</th>
                   <th style={{ padding: '12px 12px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800 , backgroundColor: '#0284c7' }}>PLY / TYPE</th>
                   <th style={{ padding: '12px 12px', borderRight: '1px solid #1e293b', color: '#ffffff', fontWeight: 800 , backgroundColor: '#0284c7' }}>BRAND</th>
@@ -450,7 +452,7 @@ export default function CycleTyresDashboard() {
               <tbody>
                 {items.length === 0 && (
                   <tr>
-                    <td colSpan="17" style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+                    <td colSpan="18" style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
                       No inventory records found for this period.
                     </td>
                   </tr>
@@ -463,6 +465,22 @@ export default function CycleTyresDashboard() {
                     onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = idx % 2 === 0 ? '#ffffff' : '#fcfcfd'; }}
                   >
                     <td style={{ padding: '8px 10px', borderRight: '1px solid #f1f5f9', color: '#94a3b8', fontSize: '0.72rem' }}>{idx + 1}</td>
+                    <td style={{ padding: '6px 8px', borderRight: '1px solid #f1f5f9', whiteSpace: 'nowrap' }}>
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        fontFamily: 'monospace',
+                        letterSpacing: '0.04em',
+                        backgroundColor: '#eff6ff',
+                        color: '#1d4ed8',
+                        border: '1px solid #bfdbfe',
+                      }}>
+                        {item.sku || '-'}
+                      </span>
+                    </td>
                     <td style={{ padding: '8px 12px', borderRight: '1px solid #f1f5f9', fontWeight: 700, color: '#0f172a' }}>{item.size || '-'}</td>
                     <td style={{ padding: '8px 10px', borderRight: '1px solid #f1f5f9', color: '#475569' }}>
                       {item.material || ''} {item.box_type && item.box_type !== item.material ? `/ ${item.box_type}` : ''}
@@ -491,7 +509,7 @@ export default function CycleTyresDashboard() {
               {items.length > 0 && (
                 <tfoot>
                   <tr style={{ backgroundColor: '#0f172a', color: '#ffffff', fontWeight: 800 }}>
-                    <td colSpan="4" style={{ padding: '12px 14px', borderRight: '1px solid #334155', letterSpacing: '0.05em' }}>
+                    <td colSpan="5" style={{ padding: '12px 14px', borderRight: '1px solid #334155', letterSpacing: '0.05em' }}>
                       TOTALS ({items.length} items)
                     </td>
                     <td style={{ padding: '12px 10px', borderRight: '1px solid #334155', textAlign: 'right' }}>{totals.prev_closing_first ?? 0}</td>
