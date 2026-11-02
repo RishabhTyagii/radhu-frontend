@@ -255,22 +255,14 @@ export default function CycleTyresSummary() {
     setEditMap(prev => ({ ...prev, [date]: { ...prev[date], [field]: value } }));
     setSaving(date);
 
-    const cur = editMap[date] || {};
     const payload = {
       date,
-      packing_pcs: cur.packing_pcs || '0',
-      parchi_kg: cur.parchi_kg || '0',
-      mixing_actual_compound: cur.mixing_actual_compound || '0',
-      chakka: cur.chakka || '0',
-      calander_bias_cutt: cur.calander_bias_cutt || '0',
-      packing_wastage: cur.packing_wastage || '0',
-      tar: cur.tar || '0',
       [field]: value,
     };
 
     const res = await apiPost('/cycletyres/daily-summary/', payload);
     setSaving(null);
-    if (res) {
+    if (res && res.ok !== false) {
       showToast(`✅ ${date} saved`);
       fetchData();
     } else {
