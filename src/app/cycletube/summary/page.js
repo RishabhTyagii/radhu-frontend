@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Navbar from '@/components/Navbar';
 import { apiGet, apiPost } from '@/lib/api';
-import * as XLSX from 'xlsx';
+import { exportStyledExcel } from '@/lib/exportExcel';
 
 const today = () => {
   const d = new Date();
@@ -129,72 +129,74 @@ export default function CycleTubeSummary() {
     });
   }, [rows, sortOrder]);
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     if (!sortedRows.length) return;
-    const headers = [
-      'Date', 'Prod PCS', 'Valve Body Issued (KG)', 'Target Wt inc VB (KG)', 'Actual Wt Gross (KG)',
-      'Actual Wt Net Less (KG)', 'Variance (Wt)', 'Target Consmpt (KG)', 'Actual Comp (-Pck+VB)',
-      'Variance (Comp)', 'Actual Mix Compound (KG)', 'Variance (Mixing)', 'Jali (KG)',
-      'Die Wstg (KG)', 'Tube Cut (KG)', 'Total Waste (KG)'
+    const columns = [
+      { header: 'Date', key: 'date', align: 'center', width: 14 },
+      { header: 'Prod PCS', key: 'pcs', isInt: true, align: 'right', width: 12 },
+      { header: 'Valve Body Issued', key: 'valve_body_issued', isFloat: true, align: 'right', width: 18 },
+      { header: 'Target Wt inc VB', key: 'target_wt', isFloat: true, align: 'right', width: 17 },
+      { header: 'Actual Wt Gross', key: 'actual_wt_gross', isFloat: true, align: 'right', width: 17 },
+      { header: 'Actual Wt Net Less', key: 'actual_wt_net', isFloat: true, align: 'right', width: 17 },
+      { header: 'Variance (Wt)', key: 'variance_wt', isFloat: true, align: 'right', width: 14 },
+      { header: 'Target Consmpt', key: 'target_consmpt', isFloat: true, align: 'right', width: 16 },
+      { header: 'Actual Comp Net', key: 'actual_comp_net', isFloat: true, align: 'right', width: 16 },
+      { header: 'Variance (Comp)', key: 'variance_comp', isFloat: true, align: 'right', width: 15 },
+      { header: 'Actual Mix Compound', key: 'actual_mixing_compound', isFloat: true, align: 'right', width: 20 },
+      { header: 'Variance (Mixing)', key: 'variance_mixing', isFloat: true, align: 'right', width: 16 },
+      { header: 'Jali (KG)', key: 'jali', isFloat: true, align: 'right', width: 12 },
+      { header: 'Die Wstg (KG)', key: 'die_wastage', isFloat: true, align: 'right', width: 14 },
+      { header: 'Tube Cut (KG)', key: 'tube_cutting', isFloat: true, align: 'right', width: 14 },
+      { header: 'Total Waste (KG)', key: 'total_tube_waste', isFloat: true, align: 'right', width: 16 },
     ];
 
-    const dataRows = sortedRows.map(r => [
-      r.date,
-      parseInt(r.pcs || 0),
-      parseFloat(editMap[r.date]?.valve_body_issued ?? r.valve_body_issued ?? 0),
-      parseFloat(r.target_wt || 0),
-      parseFloat(editMap[r.date]?.actual_wt_gross ?? r.actual_wt_gross ?? 0),
-      parseFloat(r.actual_wt_net || 0),
-      parseFloat(r.variance_wt || 0),
-      parseFloat(r.target_consmpt || 0),
-      parseFloat(r.actual_comp_net || 0),
-      parseFloat(r.variance_comp || 0),
-      parseFloat(editMap[r.date]?.actual_mixing_compound ?? r.actual_mixing_compound ?? 0),
-      parseFloat(r.variance_mixing || 0),
-      parseFloat(editMap[r.date]?.jali ?? r.jali ?? 0),
-      parseFloat(editMap[r.date]?.die_wastage ?? r.die_wastage ?? 0),
-      parseFloat(editMap[r.date]?.tube_cutting ?? r.tube_cutting ?? 0),
-      parseFloat(editMap[r.date]?.total_tube_waste ?? r.total_tube_waste ?? 0)
-    ]);
+    const dataRows = sortedRows.map(r => ({
+      date: r.date,
+      pcs: parseInt(r.pcs || 0),
+      valve_body_issued: parseFloat(editMap[r.date]?.valve_body_issued ?? r.valve_body_issued ?? 0),
+      target_wt: parseFloat(r.target_wt || 0),
+      actual_wt_gross: parseFloat(editMap[r.date]?.actual_wt_gross ?? r.actual_wt_gross ?? 0),
+      actual_wt_net: parseFloat(r.actual_wt_net || 0),
+      variance_wt: parseFloat(r.variance_wt || 0),
+      target_consmpt: parseFloat(r.target_consmpt || 0),
+      actual_comp_net: parseFloat(r.actual_comp_net || 0),
+      variance_comp: parseFloat(r.variance_comp || 0),
+      actual_mixing_compound: parseFloat(editMap[r.date]?.actual_mixing_compound ?? r.actual_mixing_compound ?? 0),
+      variance_mixing: parseFloat(r.variance_mixing || 0),
+      jali: parseFloat(editMap[r.date]?.jali ?? r.jali ?? 0),
+      die_wastage: parseFloat(editMap[r.date]?.die_wastage ?? r.die_wastage ?? 0),
+      tube_cutting: parseFloat(editMap[r.date]?.tube_cutting ?? r.tube_cutting ?? 0),
+      total_tube_waste: parseFloat(editMap[r.date]?.total_tube_waste ?? r.total_tube_waste ?? 0),
+    }));
 
-    const totalsRow = [
-      'TOTALS',
-      parseInt(totals.pcs || 0),
-      parseFloat(totals.valve_body_issued || 0),
-      parseFloat(totals.target_wt || 0),
-      parseFloat(totals.actual_wt_gross || 0),
-      parseFloat(totals.actual_wt_net || 0),
-      parseFloat(totals.variance_wt || 0),
-      parseFloat(totals.target_consmpt || 0),
-      parseFloat(totals.actual_comp_net || 0),
-      parseFloat(totals.variance_comp || 0),
-      parseFloat(totals.actual_mixing || 0),
-      parseFloat(totals.variance_mixing || 0),
-      parseFloat(totals.jali || 0),
-      parseFloat(totals.die_wastage || 0),
-      parseFloat(totals.tube_cutting || 0),
-      parseFloat(totals.total_tube_waste || 0)
-    ];
+    const totalsObj = {
+      date: 'TOTALS',
+      pcs: parseInt(totals.pcs || 0),
+      valve_body_issued: parseFloat(totals.valve_body_issued || 0),
+      target_wt: parseFloat(totals.target_wt || 0),
+      actual_wt_gross: parseFloat(totals.actual_wt_gross || 0),
+      actual_wt_net: parseFloat(totals.actual_wt_net || 0),
+      variance_wt: parseFloat(totals.variance_wt || 0),
+      target_consmpt: parseFloat(totals.target_consmpt || 0),
+      actual_comp_net: parseFloat(totals.actual_comp_net || 0),
+      variance_comp: parseFloat(totals.variance_comp || 0),
+      actual_mixing_compound: parseFloat(totals.actual_mixing || 0),
+      variance_mixing: parseFloat(totals.variance_mixing || 0),
+      jali: parseFloat(totals.jali || 0),
+      die_wastage: parseFloat(totals.die_wastage || 0),
+      tube_cutting: parseFloat(totals.tube_cutting || 0),
+      total_tube_waste: parseFloat(totals.total_tube_waste || 0),
+    };
 
-    const aoa = [
-      [`Cycle Tube Daily Summary (${fromDate} to ${toDate}) - Sort: ${sortOrder === 'asc' ? 'Oldest to Newest (Uper se Niche)' : 'Newest to Oldest (Ulta)'}`],
-      [],
-      headers,
-      ...dataRows,
-      totalsRow
-    ];
-
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws['!cols'] = [
-      { wch: 14 }, { wch: 12 }, { wch: 22 }, { wch: 20 }, { wch: 20 },
-      { wch: 22 }, { wch: 14 }, { wch: 18 }, { wch: 20 }, { wch: 16 },
-      { wch: 24 }, { wch: 16 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 16 }
-    ];
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Cycle Tube Summary');
-    const filename = `Cycle_Tube_Daily_Summary_${sortOrder}_${fromDate}_to_${toDate}.xlsx`;
-    XLSX.writeFile(wb, filename);
+    await exportStyledExcel({
+      title: 'Radhu Enterprises - Cycle Tube Daily Summary',
+      subtitle: `Period: ${fromDate} to ${toDate} | Sort: ${sortOrder === 'asc' ? 'Oldest to Newest (Uper se Niche)' : 'Newest to Oldest (Ulta)'} | Exported: ${new Date().toLocaleString('en-IN')}`,
+      sheetName: 'Cycle Tube Summary',
+      filename: `Cycle_Tube_Daily_Summary_${sortOrder}_${fromDate}_to_${toDate}.xlsx`,
+      columns,
+      data: dataRows,
+      totals: totalsObj,
+    });
   };
 
   const handlePrint = () => {
@@ -266,23 +268,61 @@ export default function CycleTubeSummary() {
   return (
     <>
       <style>{`
+        @page {
+          size: A4 landscape;
+          margin: 4mm 5mm 4mm 5mm;
+        }
         @media print {
-          nav, .no-print {
+          nav, .no-print, header, footer {
             display: none !important;
           }
-          body {
-            background: #fff !important;
-            color: #000 !important;
+          html, body {
+            background: #ffffff !important;
+            color: #000000 !important;
+            margin: 0 !important;
             padding: 0 !important;
+            font-size: 6.2pt !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
           .print-header {
             display: block !important;
-            margin-bottom: 12px;
+            margin-bottom: 5px !important;
+            padding: 0 0 3px 0 !important;
+            border-bottom: 1.5px solid #000000 !important;
+          }
+          .print-header h2 {
+            font-size: 10.5pt !important;
+            font-weight: 900 !important;
+            color: #000000 !important;
+            margin: 0 !important;
+            text-transform: uppercase !important;
+          }
+          .print-header p {
+            font-size: 6.5pt !important;
+            color: #000000 !important;
+            margin: 2px 0 0 !important;
+          }
+          .print-container {
+            padding: 0 !important;
+            margin: 0 !important;
+            background: #ffffff !important;
+          }
+          .print-table-wrapper {
+            box-shadow: none !important;
+            border: none !important;
+            border-radius: 0 !important;
+            overflow: visible !important;
+            width: 100% !important;
+            max-height: none !important;
           }
           table {
             width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
             border-collapse: collapse !important;
             page-break-inside: auto;
+            table-layout: fixed !important;
           }
           tr {
             page-break-inside: avoid;
@@ -294,10 +334,48 @@ export default function CycleTubeSummary() {
           tfoot {
             display: table-footer-group !important;
           }
-          th, td {
-            border: 1px solid #475569 !important;
-            padding: 5px 6px !important;
-            font-size: 8pt !important;
+          th {
+            border: 1px solid #000000 !important;
+            padding: 2.5px 1.5px !important;
+            font-size: 5.8pt !important;
+            font-weight: 800 !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+            text-align: center !important;
+            line-height: 1.05 !important;
+          }
+          th * {
+            color: #000000 !important;
+          }
+          td {
+            border: 1px solid #000000 !important;
+            padding: 2px 1.5px !important;
+            font-size: 5.8pt !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+            line-height: 1.05 !important;
+          }
+          td * {
+            color: #000000 !important;
+          }
+          input {
+            border: none !important;
+            background: transparent !important;
+            color: #000000 !important;
+            font-size: 5.8pt !important;
+            font-weight: 600 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            text-align: right !important;
+            width: 100% !important;
+            box-shadow: none !important;
+          }
+          tfoot tr td {
+            font-weight: 900 !important;
+            border-top: 1.5px solid #000000 !important;
+            border-bottom: 2px solid #000000 !important;
+            background: #ffffff !important;
+            color: #000000 !important;
           }
         }
         @media screen {
@@ -329,7 +407,7 @@ export default function CycleTubeSummary() {
       )}
 
       {/* Full-width page — no maxWidth container */}
-      <div style={{ background: '#f1f5f9', minHeight: '100vh', paddingBottom: 32 }}>
+      <div className="print-container" style={{ background: '#f1f5f9', minHeight: '100vh', paddingBottom: 32 }}>
 
         {/* Top bar */}
         <div style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }} className="no-print">
@@ -427,7 +505,7 @@ export default function CycleTubeSummary() {
         {/* Table — truly edge-to-edge */}
         <div style={{ padding: '0 12px 20px' }}>
           <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
-            <div style={{ overflowX: 'auto', maxHeight: 'calc(100vh - 280px)', overflowY: 'auto' }}>
+            <div className="print-table-wrapper" style={{ overflowX: 'auto', maxHeight: 'calc(100vh - 280px)', overflowY: 'auto' }}>
               {loading ? (
                 <div style={{ padding: 60, textAlign: 'center', color: '#94a3b8', fontWeight: 600 }}>Loading...</div>
               ) : rows.length === 0 ? (

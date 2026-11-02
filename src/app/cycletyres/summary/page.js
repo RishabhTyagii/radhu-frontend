@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Navbar from '@/components/Navbar';
 import { apiGet, apiPost } from '@/lib/api';
-import * as XLSX from 'xlsx';
+import { exportStyledExcel } from '@/lib/exportExcel';
 
 const today = () => {
   const d = new Date();
@@ -118,65 +118,65 @@ export default function CycleTyresSummary() {
     });
   }, [rows, sortOrder]);
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     if (!sortedRows.length) return;
-    const headers = [
-      'Date', 'Curing PCS', 'Packing PCS', 'Theo KG', 'Parchi KG', 'Diff KG',
-      'Theo Compound (KG)', 'Mixing Actual Compound (KG)', 'Variance', 'Chakka',
-      'Calander Bias Cutt', 'Packing Wastage', 'Tar'
+    const columns = [
+      { header: 'Date', key: 'date', align: 'center', width: 14 },
+      { header: 'Curing PCS', key: 'production_pcs', isInt: true, align: 'right', width: 14 },
+      { header: 'Packing PCS', key: 'packing_pcs', isInt: true, align: 'right', width: 14 },
+      { header: 'Theo KG', key: 'theoretical_kg', isFloat: true, align: 'right', width: 14 },
+      { header: 'Parchi KG', key: 'parchi_kg', isFloat: true, align: 'right', width: 14 },
+      { header: 'Diff KG', key: 'difference', isFloat: true, align: 'right', width: 14 },
+      { header: 'Theo Compound (KG)', key: 'theoretical_compound', isFloat: true, align: 'right', width: 22 },
+      { header: 'Mixing Actual (KG)', key: 'mixing_actual_compound', isFloat: true, align: 'right', width: 22 },
+      { header: 'Variance', key: 'variance', isFloat: true, align: 'right', width: 14 },
+      { header: 'Chakka (KG)', key: 'chakka', isFloat: true, align: 'right', width: 14 },
+      { header: 'Calander Bias Cutt', key: 'calander_bias_cutt', isFloat: true, align: 'right', width: 18 },
+      { header: 'Packing Wastage', key: 'packing_wastage', isFloat: true, align: 'right', width: 16 },
+      { header: 'Tar (KG)', key: 'tar', isFloat: true, align: 'right', width: 14 },
     ];
 
-    const dataRows = sortedRows.map(r => [
-      r.date,
-      parseInt(r.production_pcs || 0),
-      parseInt(editMap[r.date]?.packing_pcs ?? r.packing_pcs ?? 0),
-      parseFloat(r.theoretical_kg || 0),
-      parseFloat(editMap[r.date]?.parchi_kg ?? r.parchi_kg ?? 0),
-      parseFloat(r.difference || 0),
-      parseFloat(r.theoretical_compound || 0),
-      parseFloat(editMap[r.date]?.mixing_actual_compound ?? r.mixing_actual_compound ?? 0),
-      parseFloat(r.variance || 0),
-      parseFloat(editMap[r.date]?.chakka ?? r.chakka ?? 0),
-      parseFloat(editMap[r.date]?.calander_bias_cutt ?? r.calander_bias_cutt ?? 0),
-      parseFloat(editMap[r.date]?.packing_wastage ?? r.packing_wastage ?? 0),
-      parseFloat(editMap[r.date]?.tar ?? r.tar ?? 0)
-    ]);
+    const dataRows = sortedRows.map(r => ({
+      date: r.date,
+      production_pcs: parseInt(r.production_pcs || 0),
+      packing_pcs: parseInt(editMap[r.date]?.packing_pcs ?? r.packing_pcs ?? 0),
+      theoretical_kg: parseFloat(r.theoretical_kg || 0),
+      parchi_kg: parseFloat(editMap[r.date]?.parchi_kg ?? r.parchi_kg ?? 0),
+      difference: parseFloat(r.difference || 0),
+      theoretical_compound: parseFloat(r.theoretical_compound || 0),
+      mixing_actual_compound: parseFloat(editMap[r.date]?.mixing_actual_compound ?? r.mixing_actual_compound ?? 0),
+      variance: parseFloat(r.variance || 0),
+      chakka: parseFloat(editMap[r.date]?.chakka ?? r.chakka ?? 0),
+      calander_bias_cutt: parseFloat(editMap[r.date]?.calander_bias_cutt ?? r.calander_bias_cutt ?? 0),
+      packing_wastage: parseFloat(editMap[r.date]?.packing_wastage ?? r.packing_wastage ?? 0),
+      tar: parseFloat(editMap[r.date]?.tar ?? r.tar ?? 0),
+    }));
 
-    const totalsRow = [
-      'TOTALS',
-      parseInt(totals.production_pcs || 0),
-      parseInt(totals.packing_pcs || 0),
-      parseFloat(totals.theoretical_kg || 0),
-      parseFloat(totals.parchi_kg || 0),
-      parseFloat(totals.difference || 0),
-      parseFloat(totals.theoretical_compound || 0),
-      parseFloat(totals.mixing_actual_compound || 0),
-      parseFloat(totals.variance || 0),
-      parseFloat(totals.chakka || 0),
-      parseFloat(totals.calander_bias_cutt || 0),
-      parseFloat(totals.packing_wastage || 0),
-      parseFloat(totals.tar || 0)
-    ];
+    const totalsObj = {
+      date: 'TOTALS',
+      production_pcs: parseInt(totals.production_pcs || 0),
+      packing_pcs: parseInt(totals.packing_pcs || 0),
+      theoretical_kg: parseFloat(totals.theoretical_kg || 0),
+      parchi_kg: parseFloat(totals.parchi_kg || 0),
+      difference: parseFloat(totals.difference || 0),
+      theoretical_compound: parseFloat(totals.theoretical_compound || 0),
+      mixing_actual_compound: parseFloat(totals.mixing_actual_compound || 0),
+      variance: parseFloat(totals.variance || 0),
+      chakka: parseFloat(totals.chakka || 0),
+      calander_bias_cutt: parseFloat(totals.calander_bias_cutt || 0),
+      packing_wastage: parseFloat(totals.packing_wastage || 0),
+      tar: parseFloat(totals.tar || 0),
+    };
 
-    const aoa = [
-      [`Cycle Tyre Daily Summary (${fromDate} to ${toDate}) - Sort: ${sortOrder === 'asc' ? 'Oldest to Newest (Uper se Niche)' : 'Newest to Oldest (Ulta)'}`],
-      [],
-      headers,
-      ...dataRows,
-      totalsRow
-    ];
-
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws['!cols'] = [
-      { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
-      { wch: 12 }, { wch: 18 }, { wch: 22 }, { wch: 12 }, { wch: 12 },
-      { wch: 16 }, { wch: 16 }, { wch: 12 }
-    ];
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Cycle Tyre Summary');
-    const filename = `Cycle_Tyre_Daily_Summary_${sortOrder}_${fromDate}_to_${toDate}.xlsx`;
-    XLSX.writeFile(wb, filename);
+    await exportStyledExcel({
+      title: 'Radhu Enterprises - Cycle Tyre Daily Summary',
+      subtitle: `Period: ${fromDate} to ${toDate} | Sort: ${sortOrder === 'asc' ? 'Oldest to Newest (Uper se Niche)' : 'Newest to Oldest (Ulta)'} | Exported: ${new Date().toLocaleString('en-IN')}`,
+      sheetName: 'Cycle Tyre Summary',
+      filename: `Cycle_Tyre_Daily_Summary_${sortOrder}_${fromDate}_to_${toDate}.xlsx`,
+      columns,
+      data: dataRows,
+      totals: totalsObj,
+    });
   };
 
   const handlePrint = () => {
@@ -257,23 +257,62 @@ export default function CycleTyresSummary() {
   return (
     <>
       <style>{`
+        @page {
+          size: A4 landscape;
+          margin: 5mm 6mm 5mm 6mm;
+        }
         @media print {
-          nav, .no-print {
+          nav, .no-print, header, footer {
             display: none !important;
           }
-          body {
-            background: #fff !important;
-            color: #000 !important;
+          html, body {
+            background: #ffffff !important;
+            color: #000000 !important;
+            margin: 0 !important;
             padding: 0 !important;
+            font-size: 7.2pt !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
           .print-header {
             display: block !important;
-            margin-bottom: 12px;
+            margin-bottom: 6px !important;
+            padding: 0 0 4px 0 !important;
+            border-bottom: 1.5px solid #000000 !important;
+          }
+          .print-header h2 {
+            font-size: 11pt !important;
+            font-weight: 900 !important;
+            color: #000000 !important;
+            margin: 0 !important;
+            text-transform: uppercase !important;
+          }
+          .print-header p {
+            font-size: 7pt !important;
+            color: #000000 !important;
+            margin: 2px 0 0 !important;
+          }
+          .print-container {
+            padding: 0 !important;
+            margin: 0 !important;
+            background: #ffffff !important;
+          }
+          .print-table-wrapper {
+            box-shadow: none !important;
+            border: none !important;
+            border-radius: 0 !important;
+            overflow: visible !important;
+            width: 100% !important;
+            max-height: none !important;
+            margin: 0 !important;
           }
           table {
             width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
             border-collapse: collapse !important;
             page-break-inside: auto;
+            table-layout: fixed !important;
           }
           tr {
             page-break-inside: avoid;
@@ -285,10 +324,40 @@ export default function CycleTyresSummary() {
           tfoot {
             display: table-footer-group !important;
           }
-          th, td {
-            border: 1px solid #475569 !important;
-            padding: 5px 6px !important;
-            font-size: 8pt !important;
+          th {
+            border: 1px solid #000000 !important;
+            padding: 3.5px 2px !important;
+            font-size: 6.6pt !important;
+            font-weight: 800 !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+            text-align: center !important;
+            line-height: 1.1 !important;
+          }
+          th * {
+            color: #000000 !important;
+          }
+          /* Hide empty status column in print */
+          th:last-child, td:last-child {
+            display: none !important;
+          }
+          td {
+            border: 1px solid #000000 !important;
+            padding: 3px 2px !important;
+            font-size: 6.6pt !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+            line-height: 1.1 !important;
+          }
+          td * {
+            color: #000000 !important;
+          }
+          tfoot tr td {
+            font-weight: 900 !important;
+            border-top: 1.5px solid #000000 !important;
+            border-bottom: 2px solid #000000 !important;
+            background: #ffffff !important;
+            color: #000000 !important;
           }
         }
         @media screen {
@@ -444,7 +513,7 @@ export default function CycleTyresSummary() {
         </div>
 
         {/* ── Table Container ── */}
-        <div style={{ margin: '0 24px', borderRadius: 14, overflow: 'hidden', border: '1px solid #cbd5e1', background: '#ffffff', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
+        <div className="print-table-wrapper" style={{ margin: '0 24px', borderRadius: 14, overflow: 'hidden', border: '1px solid #cbd5e1', background: '#ffffff', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
           {loading ? (
             <div style={{ textAlign: 'center', padding: 60, color: '#64748b', background: '#ffffff' }}>
               <div style={{ fontSize: '2rem', marginBottom: 10 }}>⏳</div>

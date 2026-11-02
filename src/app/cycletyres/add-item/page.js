@@ -8,7 +8,6 @@ import { apiPost } from '@/lib/api';
 export default function AddCycleTyreItem() {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    sku: '',
     box_type: '',
     size: '',
     material: '',
@@ -28,7 +27,7 @@ export default function AddCycleTyreItem() {
 
     if (res && res.ok) {
       setMessage({ type: 'success', text: `Cycle Tyre "${res.data.size} ${res.data.box_type}" added successfully!` });
-      setFormData({ sku: '', box_type: '', size: '', material: '', brand: '', weight: '0.850' });
+      setFormData({ box_type: '', size: '', material: '', brand: '', weight: '0.850' });
     } else {
       const errText = res?.data ? JSON.stringify(res.data) : 'Failed to add item';
       setMessage({ type: 'error', text: errText });
@@ -51,16 +50,6 @@ export default function AddCycleTyreItem() {
           )}
 
           <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label className="form-label">SKU Number (Optional)</label>
-              <input
-                type="text"
-                className="form-input"
-                value={formData.sku}
-                onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                placeholder="e.g. SKU-CT-2815"
-              />
-            </div>
 
             <div className="form-group">
               <label className="form-label">Box Type * (e.g. 6 ply, 4 ply)</label>
