@@ -119,7 +119,30 @@ export default function CycleTyresSummary() {
   }, [rows, sortOrder]);
 
   const handleExportExcel = async () => {
-    if (!sortedRows.length) return;
+    // Fresh fetch directly from backend before export to ensure any updated/corrected production entries are reflected
+    setLoading(true);
+    let freshRows = rows;
+    try {
+      const res = await apiGet(`/cycletyres/daily-summary/?from_date=${fromDate}&to_date=${toDate}`);
+      if (res && res.summary) {
+        freshRows = res.summary;
+        setRows(res.summary);
+        if (res.totals) setTotals(res.totals);
+      }
+    } catch (e) {
+      console.error('Fresh fetch error before export:', e);
+    }
+    setLoading(false);
+
+    if (!freshRows.length) return;
+
+    // Apply sort order
+    const exportSortedRows = [...freshRows].sort((a, b) => {
+      const ta = new Date(a.date).getTime();
+      const tb = new Date(b.date).getTime();
+      return sortOrder === 'asc' ? ta - tb : tb - ta;
+    });
+
     const columns = [
       { header: 'Date', key: 'date', align: 'center', width: 14 },
       { header: 'Curing PCS', key: 'production_pcs', isInt: true, align: 'right', width: 14 },
@@ -136,36 +159,51 @@ export default function CycleTyresSummary() {
       { header: 'Tar (KG)', key: 'tar', isFloat: true, align: 'right', width: 14 },
     ];
 
-    const dataRows = sortedRows.map(r => ({
-      date: r.date,
-      production_pcs: parseInt(r.production_pcs || 0),
-      packing_pcs: parseInt(editMap[r.date]?.packing_pcs ?? r.packing_pcs ?? 0),
-      theoretical_kg: parseFloat(r.theoretical_kg || 0),
-      parchi_kg: parseFloat(editMap[r.date]?.parchi_kg ?? r.parchi_kg ?? 0),
-      difference: parseFloat(r.difference || 0),
-      theoretical_compound: parseFloat(r.theoretical_compound || 0),
-      mixing_actual_compound: parseFloat(editMap[r.date]?.mixing_actual_compound ?? r.mixing_actual_compound ?? 0),
-      variance: parseFloat(r.variance || 0),
-      chakka: parseFloat(editMap[r.date]?.chakka ?? r.chakka ?? 0),
-      calander_bias_cutt: parseFloat(editMap[r.date]?.calander_bias_cutt ?? r.calander_bias_cutt ?? 0),
-      packing_wastage: parseFloat(editMap[r.date]?.packing_wastage ?? r.packing_wastage ?? 0),
-      tar: parseFloat(editMap[r.date]?.tar ?? r.tar ?? 0),
-    }));
+    const dataRows = exportSortedRows.map(r => {
+      const prodPcs = parseInt(r.production_pcs || 0);
+      const packingPcs = parseInt(editMap[r.date]?.packing_pcs ?? r.packing_pcs ?? 0);
+      const theoKg = parseFloat(r.theoretical_kg || 0);
+      const parchiKg = parseFloat(editMap[r.date]?.parchi_kg ?? r.parchi_kg ?? 0);
+      const diff = Math.round((parchiKg - theoKg) * 100) / 100;
+      const theoComp = parseFloat(r.theoretical_compound || r.theoretical_total_compound || 0);
+      const mixingActual = parseFloat(editMap[r.date]?.mixing_actual_compound ?? r.mixing_actual_compound ?? 0);
+      const variance = Math.round((mixingActual - theoComp) * 100) / 100;
+      const chakka = parseFloat(editMap[r.date]?.chakka ?? r.chakka ?? 0);
+      const calander = parseFloat(editMap[r.date]?.calander_bias_cutt ?? r.calander_bias_cutt ?? 0);
+      const packWaste = parseFloat(editMap[r.date]?.packing_wastage ?? r.packing_wastage ?? 0);
+      const tar = parseFloat(editMap[r.date]?.tar ?? r.tar ?? 0);
+
+      return {
+        date: r.date,
+        production_pcs: prodPcs,
+        packing_pcs: packingPcs,
+        theoretical_kg: theoKg,
+        parchi_kg: parchiKg,
+        difference: diff,
+        theoretical_compound: theoComp,
+        mixing_actual_compound: mixingActual,
+        variance: variance,
+        chakka: chakka,
+        calander_bias_cutt: calander,
+        packing_wastage: packWaste,
+        tar: tar,
+      };
+    });
 
     const totalsObj = {
       date: 'TOTALS',
-      production_pcs: parseInt(totals.production_pcs || 0),
-      packing_pcs: parseInt(totals.packing_pcs || 0),
-      theoretical_kg: parseFloat(totals.theoretical_kg || 0),
-      parchi_kg: parseFloat(totals.parchi_kg || 0),
-      difference: parseFloat(totals.difference || 0),
-      theoretical_compound: parseFloat(totals.theoretical_compound || 0),
-      mixing_actual_compound: parseFloat(totals.mixing_actual_compound || 0),
-      variance: parseFloat(totals.variance || 0),
-      chakka: parseFloat(totals.chakka || 0),
-      calander_bias_cutt: parseFloat(totals.calander_bias_cutt || 0),
-      packing_wastage: parseFloat(totals.packing_wastage || 0),
-      tar: parseFloat(totals.tar || 0),
+      production_pcs: dataRows.reduce((s, r) => s + r.production_pcs, 0),
+      packing_pcs: dataRows.reduce((s, r) => s + r.packing_pcs, 0),
+      theoretical_kg: Math.round(dataRows.reduce((s, r) => s + r.theoretical_kg, 0) * 100) / 100,
+      parchi_kg: Math.round(dataRows.reduce((s, r) => s + r.parchi_kg, 0) * 100) / 100,
+      difference: Math.round(dataRows.reduce((s, r) => s + r.difference, 0) * 100) / 100,
+      theoretical_compound: Math.round(dataRows.reduce((s, r) => s + r.theoretical_compound, 0) * 100) / 100,
+      mixing_actual_compound: Math.round(dataRows.reduce((s, r) => s + r.mixing_actual_compound, 0) * 100) / 100,
+      variance: Math.round(dataRows.reduce((s, r) => s + r.variance, 0) * 100) / 100,
+      chakka: Math.round(dataRows.reduce((s, r) => s + r.chakka, 0) * 100) / 100,
+      calander_bias_cutt: Math.round(dataRows.reduce((s, r) => s + r.calander_bias_cutt, 0) * 100) / 100,
+      packing_wastage: Math.round(dataRows.reduce((s, r) => s + r.packing_wastage, 0) * 100) / 100,
+      tar: Math.round(dataRows.reduce((s, r) => s + r.tar, 0) * 100) / 100,
     };
 
     await exportStyledExcel({
