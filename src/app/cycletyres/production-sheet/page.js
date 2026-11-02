@@ -10,12 +10,20 @@ export default function CycleTyreProductionSheet() {
   const today = new Date().toISOString().split('T')[0];
   const currentMonth = today.slice(0, 7);
   
+  const getPrevMonth = (mStr) => {
+    const d = new Date(mStr + '-01');
+    d.setMonth(d.getMonth() - 1);
+    return d.toISOString().slice(0, 7);
+  };
+  const prevMonth = getPrevMonth(currentMonth);
+
   const [date, setDate] = useState(today);
   const [month, setMonth] = useState(currentMonth);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+  const [hasAutoSwitched, setHasAutoSwitched] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -36,7 +44,15 @@ export default function CycleTyreProductionSheet() {
       url += `month=${month}`;
     }
     const result = await apiGet(url);
-    if (result) setData(result);
+    if (result && result.data && result.data.length > 0) {
+      setData(result);
+    } else if (!hasAutoSwitched && viewMode === 'month' && month === currentMonth) {
+      setHasAutoSwitched(true);
+      setMonth(prevMonth);
+      return;
+    } else {
+      setData(result);
+    }
     setLoading(false);
   }
 

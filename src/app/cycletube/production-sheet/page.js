@@ -8,6 +8,13 @@ export default function CycleTubeProductionSheet() {
   const today = new Date().toISOString().split('T')[0];
   const currentMonth = today.slice(0, 7);
 
+  const getPrevMonth = (mStr) => {
+    const d = new Date(mStr + '-01');
+    d.setMonth(d.getMonth() - 1);
+    return d.toISOString().slice(0, 7);
+  };
+  const prevMonth = getPrevMonth(currentMonth);
+
   const [filterType, setFilterType] = useState('month');
   const [date, setDate] = useState(today);
   const [month, setMonth] = useState(currentMonth);
@@ -15,6 +22,7 @@ export default function CycleTubeProductionSheet() {
   const [totals, setTotals] = useState({ total_qty: 0, total_kgs: 0 });
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [hasAutoSwitched, setHasAutoSwitched] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -24,7 +32,7 @@ export default function CycleTubeProductionSheet() {
     setLoading(true);
     const param = filterType === 'date' ? `date=${date}` : `month=${month}`;
     const res = await apiGet(`/cycletube/production-sheet/?${param}`);
-    if (res && res.data) {
+    if (res && res.data && res.data.length > 0) {
       const rows = res.data.map((item) => {
         const total_qty = Object.values(item.dates_data || {}).reduce(
           (sum, d) => sum + (d.total || 0),
@@ -39,6 +47,11 @@ export default function CycleTubeProductionSheet() {
         total_qty: rows.reduce((s, r) => s + r.total_qty, 0),
         total_kgs: parseFloat(rows.reduce((s, r) => s + r.total_kgs, 0).toFixed(2)),
       });
+    } else if (!hasAutoSwitched && filterType === 'month' && month === currentMonth) {
+      // Auto fallback to previous month on initial load if current month has no data
+      setHasAutoSwitched(true);
+      setMonth(prevMonth);
+      return;
     } else {
       setData([]);
       setTotals({ total_qty: 0, total_kgs: 0 });
@@ -48,10 +61,9 @@ export default function CycleTubeProductionSheet() {
 
   const handleExport = async () => {
     setExporting(true);
-    const param = filterType === 'date' ? `date=${date}` : `month=${month}`;
-    const fileLabel = filterType === 'date' ? date.slice(0, 7) : month;
+    const exportMonth = filterType === 'date' ? date.slice(0, 7) : month;
     try {
-      const res = await apiFetch(`/cycletube/export-production-sheet/?${param}`);
+      const res = await apiFetch(`/cycletube/export-production-sheet/?month=${exportMonth}`);
       if (!res || !res.ok) {
         alert('Export karne mein error aaya.');
         setExporting(false);
@@ -61,7 +73,7 @@ export default function CycleTubeProductionSheet() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `CYCLE_TUBE_PRODUCTION_${fileLabel}.xlsx`;
+      a.download = `CYCLE_TUBE_PRODUCTION_${exportMonth}.xlsx`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -147,7 +159,7 @@ export default function CycleTubeProductionSheet() {
               disabled={exporting}
             >
               <i className="fas fa-file-excel" />{' '}
-              {exporting ? 'Exporting...' : '📊 Export Date-Wise Excel'}
+              {exporting ? 'Exporting...' : `📊 Export ${filterType === 'date' ? date.slice(0, 7) : month} (Excel)`}
             </button>
 
             <button
@@ -159,6 +171,52 @@ export default function CycleTubeProductionSheet() {
             </button>
           </div>
         </div>
+
+        {/* ── Smart notice if period has no entries ── */}
+        {data.length === 0 && !loading && (
+          <div style={{
+            margin: '16px 0',
+            padding: '16px 20px',
+            backgroundColor: '#eff6ff',
+            border: '1px solid #bfdbfe',
+            borderRadius: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <i className="fas fa-info-circle" style={{ color: '#2563eb', fontSize: '1.3rem' }} />
+              <div>
+                <strong style={{ color: '#1e40af', fontSize: '0.95rem' }}>
+                  {filterType === 'date' ? `Tareekh ${date}` : `Mahina ${month}`} mein abhi tak koi production entry nahi mili.
+                </strong>
+                <div style={{ color: '#3b82f6', fontSize: '0.85rem', marginTop: '2px' }}>
+                  Factory ka pichhla production data <strong>October 2026 (2026-10)</strong> mein darj hai.
+                </div>
+              </div>
+            </div>
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                setFilterType('month');
+                setMonth('2026-10');
+              }}
+              style={{
+                backgroundColor: '#2563eb',
+                color: 'white',
+                fontWeight: 600,
+                padding: '8px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              👉 October 2026 Dekhein
+            </button>
+          </div>
+        )}
 
         {/* ── Table ── */}
         {loading ? (

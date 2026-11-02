@@ -9,12 +9,20 @@ export default function ProductionSheet() {
   const today = new Date().toISOString().split('T')[0];
   const currentMonth = today.slice(0, 7);
   
+  const getPrevMonth = (mStr) => {
+    const d = new Date(mStr + '-01');
+    d.setMonth(d.getMonth() - 1);
+    return d.toISOString().slice(0, 7);
+  };
+  const prevMonth = getPrevMonth(currentMonth);
+
   const [date, setDate] = useState(today);
   const [month, setMonth] = useState(currentMonth);
   const [page, setPage] = useState(1);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [hasAutoSwitched, setHasAutoSwitched] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -29,7 +37,16 @@ export default function ProductionSheet() {
       url += `&month=${month}`;
     }
     const result = await apiGet(url);
-    if (result) setData(result);
+    if (result && result.data && result.data.length > 0) {
+      setData(result);
+    } else if (!hasAutoSwitched && ((viewMode === 'month' && month === currentMonth) || (viewMode === 'date' && date === today))) {
+      setHasAutoSwitched(true);
+      setViewMode('month');
+      setMonth(prevMonth);
+      return;
+    } else {
+      setData(result);
+    }
     setLoading(false);
   }
 
