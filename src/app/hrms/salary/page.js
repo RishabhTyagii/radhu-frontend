@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Navbar from '@/components/Navbar';
-import { apiGet, apiPost } from '@/lib/api';
+import { apiGet, apiPost, apiFetch } from '@/lib/api';
 
 /* ---------------------------------------------------------------------------
    Helpers
@@ -418,6 +418,33 @@ export default function HRMSSalary() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [downloadingExcel, setDownloadingExcel] = useState(false);
+
+  const handleDownloadCyclePressExcel = async () => {
+    try {
+      setDownloadingExcel(true);
+      const res = await apiFetch(`/hrms/production/export-cycle-press-excel/?month=${selectedMonth}`);
+      if (!res || !res.ok) {
+        alert('Failed to download Cycle Press Excel file. Please try again.');
+        setDownloadingExcel(false);
+        return;
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Cycle_Press_Production_${selectedMonth}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download error:', err);
+      alert('Error downloading Excel file');
+    } finally {
+      setDownloadingExcel(false);
+    }
+  };
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
   const [selectedSlip, setSelectedSlip] = useState(null);
 
@@ -549,6 +576,14 @@ export default function HRMSSalary() {
             />
             <button onClick={handleGenerate} className="hr-btn hr-btn-primary" disabled={generating}>
               {generating ? 'Calculating…' : '⚡ Generate / Recalculate'}
+            </button>
+            <button
+              onClick={handleDownloadCyclePressExcel}
+              className="hr-btn"
+              style={{ background: downloadingExcel ? '#94a3b8' : '#10b981', color: '#fff', border: 'none', fontWeight: 700 }}
+              disabled={downloadingExcel}
+            >
+              {downloadingExcel ? 'Downloading…' : '📊 Cycle Press Excel'}
             </button>
           </div>
         </div>

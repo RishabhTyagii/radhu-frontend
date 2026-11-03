@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import Navbar from '@/components/Navbar';
-import { apiGet, apiPost, apiDelete } from '@/lib/api';
+import { apiGet, apiPost, apiDelete, apiFetch } from '@/lib/api';
 
 const CHAKKA_ITEMS = ['RICK TYRE CTC', 'CYCLE TYRE CTC', 'RICK TYRE NYL', 'CYCLE TYRE NYL'];
 
@@ -133,6 +133,35 @@ export default function HRMSProduction() {
     if (res && res.ok) fetchAll();
   };
 
+  const [exportMonth, setExportMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownloadCyclePressExcel = async () => {
+    try {
+      setDownloading(true);
+      const res = await apiFetch(`/hrms/production/export-cycle-press-excel/?month=${exportMonth}`);
+      if (!res || !res.ok) {
+        alert('Failed to download Cycle Press Excel file. Please try again.');
+        setDownloading(false);
+        return;
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Cycle_Press_Production_${exportMonth}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download error:', err);
+      alert('Error downloading Excel file');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const total = ((Number(form.quantity) || 0) * (Number(form.rate) || 0)).toFixed(2);
 
   return (
@@ -140,9 +169,42 @@ export default function HRMSProduction() {
       <Navbar />
       <div className="container">
 
-        <div style={{ marginBottom: '24px' }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a' }}>Worker Piece-Rate Production</h1>
-          <p style={{ color: '#64748b', fontSize: '0.875rem' }}>Record daily piece-rate output for factory workers.</p>
+        <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', background: '#fff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+          <div>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Worker Piece-Rate Production</h1>
+            <p style={{ color: '#64748b', fontSize: '0.875rem', margin: '4px 0 0' }}>Record daily piece-rate output for factory workers.</p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#475569' }}>Cycle Press Excel:</span>
+            <input
+              type="month"
+              value={exportMonth}
+              onChange={(e) => setExportMonth(e.target.value)}
+              style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.88rem', fontWeight: 600, outline: 'none', background: '#f8fafc' }}
+            />
+            <button
+              type="button"
+              onClick={handleDownloadCyclePressExcel}
+              disabled={downloading}
+              style={{
+                background: downloading ? '#94a3b8' : '#10b981',
+                color: '#fff',
+                border: 'none',
+                padding: '9px 18px',
+                borderRadius: '8px',
+                fontWeight: 700,
+                fontSize: '0.88rem',
+                cursor: downloading ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 2px 6px rgba(16,185,129,0.25)'
+              }}
+            >
+              <span>📊</span>
+              {downloading ? 'Downloading...' : 'Export Excel (All Workers)'}
+            </button>
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.8fr)', gap: '24px' }}>
