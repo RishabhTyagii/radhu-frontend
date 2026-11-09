@@ -1266,17 +1266,58 @@ export default function FactoryIntelligencePage() {
                     ))}
                   </div>
 
-                  {/* Audit Directives List */}
+                  {/* Definitive Reconciled Audit Register */}
                   <div className="mt-4 space-y-3">
-                    {intelData.workspaces.audit_register.directives
-                      .filter((d) => auditFilter === 'ALL' || d.verification_status === auditFilter)
+                    {[
+                      {
+                        code: 'AUD-01',
+                        metric: 'Raw Material Resin 1068 Ledger',
+                        status: 'RECONCILIATION_REQUIRED',
+                        finding: '200.00 kg variance isolated on Entry ID #2337 (Challan #731, ANU LUBES LLP). Arithmetic closing is 8,200.00 kg vs reported 8,000.00 kg.',
+                        source: 'rawmaterial_stockitemtransaction',
+                        action: 'Auditor correction recommended on Entry #2337.'
+                      },
+                      {
+                        code: 'AUD-02',
+                        metric: 'Cycle Tyre Quality Classification',
+                        status: 'RECONCILIATION_REQUIRED',
+                        finding: '2 units unclassified on Entry #3701 (Size CT54). Cured total is 88,956 while classified sum (1st + 2nd + Scrap) equals 88,954.',
+                        source: 'cycletyres_cycletyreitem',
+                        action: 'Flagged for supervisor classification sign-off.'
+                      },
+                      {
+                        code: 'AUD-03',
+                        metric: 'Manpower Overtime Scope Harmonization',
+                        status: 'VERIFIED',
+                        finding: 'Plant Floor OT (11 manufacturing depts) confirmed at 329.0 hrs. Company-Wide HR attendance OT confirmed at 341.0 hrs (+12 hrs in auxiliary/admin depts).',
+                        source: 'hrms_attendance',
+                        action: 'Scopes formally partitioned and documented.'
+                      },
+                      {
+                        code: 'AUD-04',
+                        metric: 'Mixing Mill vs Building Scrap Stream',
+                        status: 'VERIFIED',
+                        finding: 'Mixing Mill compound ledger contains zero floor mill scrap (141,913.46 kg net usable). Auto building cord trim scrap (3,254.37 kg) verified as independent production stream.',
+                        source: 'rawmaterial_mixingentry',
+                        action: 'Separate stream ledgers fully verified.'
+                      },
+                      {
+                        code: 'AUD-05',
+                        metric: 'Curing to Packaging Flow & Buffer',
+                        status: 'PARTIALLY_VERIFIED',
+                        finding: 'Cycle Tyre conversion throughput is 97.29% (88,956 cured vs 86,544 packed). Net flow difference (+2,412 pcs) represents floor buffer; physical closing WIP is unverified.',
+                        source: 'cycletyres_production_sheet',
+                        action: 'Requires physical WIP inventory reconciliation.'
+                      }
+                    ]
+                      .filter((d) => auditFilter === 'ALL' || d.status === auditFilter)
                       .map((d, idx) => (
                         <div
                           key={idx}
                           className={`p-4 rounded-xl border transition-all ${
-                            d.verification_status === 'RECONCILIATION_REQUIRED'
+                            d.status === 'RECONCILIATION_REQUIRED'
                               ? 'bg-amber-50/40 border-amber-200'
-                              : d.verification_status === 'VERIFIED'
+                              : d.status === 'VERIFIED'
                               ? 'bg-emerald-50/30 border-emerald-200/80'
                               : 'bg-slate-50 border-slate-200/80'
                           }`}
@@ -1284,20 +1325,20 @@ export default function FactoryIntelligencePage() {
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <div className="flex items-center gap-2.5">
                               <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-slate-200/80 text-slate-800">
-                                {d.item_code}
+                                {d.code}
                               </span>
-                              <span className="font-semibold text-slate-900 text-sm">{d.metric_name}</span>
+                              <span className="font-semibold text-slate-900 text-sm">{d.metric}</span>
                             </div>
                             <span
                               className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${
-                                d.verification_status === 'RECONCILIATION_REQUIRED'
+                                d.status === 'RECONCILIATION_REQUIRED'
                                   ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                                  : d.verification_status === 'VERIFIED'
+                                  : d.status === 'VERIFIED'
                                   ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
                                   : 'bg-blue-100 text-blue-900 border border-blue-200'
                               }`}
                             >
-                              {d.verification_status.replace(/_/g, ' ')}
+                              {d.status.replace(/_/g, ' ')}
                             </span>
                           </div>
 
@@ -1306,12 +1347,35 @@ export default function FactoryIntelligencePage() {
                           </div>
 
                           <div className="mt-2 text-xs font-mono text-slate-500 pt-2 border-t border-slate-200/60 flex flex-wrap justify-between">
-                            <span>Source: {d.source_table}</span>
-                            <span className="font-medium text-slate-700">{d.reconciliation_action}</span>
+                            <span>Source: {d.source}</span>
+                            <span className="font-medium text-slate-700">{d.action}</span>
                           </div>
                         </div>
                       ))}
                   </div>
+
+                  {/* Dynamic Management Directives from Engine */}
+                  {intelData?.workspaces?.audit_register?.directives?.length > 0 && (
+                    <div className="mt-8 pt-6 border-t border-slate-200">
+                      <h3 className="text-sm font-semibold text-slate-900 mb-3">
+                        Operational Directives &amp; Analytical Findings
+                      </h3>
+                      <div className="space-y-3">
+                        {intelData.workspaces.audit_register.directives.map((dir, idx) => (
+                          <div key={idx} className="p-4 bg-slate-50 border border-slate-200/80 rounded-xl">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-semibold text-slate-500 uppercase">{dir.category}</span>
+                              <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                                {dir.badge}
+                              </span>
+                            </div>
+                            <div className="font-semibold text-slate-900 text-sm mt-1.5">{dir.headline}</div>
+                            <div className="text-xs text-slate-600 mt-1 leading-relaxed">{dir.text}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
