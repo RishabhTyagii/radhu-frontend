@@ -26,7 +26,8 @@ export async function getCSRFToken() {
 }
 
 export async function apiFetch(endpoint, options = {}) {
-  const url = `${API_BASE}${endpoint}`;
+  const cleanEndpoint = endpoint.startsWith("/api/") ? endpoint.slice(4) : endpoint;
+  const url = `${API_BASE}${cleanEndpoint}`;
   const method = options.method || 'GET';
   
   const isFormData = options.body instanceof FormData;

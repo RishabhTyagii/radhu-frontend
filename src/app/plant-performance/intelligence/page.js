@@ -59,7 +59,7 @@ export default function FactoryIntelligencePage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiGet(`/api/plant-performance/intelligence/?month=${selectedMonth}`);
+      const res = await apiGet(`/plant-performance/intelligence/?month=${selectedMonth}`);
       if (res && res.status === 'success') {
         setIntelData(res.data);
       } else {
