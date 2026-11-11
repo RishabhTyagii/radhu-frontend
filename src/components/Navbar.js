@@ -107,6 +107,7 @@ export default function Navbar() {
     { name: 'Entries', path: '/cycletyres/entries', icon: 'fas fa-history', key: 'cycletyre_entries_log' },
     { name: 'Transactions', path: '/cycletyres/transactions', icon: 'fas fa-exchange-alt', color: '#6366f1', key: 'cycletyre_dashboard' },
     { name: 'Report', path: '/cycletyres/report', icon: 'fas fa-chart-bar', key: 'cycletyre_monthly_report' },
+    { name: 'Breakdown', path: '/cycletyres/breakdown', icon: 'fas fa-th-large', color: '#0ea5e9', key: 'cycletyre_category_breakdown' },
     { name: 'Summary', path: '/cycletyres/summary', icon: 'fas fa-list-alt', color: '#14b8a6', key: 'cycletyre_daily_summary' },
     { name: 'Sheet', path: '/cycletyres/production-sheet', icon: 'fas fa-file-alt', key: 'cycletyre_production_sheet' },
     { name: 'Add Tyre', path: '/cycletyres/add-item', icon: 'fas fa-plus-circle', key: 'cycletyre_add_item' },
